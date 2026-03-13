@@ -4,36 +4,54 @@ const apiKey = process.env.GEMINI_API_KEY!;
 const genAI = new GoogleGenerativeAI(apiKey);
 
 export async function extractTenderData(pdfText: string) {
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+  // Pre-process text: Strip Hindi characters to clean up the table format 
+  // (Range \u0900-\u097F covers Devanagari/Hindi)
+  const cleanedText = pdfText
+    .replace(/[\u0900-\u097F]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .substring(0, 30000);
 
   const prompt = `
-    You are an expert Procurement Analyst. Your task is to extract HIGHLY ACCURATE structured information from a Government e-Marketplace (GeM) Bid Document (PDF text). 
-    
-    IMPORTANT: The PDF text is the single source of truth. Extract the REAL Tender Title, Department, and all other fields from the text below.
+    You are an expert Procurement Analyst. Extract HIGHLY ACCURATE structured information from this GeM Bid Document.
+    The document contains a table of "Bid Details". Extract the text precisely as it appears in the English side of the labels.
 
     Output Schema (JSON):
     {
-      "tender_title": "string (The official name of the procurement/item as stated in the PDF)",
-      "department_name": "string (The organization/ministry name)",
+      "tender_title": "string (The official name of the procurement/Item Category)",
+      "authority": {
+        "ministry": "string",
+        "department": "string",
+        "organisation": "string",
+        "office": "string",
+        "state": "string (The State name, e.g. Gujarat, Delhi, etc.)",
+        "city": "string (The City name extracted from Office/Address)"
+      },
       "emd_amount": number,
+      "bid_opening_date": "ISO-8601",
+      "relaxations": {
+        "mse_experience": "string (Yes/No | Details)",
+        "mse_turnover": "string (Yes/No | Details)",
+        "startup_experience": "string (Yes/No | Details)",
+        "startup_turnover": "string (Yes/No | Details)"
+      },
+      "documents_required": ["string list"],
       "eligibility": {
         "msme": boolean,
-        "mii": boolean,
-        "total_annual_turnover": number
+        "mii": boolean
       },
-      "technical_summary": "string (detailed bullet points of what is being procured)",
-      "evaluation_method": "string (e.g., Total Value, Item Wise, RA, etc.)",
-      "critical_dates": {
-        "bid_opening": "ISO-8601",
-        "bid_end": "ISO-8601"
-      }
+      "technical_summary": "string",
+      "evaluation_method": "string"
     }
 
     Document Text Content:
-    ${pdfText.substring(0, 40000)} // Using more context for accuracy
+    ${cleanedText}
   `;
 
   try {
+    console.log(`>>> [AI] Calling Gemini (Model: gemini-1.5-flash)...`);
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
@@ -41,8 +59,8 @@ export async function extractTenderData(pdfText: string) {
     // Clean JSON markdown if present
     const cleanJson = text.replace(/```json|```/g, "").trim();
     return JSON.parse(cleanJson);
-  } catch (error) {
-    console.error("Gemini AI Extraction Error:", error);
+  } catch (error: any) {
+    console.warn(`>>> [AI] Gemini Error: ${error.message} - ${error.status || ''}`);
     return null;
   }
 }

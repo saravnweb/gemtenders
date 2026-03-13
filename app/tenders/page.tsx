@@ -1,88 +1,88 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { Search, Download, Clock, Zap, Bookmark, Info } from "lucide-react";
+import { Search, Download, Clock, Zap, FileText, Bookmark, Info, RefreshCw, MapPin } from "lucide-react";
 import Link from "next/link";
 
-const EXEC_ID = Math.random().toString(36).substring(7);
-
 export default function TendersPage() {
-  console.log(`>>> [CRITICAL DEBUG] TendersPage EXEC_ID: ${EXEC_ID} | URL: ${typeof window !== 'undefined' ? window.location.href : 'SSR'}`);
   const [tenders, setTenders] = useState<any[]>([]);
-  const [filteredTenders, setFilteredTenders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [sortBy, setSortBy] = useState("newest");
-  const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filteredTenders, setFilteredTenders] = useState<any[]>([]);
 
   useEffect(() => {
-    async function fetchTenders() {
-      setLoading(true);
-      setError(null);
-      try {
-        const { data, error } = await supabase
-          .from("tenders")
-          .select("*")
-          .order("created_at", { ascending: false });
-
-        if (error) {
-          console.error("Supabase Error:", error);
-          setError(error.message);
-        } else if (data) {
-          setTenders(data);
-          setFilteredTenders(data);
-        }
-      } catch (err: any) {
-        console.error("Fetch Error:", err);
-        setError(err.message);
-      }
-      setLoading(false);
-    }
     fetchTenders();
   }, []);
 
   useEffect(() => {
-    let result = tenders.filter((t) => {
-      const searchStr = `${t.title} ${t.bid_number} ${t.department} ${t.ai_summary || ""}`.toLowerCase();
-      return searchStr.includes(searchTerm.toLowerCase());
-    });
-
-    if (sortBy === "closing") {
-      result.sort((a, b) => new Date(a.end_date).getTime() - new Date(b.end_date).getTime());
-    } else {
-      result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    if (!searchQuery.trim()) {
+      setFilteredTenders(tenders);
+      return;
     }
 
-    setFilteredTenders(result);
-  }, [searchTerm, tenders, sortBy]);
+    const query = searchQuery.toLowerCase();
+    const filtered = tenders.filter(t => 
+      t.title?.toLowerCase().includes(query) || 
+      t.bid_number?.toLowerCase().includes(query) ||
+      t.department?.toLowerCase().includes(query) ||
+      t.ministry_name?.toLowerCase().includes(query) ||
+      t.department_name?.toLowerCase().includes(query) ||
+      t.organisation_name?.toLowerCase().includes(query) ||
+      t.office_name?.toLowerCase().includes(query) ||
+      t.state?.toLowerCase().includes(query) ||
+      t.city?.toLowerCase().includes(query) ||
+      t.ai_summary?.toLowerCase().includes(query)
+    );
+    setFilteredTenders(filtered);
+  }, [searchQuery, tenders]);
+
+  async function fetchTenders() {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("tenders")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (!error && data) {
+      setTenders(data);
+      setFilteredTenders(data);
+    }
+    setLoading(false);
+  }
 
   return (
-    <div className="min-h-screen bg-white text-gray-900 font-sans">
+    <div className="min-h-screen bg-fresh-sky-50 text-fresh-sky-900 font-sans dark:bg-fresh-sky-950 dark:text-white">
       {/* Header */}
-      <header className="border-b border-gray-100 bg-white/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+      <header className="border-b border-fresh-sky-100 bg-white/80 backdrop-blur-md sticky top-0 z-50 dark:bg-fresh-sky-900/80 dark:border-fresh-sky-800">
+        <div className="max-w-7xl mx-auto px-4 py-2 sm:py-4 flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center">
-              <Zap className="w-5 h-5 text-white" />
-            </div>
-            <h1 className="text-xl font-bold tracking-tight text-gray-900">GeM Watch <span className="text-[8px] text-emerald-400">V2.1</span></h1>
+            <Link href="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
+              <div className="w-8 h-8 bg-atomic-tangerine-500 rounded-lg flex items-center justify-center shadow-lg shadow-atomic-tangerine-200 dark:shadow-none">
+                <Zap className="w-5 h-5 text-white" />
+              </div>
+              <h1 className="text-xl font-bold tracking-tight text-fresh-sky-900 dark:text-white hidden sm:block">
+                <span className="text-atomic-tangerine-600">GeM</span> Watch
+              </h1>
+            </Link>
           </div>
           
           <div className="relative max-w-md w-full ml-8 hidden sm:block">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-fresh-sky-400" />
             <input 
               type="text" 
-              placeholder="Search by bid number, work name, or department..." 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-gray-50 border-none rounded-full py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none"
+              placeholder="Search by bid, title, or department..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-fresh-sky-100 dark:bg-fresh-sky-800 border-none rounded-full py-2.5 pl-10 pr-4 text-sm focus:ring-2 focus:ring-atomic-tangerine-500/20 transition-all outline-none"
             />
           </div>
 
           <div className="flex items-center space-x-4">
-            <button className="text-sm font-medium text-gray-600 hover:text-emerald-600 transition-colors">Sign In</button>
-            <button className="bg-emerald-600 text-white text-sm font-semibold px-4 py-2 rounded-full hover:bg-emerald-700 transition-all shadow-sm shadow-emerald-200">
+             <Link href="/admin" className="text-sm font-bold text-atomic-tangerine-600 px-4 py-2 rounded-full border border-atomic-tangerine-100 hover:bg-atomic-tangerine-50 transition-all dark:border-atomic-tangerine-900 dark:hover:bg-atomic-tangerine-900/20">
+                Admin
+             </Link>
+            <button className="bg-atomic-tangerine-600 text-white text-sm font-bold px-5 py-2.5 rounded-full hover:bg-atomic-tangerine-700 transition-all shadow-lg shadow-atomic-tangerine-200 active:scale-95 dark:shadow-none">
               Get Alerts
             </button>
           </div>
@@ -90,59 +90,70 @@ export default function TendersPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 space-y-4 md:space-y-0 text-center md:text-left">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-10">
+        <div className="hidden sm:flex flex-col md:flex-row md:items-center justify-between mb-12 space-y-4 md:space-y-0">
           <div>
-            <h2 className="text-3xl font-extrabold tracking-tight text-gray-900">Explore Active Tenders</h2>
-            <p className="mt-2 text-gray-500">Real-time data from Indian Government e-Marketplace, summarized by AI.</p>
+            <div className="inline-flex items-center space-x-2 bg-muted-olive-50 text-muted-olive-700 dark:bg-muted-olive-900/30 dark:text-muted-olive-400 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest mb-3">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-muted-olive-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-muted-olive-500"></span>
+              </span>
+              <span>Live Updates</span>
+            </div>
+            <h2 className="text-4xl font-black tracking-tight text-fresh-sky-900 dark:text-white">Explore Active Tenders</h2>
+            <p className="mt-2 text-fresh-sky-600 dark:text-fresh-sky-300 text-lg">Real-time data from GeM portal, enhanced with AI summaries.</p>
           </div>
-          <div className="flex items-center justify-center space-x-2">
-            <span className="text-sm text-gray-400">Sort by:</span>
-            <select 
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="text-sm font-medium bg-transparent border-none outline-none focus:ring-0 cursor-pointer"
+          
+          <div className="hidden sm:flex items-center space-x-4">
+            <button 
+              onClick={fetchTenders}
+              className="p-3 bg-white dark:bg-fresh-sky-900 rounded-2xl text-fresh-sky-400 hover:text-atomic-tangerine-600 hover:bg-atomic-tangerine-50 transition-all border border-fresh-sky-100 dark:border-fresh-sky-800"
+              title="Refresh List"
             >
-              <option value="closing">Closing Soonest</option>
-              <option value="newest">Recently Published</option>
-            </select>
+              <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+            </button>
+            <div className="flex items-center bg-white dark:bg-fresh-sky-900 px-4 py-2 rounded-2xl border border-fresh-sky-100 dark:border-fresh-sky-800 shadow-sm">
+                <span className="text-xs text-fresh-sky-400 mr-2 font-bold uppercase">Sort:</span>
+                <select className="text-xs font-bold bg-transparent border-none outline-none focus:ring-0 cursor-pointer text-fresh-sky-700 dark:text-fresh-sky-200">
+                    <option>Newest First</option>
+                    <option>Ending Soon</option>
+                </select>
+            </div>
           </div>
         </div>
 
-        {/* Debug Info */}
-        <div className="mb-4 text-[10px] text-gray-300 font-mono">
-           Supabase URL: {process.env.NEXT_PUBLIC_SUPABASE_URL || "MISSING"} | 
-           Mode: Client | 
-           Tenders Count: {tenders.length} |
-           Filtered: {filteredTenders.length}
+        {/* Search for mobile */}
+        <div className="relative w-full mb-4 sm:hidden">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-fresh-sky-400" />
+            <input 
+              type="text" 
+              placeholder="Search tenders..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-white border border-fresh-sky-200 rounded-xl py-2.5 pl-10 pr-4 text-sm focus:ring-2 focus:ring-atomic-tangerine-500/20 transition-all outline-none"
+            />
         </div>
 
-        {/* Error State */}
-        {error && (
-          <div className="mb-8 p-4 bg-red-50 border border-red-100 rounded-3xl text-red-600 flex items-center space-x-3">
-             <div className="w-10 h-10 bg-red-100 rounded-2xl flex items-center justify-center flex-shrink-0">
-                <Zap className="w-5 h-5 text-red-600 rotate-180" />
-             </div>
-             <div>
-                <p className="text-sm font-bold">Database Connection Error</p>
-                <p className="text-xs opacity-80">{error}</p>
-             </div>
-          </div>
-        )}
-
-        {/* Loading State */}
+        {/* Tender Grid */}
         {loading ? (
-          <div className="flex justify-center items-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
-          </div>
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[1,2,3,4,5,6].map(i => (
+                    <div key={i} className="h-80 bg-white/50 dark:bg-fresh-sky-900/50 rounded-3xl animate-pulse" />
+                ))}
+             </div>
         ) : filteredTenders.length === 0 ? (
-          <div className="text-center py-20 border-2 border-dashed border-gray-100 rounded-3xl">
-            <h3 className="text-lg font-medium text-gray-400">
-              {searchTerm ? `No results found for "${searchTerm}"` : "No tenders indexed yet. Try triggering the scraper from the Admin dashboard."}
-            </h3>
+          <div className="text-center py-24 border-4 border-dotted border-fresh-sky-100 dark:border-fresh-sky-800 rounded-[3rem] flex flex-col items-center">
+            <div className="w-20 h-20 bg-white dark:bg-fresh-sky-900 rounded-full flex items-center justify-center mb-6 shadow-sm">
+                <Search className="w-10 h-10 text-fresh-sky-200" />
+            </div>
+            <h3 className="text-2xl font-bold text-fresh-sky-400">No matching tenders found.</h3>
+            <p className="text-fresh-sky-400 mt-2">Try adjusting your search or trigger a new scrape in the admin.</p>
+            <Link href="/admin" className="mt-8 bg-atomic-tangerine-600 text-white font-bold px-8 py-3 rounded-2xl shadow-xl shadow-atomic-tangerine-200 hover:scale-105 transition-all">
+                Go to Admin
+            </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 ms:gap-8">
             {filteredTenders.map((tender) => (
               <TenderCard key={tender.id} tender={tender} />
             ))}
@@ -154,94 +165,112 @@ export default function TendersPage() {
 }
 
 function TenderCard({ tender }: { tender: any }) {
+  const [isExpanded, setIsExpanded] = useState(false);
   const isClosingSoon = new Date(tender.end_date).getTime() - Date.now() < 86400000;
-  const formattedEMD = tender.emd_amount 
-    ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(tender.emd_amount)
-    : "N/A";
+  const formattedEMD = tender.emd_amount === 0
+    ? "No"
+    : tender.emd_amount 
+      ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(tender.emd_amount)
+      : "N/A";
+
+  const bidId = tender.bid_number?.replace(/\//g, "/");
 
   return (
-    <div className="group bg-white border border-gray-100 rounded-3xl p-6 transition-all duration-300 hover:border-emerald-100 hover:shadow-2xl hover:shadow-emerald-500/5 flex flex-col h-full relative overflow-hidden">
-      {/* Background Accent */}
-      <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50/30 rounded-full -mr-16 -mt-16 blur-3xl group-hover:bg-emerald-100/40 transition-colors duration-500" />
+    <div className="group bg-white dark:bg-fresh-sky-900/20 border border-fresh-sky-100 dark:border-fresh-sky-800 rounded-2xl p-4 transition-all duration-300 hover:border-atomic-tangerine-200 dark:hover:border-atomic-tangerine-800 hover:shadow-xl hover:shadow-fresh-sky-200/20 dark:hover:shadow-none flex flex-col h-full relative overflow-hidden">
       
-      {/* Top Section: Organization & Meta */}
-      <div className="flex items-start justify-between mb-4 relative">
-        <div className="flex flex-col">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md mb-1 w-fit">
-            {tender.department}
-          </span>
-          <span className="text-[10px] font-mono text-gray-400">{tender.bid_number}</span>
-        </div>
-        <button className="p-2 text-gray-300 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all" title="Save Tender">
-          <Bookmark className="w-5 h-5" />
-        </button>
-      </div>
-
-      {/* Middle Section: Title & Summary */}
-      <Link href={`/tenders/${tender.slug}`} className="grow group-hover:no-underline relative">
-        <h3 className="text-lg font-bold text-gray-900 leading-tight mb-3 group-hover:text-emerald-700 transition-colors">
-          {tender.title}
-        </h3>
-        
-        {tender.ai_summary && (
-          <div className="text-sm text-gray-600 line-clamp-2 mb-4 bg-gray-50/50 p-3 rounded-2xl border border-gray-50 text-balance italic font-medium">
-            "{tender.ai_summary}"
-          </div>
-        )}
-
-        {/* Info Grid */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div className="flex flex-col">
-            <span className="text-[10px] text-gray-400 uppercase font-bold tracking-tight mb-1">EMD Amount</span>
-            <span className="text-sm font-bold text-gray-800">{formattedEMD}</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-[10px] text-gray-400 uppercase font-bold tracking-tight mb-1">Status</span>
-            <div className="flex items-center">
-               <span className="w-2 h-2 rounded-full bg-emerald-500 mr-2 animate-pulse" />
-               <span className="text-xs font-semibold text-emerald-700">Active</span>
-            </div>
-          </div>
-        </div>
-      </Link>
-
-      {/* Tags Section */}
-      <div className="flex flex-wrap gap-2 mb-6">
-        <span className="text-[9px] font-bold px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">GeM</span>
-        {tender.eligibility_msme && <span className="text-[9px] font-bold px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full border border-blue-100">MSME</span>}
-        {tender.eligibility_mii && <span className="text-[9px] font-bold px-2 py-0.5 bg-orange-50 text-orange-600 rounded-full border border-orange-100">MII</span>}
-      </div>
-
-      {/* Footer: Date & Actions */}
-      <div className="mt-auto pt-4 border-t border-gray-50 flex items-center justify-between">
-        <div className="flex flex-col">
-          <span className="text-[10px] text-gray-400 uppercase font-bold tracking-tight mb-1">Closes on</span>
-          <div className={`flex items-center text-xs font-semibold ${isClosingSoon ? 'text-red-600' : 'text-gray-700'}`}>
-            <Clock className="w-3 h-3 mr-1" />
-            {new Date(tender.end_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-          </div>
-        </div>
-        
-        <div className="flex items-center space-x-2">
-          {tender.pdf_url && (
-            <a 
-              href={tender.pdf_url} 
-              target="_blank" 
-              className="p-2.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-2xl transition-all border border-transparent hover:border-emerald-100"
-              title="Download PDF"
-            >
-              <Download className="w-5 h-5" />
-            </a>
-          )}
-          <Link 
-            href={`/tenders/${tender.slug}`}
-            className="flex items-center space-x-2 text-xs font-bold text-emerald-600 bg-emerald-50 px-5 py-2.5 rounded-2xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm shadow-emerald-100 hover:shadow-emerald-200"
+      {/* 1st Row: Title as a Stretched Link */}
+      <div className="mb-2">
+        <Link 
+          href={`/tenders/${tender.slug}`}
+          className="hover:no-underline group/title focus:outline-none"
+        >
+          <h3 className={`text-[14px] sm:text-[15px] font-bold text-fresh-sky-900 dark:text-white leading-snug transition-all group-hover/title:text-atomic-tangerine-600 after:absolute after:inset-0 after:z-0 ${isExpanded ? '' : 'line-clamp-2'}`}>
+            {tender.title}
+          </h3>
+        </Link>
+        {tender.title && tender.title.length > 60 && (
+          <button 
+            onClick={(e) => { 
+                e.preventDefault(); 
+                e.stopPropagation(); 
+                setIsExpanded(!isExpanded); 
+            }}
+            className="text-[11px] font-bold text-atomic-tangerine-600 mt-1 hover:text-atomic-tangerine-700 flex items-center relative z-10"
           >
-            <Info className="w-4 h-4" />
-            <span>View Bid</span>
-          </Link>
+            {isExpanded ? "... Less" : "... More"}
+          </button>
+        )}
+      </div>
+
+      {/* Authority & Meta Info */}
+      <div className="relative z-10 pointer-events-none">
+        {/* 2nd Row: Dept Name */}
+        <div className="mb-3">
+            <span className="text-[11px] sm:text-[12px] font-black text-fresh-sky-700 dark:text-fresh-sky-300 uppercase tracking-tight leading-tight block">
+            {tender.department}
+            </span>
         </div>
+
+        {/* 3rd Row: Meta Info (Location & Bid ID) */}
+        <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-wrap items-center text-[10px] sm:text-[11px] text-fresh-sky-500 dark:text-fresh-sky-400 font-medium space-x-2 gap-y-1">
+            <div className="flex items-center">
+            <MapPin className="w-3 h-3 mr-1 text-fresh-sky-300" />
+            <span className="truncate max-w-[150px]">
+              {tender.city && tender.state ? `${tender.city}, ${tender.state}` : (tender.city || tender.state || tender.location || "N/A")}
+            </span>
+          </div>
+            <span className="text-fresh-sky-100 dark:text-fresh-sky-800">|</span>
+            <span className="font-mono text-[10px] text-fresh-sky-300">{bidId}</span>
+            </div>
+            <span className="text-[9px] font-black px-1.5 py-0.5 bg-atomic-tangerine-50 text-atomic-tangerine-600 dark:bg-atomic-tangerine-900 dark:text-atomic-tangerine-300 rounded uppercase tracking-widest">GeM</span>
+        </div>
+      </div>
+
+      {/* 4th Row: Value Row */}
+      <div className="flex items-center justify-between py-2 border-y border-fresh-sky-50 dark:border-fresh-sky-800 mb-4 bg-fresh-sky-50/50 dark:bg-fresh-sky-900/40 -mx-4 px-4 overflow-x-hidden relative z-10 pointer-events-none text-nowrap">
+        <div className="flex flex-col">
+          <div className="flex items-center space-x-1 mb-0.5">
+            <Clock className="w-2.5 h-2.5 text-fresh-sky-400" />
+            <span className="text-[8px] text-fresh-sky-400 uppercase font-black tracking-widest">Closing Date</span>
+          </div>
+          <span className={`text-[12px] font-black ${isClosingSoon ? 'text-atomic-tangerine-500' : 'text-fresh-sky-900 dark:text-white'}`}>
+            {new Date(tender.end_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+          </span>
+        </div>
+        <div className="flex flex-col text-right">
+          <div className="flex items-center justify-end space-x-1 mb-0.5">
+            <span className="text-[8px] text-fresh-sky-400 uppercase font-black tracking-widest">EMD Amount</span>
+          </div>
+          <span className="text-[12px] font-black text-fresh-sky-900 dark:text-white uppercase">{formattedEMD}</span>
+        </div>
+      </div>
+
+      {/* 5th Row: Action Row */}
+      <div className="flex gap-2.5 mt-auto relative z-20">
+        {tender.pdf_url && (
+          <a 
+            href={tender.pdf_url} 
+            target="_blank"
+            onClick={(e) => e.stopPropagation()}
+            className="flex-1 h-9 sm:h-10 rounded-xl bg-atomic-tangerine-600 text-white text-[11px] sm:text-[12px] font-bold flex items-center justify-center space-x-2 shadow-sm shadow-atomic-tangerine-100 dark:shadow-none hover:bg-atomic-tangerine-700 active:scale-[0.98] transition-all"
+          >
+            <Download className="w-4 h-4" />
+            <span>Download</span>
+          </a>
+        )}
+        <button 
+          onClick={(e) => e.stopPropagation()}
+          className="flex-1 h-9 sm:h-10 rounded-xl border border-fresh-sky-200 dark:border-fresh-sky-700 text-[11px] sm:text-[12px] font-bold text-fresh-sky-600 dark:text-fresh-sky-300 flex items-center justify-center space-x-2 bg-white dark:bg-fresh-sky-800 active:bg-fresh-sky-100 transition-colors"
+        >
+           <Bookmark className="w-4 h-4" />
+           <span>Save</span>
+        </button>
       </div>
     </div>
   );
+}
+
+function Option({ children, value }: { children: React.ReactNode, value: string }) {
+  return <option value={value}>{children}</option>;
 }

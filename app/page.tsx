@@ -1,56 +1,97 @@
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-linear-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          GeM Tender Watch&nbsp;
-          <code className="font-bold">Phase 1 Built</code>
+    <main className="flex min-h-screen flex-col items-center justify-between p-8 md:p-24 bg-fresh-sky-50 dark:bg-fresh-sky-950 font-sans">
+      {/* Header/Nav area */}
+      <div className="z-10 max-w-5xl w-full items-center justify-between text-sm lg:flex">
+        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-fresh-sky-200 bg-linear-to-b from-fresh-sky-100 pb-6 pt-8 backdrop-blur-2xl dark:border-fresh-sky-800 dark:bg-fresh-sky-900/30 dark:from-inherit lg:static lg:w-auto lg:rounded-2xl lg:border lg:bg-white lg:p-4 lg:dark:bg-fresh-sky-900/20 shadow-sm transition-all hover:shadow-md">
+          <span className="text-atomic-tangerine-600 font-bold">GeM</span>
+          <span className="text-fresh-sky-700 dark:text-fresh-sky-300 ml-1">Tender Watch</span>
+          <span className="mx-2 text-fresh-sky-300">|</span>
+          <code className="font-mono font-bold text-muted-olive-600 dark:text-muted-olive-400">Phase 1 Complete</code>
         </p>
       </div>
 
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-full sm:before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full sm:after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-linear-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 before:lg:h-[360px] z-[-1]">
-        <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-6xl">
-          Automated GeM Tender Tracking
+      {/* Hero Section */}
+      <div className="relative flex flex-col items-center justify-center py-20 z-0">
+        <div className="absolute -z-10 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140%] h-[140%] bg-[radial-gradient(circle_at_center,var(--color-fresh-sky-200)_0%,transparent_70%)] dark:bg-[radial-gradient(circle_at_center,var(--color-fresh-sky-900)_0%,transparent_70%)] opacity-30 blur-3xl"></div>
+        
+        <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-center mb-6 text-fresh-sky-900 dark:text-white leading-tight">
+          Automated <span className="text-transparent bg-clip-text bg-linear-to-r from-atomic-tangerine-500 to-atomic-tangerine-700">GeM Tender</span> Tracking
         </h1>
+        
+        <p className="text-lg md:text-xl text-fresh-sky-700 dark:text-fresh-sky-300 text-center max-w-2xl mb-10 leading-relaxed">
+          The next generation of tender discovery. Instant notifications, AI-powered extraction, and seamless management for government bids.
+        </p>
+
+        <div className="flex gap-4">
+          <button className="px-8 py-3 bg-atomic-tangerine-500 hover:bg-atomic-tangerine-600 text-white rounded-xl font-semibold shadow-lg shadow-atomic-tangerine-200 dark:shadow-none transition-all hover:-translate-y-1">
+            Get Started
+          </button>
+          <button className="px-8 py-3 bg-white dark:bg-fresh-sky-900 border border-fresh-sky-200 dark:border-fresh-sky-800 text-fresh-sky-700 dark:text-fresh-sky-200 rounded-xl font-semibold transition-all hover:bg-fresh-sky-100 dark:hover:bg-fresh-sky-800">
+            Learn More
+          </button>
+        </div>
       </div>
 
-      <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-3 lg:text-left">
-        <div className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30">
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Infrastructure{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Supabase connection & types initialized.
-          </p>
-        </div>
+      {/* Feature Cards */}
+      <div className="mb-32 grid gap-6 text-center lg:max-w-6xl lg:w-full lg:mb-0 lg:grid-cols-3 lg:text-left">
+        <FeatureCard 
+          title="Infrastructure"
+          description="Robust Supabase backend with auto-generated TypeScript types for full type safety."
+          status="Initialized"
+          color="fresh-sky"
+        />
 
-        <div className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30">
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Database{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Tenders table schema ready in lib/schema.sql.
-          </p>
-        </div>
+        <FeatureCard 
+          title="Tender Database"
+          description="Optimized schema for fast querying and comprehensive metadata storage."
+          status="Ready"
+          color="muted-olive"
+        />
 
-        <div className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30">
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Next Steps{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50 text-balance`}>
-            Phase 2: Scraper development & Gemini AI integration.
-          </p>
-        </div>
+        <FeatureCard 
+          title="Next Steps"
+          description="Phase 2: Intelligent scraper development & Gemini AI analysis integration."
+          status="Active"
+          color="atomic-tangerine"
+        />
       </div>
     </main>
+  );
+}
+
+function FeatureCard({ title, description, status, color }: { title: string, description: string, status: string, color: 'atomic-tangerine' | 'fresh-sky' | 'muted-olive' }) {
+  const colorClasses = {
+    'atomic-tangerine': 'hover:border-atomic-tangerine-300 hover:bg-atomic-tangerine-50 dark:hover:bg-atomic-tangerine-950/20 text-atomic-tangerine-600 dark:text-atomic-tangerine-400',
+    'fresh-sky': 'hover:border-fresh-sky-300 hover:bg-fresh-sky-100 dark:hover:bg-fresh-sky-900/20 text-fresh-sky-600 dark:text-fresh-sky-400',
+    'muted-olive': 'hover:border-muted-olive-300 hover:bg-muted-olive-50 dark:hover:bg-muted-olive-950/20 text-muted-olive-600 dark:text-muted-olive-400',
+  };
+
+  const statusBg = {
+    'atomic-tangerine': 'bg-atomic-tangerine-100 text-atomic-tangerine-700 dark:bg-atomic-tangerine-900 dark:text-atomic-tangerine-200',
+    'fresh-sky': 'bg-fresh-sky-100 text-fresh-sky-700 dark:bg-fresh-sky-900 dark:text-fresh-sky-200',
+    'muted-olive': 'bg-muted-olive-100 text-muted-olive-700 dark:bg-muted-olive-900 dark:text-muted-olive-200',
+  };
+
+  return (
+    <div className={`group rounded-2xl border border-fresh-sky-200/50 dark:border-fresh-sky-800/50 bg-white dark:bg-fresh-sky-900/10 px-6 py-8 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${colorClasses[color]}`}>
+      <div className="flex justify-between items-start mb-4">
+        <h2 className={`text-2xl font-bold text-fresh-sky-900 dark:text-white`}>
+          {title}
+        </h2>
+        <span className={`px-2 py-1 rounded-md text-xs font-bold uppercase tracking-wider ${statusBg[color]}`}>
+          {status}
+        </span>
+      </div>
+      <p className={`m-0 max-w-[30ch] text-base leading-relaxed text-fresh-sky-700 dark:text-fresh-sky-300 opacity-80 group-hover:opacity-100 transition-opacity`}>
+        {description}
+      </p>
+      <div className="mt-6 flex items-center gap-2 font-semibold">
+        <span>Explore details</span>
+        <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
+          -&gt;
+        </span>
+      </div>
+    </div>
   );
 }

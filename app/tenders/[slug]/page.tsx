@@ -3,11 +3,12 @@ import { Search, Download, Clock, Zap, ArrowLeft, FileText, Shield, ExternalLink
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-export default async function TenderDetailsPage({ params }: { params: { slug: string } }) {
+export default async function TenderDetailsPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
   const { data: tender, error } = await supabase
     .from("tenders")
     .select("*")
-    .eq("slug", params.slug)
+    .eq("slug", slug)
     .single();
 
   if (error || !tender) {
@@ -15,9 +16,11 @@ export default async function TenderDetailsPage({ params }: { params: { slug: st
   }
 
   const isClosingSoon = new Date(tender.end_date).getTime() - Date.now() < 86400000;
-  const formattedEMD = tender.emd_amount 
-    ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(tender.emd_amount)
-    : "N/A";
+  const formattedEMD = tender.emd_amount === 0
+    ? "No"
+    : tender.emd_amount 
+      ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(tender.emd_amount)
+      : "N/A";
 
   return (
     <div className="min-h-screen bg-white text-gray-900 font-sans">
@@ -48,14 +51,28 @@ export default async function TenderDetailsPage({ params }: { params: { slug: st
           <div className="lg:col-span-2 space-y-10">
             {/* Title Section */}
             <div>
-              <div className="flex flex-wrap gap-2 mb-4">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full">
-                  {tender.department}
+              <div className="mb-6">
+                {tender.ministry_name && (
+                  <span className="text-[10px] text-gray-400 uppercase font-black tracking-[0.2em] mb-1 block">
+                    {tender.ministry_name}
+                  </span>
+                )}
+                <span className="text-xs font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg inline-block mb-2">
+                  {tender.organisation_name || tender.department_name || tender.department}
                 </span>
-                <span className="text-[10px] font-mono text-gray-400 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100">
+                {tender.office_name && (
+                  <span className="text-[10px] text-gray-500 font-bold block ml-1">
+                    Office: {tender.office_name}
+                  </span>
+                )}
+              </div>
+              
+              <div className="flex items-center space-x-2 mb-4">
+                 <span className="text-[10px] font-mono text-gray-400 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100">
                   {tender.bid_number}
                 </span>
               </div>
+
               <h2 className="text-4xl font-extrabold tracking-tight text-gray-900 leading-[1.1]">
                 {tender.title}
               </h2>
@@ -75,38 +92,76 @@ export default async function TenderDetailsPage({ params }: { params: { slug: st
               </div>
             )}
 
-            {/* Detailed Info Grid */}
-            <div className="grid grid-cols-2 gap-8 pt-6">
-              <div className="flex flex-col p-6 bg-gray-50 rounded-3xl border border-gray-100">
-                <span className="text-[10px] text-gray-400 uppercase font-black tracking-widest mb-2">EMD Requirement</span>
-                <span className="text-2xl font-black text-gray-900">{formattedEMD}</span>
-                <p className="text-[10px] text-gray-500 mt-2 font-medium">Earnest Money Deposit as per GeM Policy</p>
+            {/* Bidding Requirements / Relaxations */}
+            <div className="bg-gray-50/50 border border-gray-100 rounded-[2.5rem] p-8 space-y-8">
+              <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+                <h3 className="text-xl font-bold text-gray-900">Bidding Requirements</h3>
+                <div className="flex items-center text-xs font-bold text-gray-400 bg-white px-3 py-1 rounded-full border border-gray-100">
+                   GeM Official
+                </div>
               </div>
-              <div className="flex flex-col p-6 bg-gray-50 rounded-3xl border border-gray-100">
-                <span className="text-[10px] text-gray-400 uppercase font-black tracking-widest mb-2">Quantity Required</span>
-                <span className="text-2xl font-black text-gray-900">{tender.quantity}</span>
-                <p className="text-[10px] text-gray-500 mt-2 font-medium">Items to be delivered</p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+                 <div>
+                    <span className="text-[10px] text-gray-400 uppercase font-black tracking-widest block mb-2">Bid Opening Date</span>
+                    <div className="flex items-center text-base font-bold text-gray-700">
+                      <Clock className="w-4 h-4 mr-2 text-emerald-500" />
+                      {tender.opening_date ? new Date(tender.opening_date).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : "As per bid schedule"}
+                    </div>
+                 </div>
+
+                 <div>
+                    <span className="text-[10px] text-gray-400 uppercase font-black tracking-widest block mb-2">Quantity Required</span>
+                    <div className="text-base font-bold text-gray-700">
+                       {tender.quantity || 1} Unit(s)
+                    </div>
+                 </div>
+
+                 <div className="p-4 bg-white rounded-2xl border border-gray-100">
+                    <span className="text-[10px] text-blue-400 uppercase font-black tracking-widest block mb-1">MSE Relaxation</span>
+                    <span className="text-xs font-bold text-gray-700 leading-relaxed">{tender.mse_relaxation || "Standard terms apply"}</span>
+                    {tender.mse_turnover_relaxation && <p className="text-[10px] font-medium text-gray-400 mt-1">Turnover: {tender.mse_turnover_relaxation}</p>}
+                 </div>
+
+                 <div className="p-4 bg-white rounded-2xl border border-gray-100">
+                    <span className="text-[10px] text-orange-400 uppercase font-black tracking-widest block mb-1">Startup Relaxation</span>
+                    <span className="text-xs font-bold text-gray-700 leading-relaxed">{tender.startup_relaxation || "Standard terms apply"}</span>
+                    {tender.startup_turnover_relaxation && <p className="text-[10px] font-medium text-gray-400 mt-1">Turnover: {tender.startup_turnover_relaxation}</p>}
+                 </div>
+
+                 {tender.documents_required && tender.documents_required.length > 0 && (
+                   <div className="md:col-span-2">
+                      <span className="text-[10px] text-gray-400 uppercase font-black tracking-widest block mb-3">Required Documents from Seller</span>
+                      <div className="flex flex-wrap gap-2">
+                        {tender.documents_required.map((doc: string, idx: number) => (
+                           <span key={idx} className="bg-white border border-gray-100 px-3 py-2 rounded-xl text-[11px] font-bold text-gray-600 shadow-sm">
+                              {doc}
+                           </span>
+                        ))}
+                      </div>
+                   </div>
+                 )}
               </div>
             </div>
 
-            {/* Tags / Eligibility */}
-            <div className="flex items-center space-x-6 py-4">
+            {/* Tags / Eligibility Summary */}
+            <div className="flex flex-wrap items-center gap-6 py-4">
               <div className="flex items-center space-x-3">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${tender.eligibility_msme ? 'bg-blue-50 text-blue-600' : 'bg-gray-50 text-gray-300'}`}>
-                  <Shield className="w-6 h-6" />
+                  <Shield className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-gray-900">MSE Preference</p>
-                  <p className="text-[10px] font-medium text-gray-400">{tender.eligibility_msme ? 'Applicable' : 'Not Restricted'}</p>
+                  <p className="text-xs font-bold text-gray-900">MSE Pref.</p>
+                  <p className="text-[10px] font-medium text-gray-400">{tender.eligibility_msme ? 'Applicable' : 'No'}</p>
                 </div>
               </div>
               <div className="flex items-center space-x-3">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${tender.eligibility_mii ? 'bg-orange-50 text-orange-600' : 'bg-gray-50 text-gray-300'}`}>
-                  <Shield className="w-6 h-6" />
+                  <Shield className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-gray-900">MII Preference</p>
-                  <p className="text-[10px] font-medium text-gray-400">{tender.eligibility_mii ? 'Make In India Relevant' : 'Global Tender'}</p>
+                  <p className="text-xs font-bold text-gray-900">MII Pref.</p>
+                  <p className="text-[10px] font-medium text-gray-400">{tender.eligibility_mii ? 'Applicable' : 'No'}</p>
                 </div>
               </div>
             </div>
