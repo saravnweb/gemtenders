@@ -1,16 +1,6 @@
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-8 md:p-24 bg-fresh-sky-50 dark:bg-fresh-sky-950 font-sans">
-      {/* Header/Nav area */}
-      <div className="z-10 max-w-5xl w-full items-center justify-between text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-fresh-sky-200 bg-linear-to-b from-fresh-sky-100 pb-6 pt-8 backdrop-blur-2xl dark:border-fresh-sky-800 dark:bg-fresh-sky-900/30 dark:from-inherit lg:static lg:w-auto lg:rounded-2xl lg:border lg:bg-white lg:p-4 lg:dark:bg-fresh-sky-900/20 shadow-sm transition-all hover:shadow-md">
-          <span className="text-atomic-tangerine-600 font-bold">GeM</span>
-          <span className="text-fresh-sky-700 dark:text-fresh-sky-300 ml-1">Tender Watch</span>
-          <span className="mx-2 text-fresh-sky-300">|</span>
-          <code className="font-mono font-bold text-muted-olive-600 dark:text-muted-olive-400">Phase 1 Complete</code>
-        </p>
-      </div>
-
+    <main className="flex min-h-screen flex-col items-center p-8 md:p-24 bg-fresh-sky-50 font-sans">
       {/* Hero Section */}
       <div className="relative flex flex-col items-center justify-center py-20 z-0">
         <div className="absolute -z-10 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140%] h-[140%] bg-[radial-gradient(circle_at_center,var(--color-fresh-sky-200)_0%,transparent_70%)] dark:bg-[radial-gradient(circle_at_center,var(--color-fresh-sky-900)_0%,transparent_70%)] opacity-30 blur-3xl"></div>

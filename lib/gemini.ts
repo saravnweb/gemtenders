@@ -1,48 +1,71 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const apiKey = process.env.GEMINI_API_KEY!;
+const apiKey = process.env.GEMINI_API_KEY?.trim() || "";
 const genAI = new GoogleGenerativeAI(apiKey);
 
 export async function extractTenderData(pdfText: string) {
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-  // Pre-process text: Strip Hindi characters to clean up the table format 
+  // Pre-process text: Strip Hindi characters and common non-ASCII noise 
   // (Range \u0900-\u097F covers Devanagari/Hindi)
   const cleanedText = pdfText
     .replace(/[\u0900-\u097F]/g, "")
+    .replace(/[^\x20-\x7E\n]/g, "") // remove non-printable ASCII
     .replace(/\s+/g, " ")
     .trim()
-    .substring(0, 30000);
+    .substring(0, 35000);
 
   const prompt = `
-    You are an expert Procurement Analyst. Extract HIGHLY ACCURATE structured information from this GeM Bid Document.
-    The document contains a table of "Bid Details". Extract the text precisely as it appears in the English side of the labels.
+    You are an expert Procurement Analyst. Extract HIGHLY ACCURATE structured information from this GeM (Government e-Marketplace) Bid Document.
+    The document is a table with Hindi and English labels. Ignore the Hindi text and focus on the English values.
+
+    CRITICAL INSTRUCTIONS:
+    1. EXHAUSTIVE AUTHORITY EXTRACTION: 
+       - Look for "Ministry/State Name", "Department Name", "Organisation Name", "Office Name".
+       - Extract them separately and precisely. Do NOT merge them.
+    2. LOCATION INTELLIGENCE (VERY IMPORTANT):
+       - "state": Extract ONLY the Indian State/UT name (e.g. Gujarat, Madhya Pradesh, Delhi).
+       - Look inside "Office Name" or the "Consignee/Reporting Officer" section.
+       - Expand abbreviations: M.P. -> Madhya Pradesh, U.P. -> Uttar Pradesh, W.B. -> West Bengal, etc.
+       - "city": Extract the City or District name from the address fields.
+    3. KEYWORDS & TITLE:
+       - Look for "Item Category" - this is the primary title.
+       - Look for "GeMARPTS में खोजी गई स्ट्रिंग्स / Searched Strings used in GeMARPTS". These are the primary keywords.
+       - Look for "GeMARPTS में खोजा गया परिणाम / Searched Result generated in GeMARPTS". These are detailed keywords.
+       - Incorporate these keywords into the "technical_summary" field.
+    4. DATES:
+       - Extract "Bid End Date/Time" and "Bid Opening Date/Time".
+       - Format as ISO-8601 strings.
 
     Output Schema (JSON):
     {
-      "tender_title": "string (The official name of the procurement/Item Category)",
+      "tender_title": "string (The official Item Category)",
       "authority": {
         "ministry": "string",
         "department": "string",
         "organisation": "string",
         "office": "string",
-        "state": "string (The State name, e.g. Gujarat, Delhi, etc.)",
-        "city": "string (The City name extracted from Office/Address)"
+        "state": "string (Full State Name)",
+        "city": "string (City/District Name)"
+      },
+      "dates": {
+        "bid_start_date": "ISO-8601 (Optional)",
+        "bid_end_date": "ISO-8601",
+        "bid_opening_date": "ISO-8601"
       },
       "emd_amount": number,
-      "bid_opening_date": "ISO-8601",
       "relaxations": {
-        "mse_experience": "string (Yes/No | Details)",
-        "mse_turnover": "string (Yes/No | Details)",
-        "startup_experience": "string (Yes/No | Details)",
-        "startup_turnover": "string (Yes/No | Details)"
+        "mse_experience": "string",
+        "mse_turnover": "string",
+        "startup_experience": "string",
+        "startup_turnover": "string"
       },
       "documents_required": ["string list"],
       "eligibility": {
         "msme": boolean,
         "mii": boolean
       },
-      "technical_summary": "string",
+      "technical_summary": "string (Detailed summary including keywords)",
       "evaluation_method": "string"
     }
 
@@ -51,7 +74,7 @@ export async function extractTenderData(pdfText: string) {
   `;
 
   try {
-    console.log(`>>> [AI] Calling Gemini (Model: gemini-1.5-flash)...`);
+    console.log(`>>> [AI] Calling Gemini (Model: gemini-2.0-flash)...`);
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();

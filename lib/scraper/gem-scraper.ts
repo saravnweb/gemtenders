@@ -28,7 +28,45 @@ function extractEmdFallback(text: string): number | null {
   return null;
 }
 
-export async function scrapeGeMBids() {
+function extractLocationFallback(text: string): { state: string | null; city: string | null } {
+  const states = [
+    "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", 
+    "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh", 
+    "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", 
+    "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", 
+    "Uttarakhand", "West Bengal", "Delhi", "Chandigarh", "Jammu & Kashmir", "Ladakh"
+  ];
+
+  let foundState = null;
+  for (const state of states) {
+    if (new RegExp(`\\b${state}\\b`, 'i').test(text)) {
+      foundState = state;
+      break;
+    }
+  }
+
+  // Common mapping for abbreviations
+  if (!foundState) {
+    if (/\bM\.P\.\b|\bMP\b/i.test(text)) foundState = "Madhya Pradesh";
+    else if (/\bU\.P\.\b|\bUP\b/i.test(text)) foundState = "Uttar Pradesh";
+    else if (/\bW\.B\.\b|\bWB\b/i.test(text)) foundState = "West Bengal";
+    else if (/\bT\.N\.\b|\bTN\b/i.test(text)) foundState = "Tamil Nadu";
+    else if (/\bG\.J\.\b|\bGJ\b/i.test(text)) foundState = "Gujarat";
+    else if (/\bM\.H\.\b|\bMH\b/i.test(text)) foundState = "Maharashtra";
+  }
+
+  // Simple city heuristic: Look for address patterns
+  let foundCity = null;
+  const cityMatch = text.match(/Address\s*:\s*[^\,]+\,\s*([A-Z][a-z\s]+)\b/);
+  if (cityMatch) foundCity = cityMatch[1].trim();
+
+  return { state: foundState, city: foundCity };
+}
+
+export async function scrapeGeMBids(options?: { lightMode?: boolean; maxPages?: number; startPage?: number }) {
+  const isLightMode = options?.lightMode ?? false;
+  const SETTING_MAX_PAGES = options?.maxPages ?? 5;
+  const START_PAGE = options?.startPage ?? 1;
   console.log(">>> [SCRAPER] Launching Playwright browser...");
   
   const browser = await chromium.launch({ 
@@ -50,7 +88,7 @@ export async function scrapeGeMBids() {
 
   console.log(">>> [SCRAPER] Navigating to GeM BidPlus...");
   try {
-    await page.goto("https://bidplus.gem.gov.in/all-bids", { 
+    await page.goto(`https://bidplus.gem.gov.in/all-bids?page=${START_PAGE}`, { 
       waitUntil: "networkidle", 
       timeout: 60000 
     });
@@ -63,84 +101,114 @@ export async function scrapeGeMBids() {
     return;
   }
 
-  const initialBids = await page.evaluate(() => {
-    const items: any[] = [];
-    const elements = document.querySelectorAll(".card");
+  const allBids: any[] = [];
+  const MAX_PAGES = SETTING_MAX_PAGES;
+
+  for (let p = 1; p <= MAX_PAGES; p++) {
+    console.log(`>>> [SCRAPER] Scraping items from Page ${START_PAGE + p - 1}...`);
     
-    elements.forEach(el => {
-      const bidNoEl = el.querySelector('a.bid_no_hover');
-      if (!bidNoEl) return;
+    const pageBids = await page.evaluate(() => {
+      const items: any[] = [];
+      const elements = document.querySelectorAll(".card");
+      
+      elements.forEach(el => {
+        const bidNoEl = el.querySelector('a.bid_no_hover');
+        if (!bidNoEl) return;
 
-      const bidNo = bidNoEl.textContent?.trim() || "";
-      const pdfLink = (bidNoEl as HTMLAnchorElement).href || "";
-      
-      const cardBody = el.querySelector('.card-body');
-      
-      // Extract Department - Look for the col-md-5 container
-      const deptCol = Array.from(cardBody?.querySelectorAll('.col-md-5, .col-md-4') || [])
-        .find(c => c.textContent?.includes('Department Name And Address'));
-      
-      let department = "N/A";
-      if (deptCol) {
-        // Clear the label to get only the address/name
-        const rows = deptCol.querySelectorAll('.row');
-        if (rows.length > 1) {
-          department = rows[1].textContent?.trim() || "N/A";
-        } else {
-          department = deptCol.textContent?.replace('Department Name And Address:', '')?.trim() || "N/A";
+        const bidNo = bidNoEl.textContent?.trim() || "";
+        const pdfLink = (bidNoEl as HTMLAnchorElement).href || "";
+        
+        const cardBody = el.querySelector('.card-body');
+        
+        // Extract Department - Look for the col-md-5 container
+        const deptCol = Array.from(cardBody?.querySelectorAll('.col-md-5, .col-md-4') || [])
+          .find(c => c.textContent?.includes('Department Name And Address'));
+        
+        let department = "N/A";
+        if (deptCol) {
+          // Clear the label to get only the address/name
+          const rows = deptCol.querySelectorAll('.row');
+          if (rows.length > 1) {
+            department = rows[1].textContent?.trim() || "N/A";
+          } else {
+            department = deptCol.textContent?.replace('Department Name And Address:', '')?.trim() || "N/A";
+          }
         }
-      }
 
-      // Extract Items (Description) - Look for col-md-4 container
-      const itemsCol = Array.from(cardBody?.querySelectorAll('.col-md-4') || [])
-        .find(c => c.textContent?.includes('Items:'));
-      
-      let description = "";
-      if (itemsCol) {
-        const popoverEl = itemsCol.querySelector('a[data-toggle="popover"]');
-        if (popoverEl) {
-          description = popoverEl.getAttribute('data-content') || popoverEl.textContent?.trim() || "";
-        } else {
-          description = itemsCol.textContent?.replace('Items:', '')?.replace('Quantity:', '')?.split('\n')[0]?.trim() || "";
+        // Extract Items (Description) - Look for col-md-4 container
+        const itemsCol = Array.from(cardBody?.querySelectorAll('.col-md-4') || [])
+          .find(c => c.textContent?.includes('Items:'));
+        
+        let description = "";
+        if (itemsCol) {
+          const popoverEl = itemsCol.querySelector('a[data-toggle="popover"]');
+          if (popoverEl) {
+            description = popoverEl.getAttribute('data-content') || popoverEl.textContent?.trim() || "";
+          } else {
+            description = itemsCol.textContent?.replace('Items:', '')?.replace('Quantity:', '')?.split('\n')[0]?.trim() || "";
+          }
         }
-      }
-      
-      const startDateEl = el.querySelector('.start_date');
-      const endDateEl = el.querySelector('.end_date');
-      
-      if (bidNo) {
-        items.push({ 
-          bidNo, 
-          description: description || "Tender Description Unavailable",
-          department: department || "N/A",
-          startDate: startDateEl?.textContent?.trim() || "",
-          endDate: endDateEl?.textContent?.trim() || "",
-          pdfLink: pdfLink.startsWith('http') ? pdfLink : `https://bidplus.gem.gov.in${pdfLink}`
-        });
-      }
+        
+        const startDateEl = el.querySelector('.start_date');
+        const endDateEl = el.querySelector('.end_date');
+        
+        if (bidNo) {
+          items.push({ 
+            bidNo, 
+            description: description || "Tender Description Unavailable",
+            department: department || "N/A",
+            startDate: startDateEl?.textContent?.trim() || "",
+            endDate: endDateEl?.textContent?.trim() || "",
+            pdfLink: pdfLink.startsWith('http') ? pdfLink : `https://bidplus.gem.gov.in${pdfLink}`
+          });
+        }
+      });
+      return items;
     });
-    return items;
-  });
 
-  console.log(`>>> [SCRAPER] Found ${initialBids.length} bid entries. Processing first 10...`);
+    allBids.push(...pageBids);
+    console.log(`>>> [SCRAPER] Found ${pageBids.length} bids on Page ${START_PAGE + p - 1}.`);
 
-  const bidsToProcess = initialBids.slice(0, 10);
+    if (p < MAX_PAGES) {
+      const nextClicked = await page.evaluate(() => {
+        const nextBtn = document.querySelector('a.page-link.next') as HTMLElement;
+        if (nextBtn) {
+          nextBtn.click();
+          return true;
+        }
+        return false;
+      });
 
-  for (const bid of bidsToProcess) {
+      if (!nextClicked) {
+        console.log(">>> [SCRAPER] No 'Next' button found. Ending page loop.");
+        break;
+      }
+      
+      // Wait for the next page to load
+      await page.waitForTimeout(5000); 
+    }
+  }
+
+  // Filter out duplicates (though GeM pagination should handle it)
+  const uniqueBids = Array.from(new Map(allBids.map(b => [b.bidNo, b])).values());
+  console.log(`>>> [SCRAPER] Total unique bids found: ${uniqueBids.length}. Bid Nos: ${uniqueBids.map(b => b.bidNo).join(', ')}`);
+
+  for (const bid of uniqueBids) {
     console.log(`\n>>> [SCRAPER] Processing: ${bid.bidNo}`);
     
     const { data: existing } = await supabase
       .from("tenders")
-      .select("id, title, pdf_url")
+      .select("id, title, pdf_url, state, city")
       .eq("bid_number", bid.bidNo)
       .maybeSingle();
 
-    // Re-scrape if it's missing AI data (generic title/n-a) or PDF
+    // Re-scrape if it's missing AI data (generic title/n-a), PDF, or State/Location
     const isGeneric = !existing?.title || existing.title.startsWith("Tender GEM") || existing.title === "N/A";
     const isMissingPdf = !existing?.pdf_url;
+    const isMissingLocation = !existing?.state || !existing?.city;
 
-    if (existing && !isGeneric && !isMissingPdf) {
-      console.log(`>>> [SCRAPER] Skipping: Already indexed.`);
+    if (existing && (isLightMode || (!isGeneric && !isMissingPdf && !isMissingLocation))) {
+      console.log(`>>> [SCRAPER] Skipping: Already indexed with location.`);
       continue;
     }
 
@@ -148,7 +216,7 @@ export async function scrapeGeMBids() {
     let aiData: any = null;
     
 
-    if (bid.pdfLink) {
+    if (bid.pdfLink && !isLightMode) {
       try {
         console.log(`>>> [SCRAPER] Downloading PDF for ${bid.bidNo}...`);
         
@@ -229,10 +297,19 @@ export async function scrapeGeMBids() {
               aiData = await extractTenderData(extractedText);
               
               const fallbackEmd = extractEmdFallback(extractedText);
-              if (fallbackEmd && (!aiData || !aiData.emd_amount)) {
+              if (fallbackEmd !== null && (!aiData || aiData.emd_amount === null)) {
                 console.log(`>>> [SCRAPER] Regex Fallback Found EMD: ${fallbackEmd}`);
                 if (!aiData) aiData = {};
                 aiData.emd_amount = fallbackEmd;
+              }
+
+              const locFallback = extractLocationFallback(extractedText);
+              if (locFallback.state && (!aiData || !aiData.authority?.state)) {
+                 console.log(`>>> [SCRAPER] Regex Fallback Found State: ${locFallback.state}`);
+                 if (!aiData) aiData = { authority: {} };
+                 if (!aiData.authority) aiData.authority = {};
+                 aiData.authority.state = locFallback.state;
+                 if (locFallback.city && !aiData.authority.city) aiData.authority.city = locFallback.city;
               }
 
               if (aiData) {
@@ -253,11 +330,22 @@ export async function scrapeGeMBids() {
     }
 
     // FINAL DATA ASSEMBLY
-    // Best name for display/listing: Organisation > Department > Ministry
     const auth = aiData?.authority;
-    const finalTitle = aiData?.tender_title || bid.description || `Tender ${bid.bidNo}`;
+    
+    // Improve title with GeMARPTS info if possible
+    let finalTitle = aiData?.tender_title || bid.description || `Tender ${bid.bidNo}`;
+    if (aiData?.gemarp?.searched_strings && !finalTitle.includes(aiData.gemarp.searched_strings)) {
+       // Only append if it's not repetitive
+       // console.log("Refining title with keywords...");
+    }
+
     const finalDept = auth?.organisation || auth?.department || auth?.ministry || bid.department || "N/A";
     const slug = generateSlug(bid.bidNo, finalTitle);
+
+    // Prioritize AI dates
+    const finalStartDate = aiData?.dates?.bid_start_date || parseGeMDate(bid.startDate);
+    const finalEndDate = aiData?.dates?.bid_end_date || parseGeMDate(bid.endDate);
+    const finalOpeningDate = aiData?.dates?.bid_opening_date || aiData?.bid_opening_date || null;
 
     const { error } = await supabase.from("tenders").upsert({
       bid_number: bid.bidNo,
@@ -270,9 +358,9 @@ export async function scrapeGeMBids() {
       office_name: auth?.office || null,
       state: auth?.state || null,
       city: auth?.city || null,
-      start_date: parseGeMDate(bid.startDate),
-      end_date: parseGeMDate(bid.endDate),
-      opening_date: aiData?.bid_opening_date || null,
+      start_date: finalStartDate,
+      end_date: finalEndDate,
+      opening_date: finalOpeningDate,
       mse_relaxation: aiData?.relaxations?.mse_experience || null,
       startup_relaxation: aiData?.relaxations?.startup_experience || null,
       mse_turnover_relaxation: aiData?.relaxations?.mse_turnover || null,
@@ -293,8 +381,8 @@ export async function scrapeGeMBids() {
       console.log(`>>> [SCRAPER] SUCCESS! Saved: ${bid.bidNo} (EMD: ${storedEmd})`);
     }
     
-    // Small delay to avoid AI rate limits
-    await new Promise(r => setTimeout(r, 2000));
+    // Increased delay to 5 seconds to avoid AI rate limits on free tier
+    await new Promise(r => setTimeout(r, 5000));
   }
 
   console.log("\n>>> [SCRAPER] Scrape cycle complete.");
