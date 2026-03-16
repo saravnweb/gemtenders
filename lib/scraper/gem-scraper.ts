@@ -202,13 +202,28 @@ export async function scrapeGeMBids(options?: { lightMode?: boolean; maxPages?: 
       .eq("bid_number", bid.bidNo)
       .maybeSingle();
 
-    // Re-scrape if it's missing AI data (generic title/n-a), PDF, or State/Location
+    // AI/PDF ENRICHMENT CHECK: Should we do the expensive part?
     const isGeneric = !existing?.title || existing.title.startsWith("Tender GEM") || existing.title === "N/A";
     const isMissingPdf = !existing?.pdf_url;
     const isMissingLocation = !existing?.state || !existing?.city;
 
     if (existing && (isLightMode || (!isGeneric && !isMissingPdf && !isMissingLocation))) {
-      console.log(`>>> [SCRAPER] Skipping: Already indexed with location.`);
+      console.log(`>>> [SCRAPER] Found ${bid.bidNo}: Skipping AI (already enriched). Updating basic dates/url info only.`);
+      
+      // Update basic info just in case end dates or URLs were updated on GeM
+      const parsedEndDate = parseGeMDate(bid.endDate);
+      const parsedStartDate = parseGeMDate(bid.startDate);
+      
+      const shallowUpdate: any = {
+        bid_number: bid.bidNo,
+        details_url: bid.pdfLink,
+        department: bid.department || "N/A",
+      };
+      
+      if (parsedEndDate) shallowUpdate.end_date = parsedEndDate;
+      if (parsedStartDate) shallowUpdate.start_date = parsedStartDate;
+      
+      await supabase.from("tenders").upsert(shallowUpdate, { onConflict: 'bid_number' });
       continue;
     }
 
@@ -294,7 +309,15 @@ export async function scrapeGeMBids(options?: { lightMode?: boolean; maxPages?: 
 
             if (extractedText && extractedText.length > 50) {
               console.log(`>>> [SCRAPER] PDF text extracted (${extractedText.length} chars). Calling AI...`);
-              aiData = await extractTenderData(extractedText);
+              try {
+                aiData = await extractTenderData(extractedText);
+              } catch (e: any) {
+                if (e.message?.includes('429') || e.message?.includes('quota')) {
+                  console.warn(`>>> [SCRAPER] AI Rate Limit hit. Proceeding with fallback extraction only.`);
+                } else {
+                  console.warn(`>>> [SCRAPER] AI Error: ${e.message}`);
+                }
+              }
               
               const fallbackEmd = extractEmdFallback(extractedText);
               if (fallbackEmd !== null && (!aiData || aiData.emd_amount === null)) {
@@ -342,9 +365,10 @@ export async function scrapeGeMBids(options?: { lightMode?: boolean; maxPages?: 
     const finalDept = auth?.organisation || auth?.department || auth?.ministry || bid.department || "N/A";
     const slug = generateSlug(bid.bidNo, finalTitle);
 
-    // Prioritize AI dates
-    const finalStartDate = aiData?.dates?.bid_start_date || parseGeMDate(bid.startDate);
-    const finalEndDate = aiData?.dates?.bid_end_date || parseGeMDate(bid.endDate);
+    // The user explicitly requested to use the END DATE from the PDF document instead of the front-page HTML date, 
+    // because the front-page GeM lists often display the exact current day/time for actively closing bids.
+    const finalStartDate = aiData?.dates?.bid_start_date || parseGeMDate(bid.startDate) || new Date().toISOString();
+    const finalEndDate = aiData?.dates?.bid_end_date || parseGeMDate(bid.endDate) || new Date().toISOString();
     const finalOpeningDate = aiData?.dates?.bid_opening_date || aiData?.bid_opening_date || null;
 
     const { error } = await supabase.from("tenders").upsert({
@@ -367,7 +391,7 @@ export async function scrapeGeMBids(options?: { lightMode?: boolean; maxPages?: 
       startup_turnover_relaxation: aiData?.relaxations?.startup_turnover || null,
       documents_required: aiData?.documents_required || [],
       pdf_url: pdfPublicUrl || existing?.pdf_url, 
-      details_url: `https://bidplus.gem.gov.in/showbiddata/${bid.bidNo}`, 
+      details_url: bid.pdfLink, 
       ai_summary: aiData?.technical_summary || null,
       emd_amount: aiData?.emd_amount ?? null,
       eligibility_msme: aiData?.eligibility?.msme || false,
@@ -389,13 +413,41 @@ export async function scrapeGeMBids(options?: { lightMode?: boolean; maxPages?: 
   await browser.close();
 }
 
-function parseGeMDate(dateStr: string): string {
-    if (!dateStr) return new Date().toISOString();
+function parseGeMDate(dateStr: string): string | null {
+    if (!dateStr) return null;
     try {
-        const [datePart, timePart] = dateStr.split(' ');
-        const [day, month, year] = datePart.split('-');
-        return new Date(`${year}-${month}-${day}T${timePart || '00:00:00'}`).toISOString();
+        // Look for DD-MM-YYYY
+        const dateMatch = dateStr.match(/(\d{2})[-/](\d{2})[-/](\d{4})/);
+        if (dateMatch) {
+            const day = dateMatch[1];
+            const month = dateMatch[2];
+            const year = dateMatch[3];
+            
+            // Try to find time (HH:MM:SS or HH:MM)
+            const timeMatch = dateStr.match(/(\d{2}):(\d{2}):?(\d{2})?\s*(AM|PM)?/i);
+            let hours = "00";
+            let minutes = "00";
+            let seconds = "00";
+            
+            if (timeMatch) {
+                hours = timeMatch[1];
+                minutes = timeMatch[2];
+                if (timeMatch[3]) {
+                    seconds = timeMatch[3];
+                }
+                const ampm = timeMatch[4] ? timeMatch[4].toUpperCase() : null;
+                
+                if (ampm === "PM" && parseInt(hours) < 12) {
+                    hours = (parseInt(hours) + 12).toString().padStart(2, '0');
+                } else if (ampm === "AM" && parseInt(hours) === 12) {
+                    hours = "00";
+                }
+            }
+            
+            return new Date(`${year}-${month}-${day}T${hours}:${minutes}:${seconds}`).toISOString();
+        }
     } catch (e) {
-        return new Date().toISOString();
+        // Fallthrough
     }
+    return null;
 }

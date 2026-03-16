@@ -1,14 +1,31 @@
 "use client";
 
 import Link from "next/link";
-import { Zap, User, LogOut, Menu, X, LayoutDashboard } from "lucide-react";
+import { Zap, User, LogOut, Menu, X, LayoutDashboard, Bookmark, CreditCard, ChevronRight, Bell } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 
 export default function Navbar() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isSigningIn, setIsSigningIn] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const signInWithGoogle = async () => {
+    setIsSigningIn(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`
+        }
+      });
+      if (error) throw error;
+    } catch (err: any) {
+      console.error("Sign in error:", err.message);
+      setIsSigningIn(false);
+    }
+  };
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -31,113 +48,231 @@ export default function Navbar() {
   };
 
   return (
-    <header className="border-b border-fresh-sky-100 bg-white/80 backdrop-blur-md sticky top-0 z-50 shadow-sm font-sans">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2 group">
-            <div className="w-9 h-9 bg-linear-to-br from-atomic-tangerine-500 to-atomic-tangerine-600 rounded-xl flex items-center justify-center shadow-lg shadow-atomic-tangerine-200 group-hover:scale-105 transition-all">
-              <Zap className="w-5 h-5 text-white fill-current" />
+    <>
+      <header className="border-b border-fresh-sky-100 bg-white/80 backdrop-blur-md sticky top-0 z-50 shadow-sm font-sans">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16 relative">
+            {/* Mobile Menu Button - Left Aligned */}
+            <div className="md:hidden flex items-center z-10">
+              <button
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="text-fresh-sky-700 p-2 hover:bg-fresh-sky-50 rounded-lg transition-colors"
+                aria-label="Toggle Menu"
+              >
+                {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </button>
             </div>
-            <span className="text-xl font-bold text-fresh-sky-950 tracking-tight">
-              GeM<span className="text-atomic-tangerine-500">Watch</span>
-            </span>
-          </Link>
 
-          {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center space-x-8">
-            <Link href="/tenders" className="text-sm font-medium text-fresh-sky-700 hover:text-atomic-tangerine-500 transition-colors">
-              Find Tenders
-            </Link>
-            <Link href="/pricing" className="text-sm font-medium text-fresh-sky-700 hover:text-atomic-tangerine-500 transition-colors">
-              Pricing
-            </Link>
-            
-            <div className="h-6 w-px bg-fresh-sky-100"></div>
+            {/* Logo - Centered on Mobile, Left on Desktop */}
+            <div className="absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0 md:flex-1 flex items-center justify-center md:justify-start">
+              <Link href="/" className="flex items-center space-x-2 sm:space-x-3 group scale-90 sm:scale-100 transition-transform">
+                <div className="relative h-10 w-10 sm:h-12 sm:w-12 shrink-0 flex items-center justify-center">
+                  <img 
+                    src="/favicon.png" 
+                    alt="GeMTenders" 
+                    className="h-full w-auto object-contain transition-transform duration-300 group-hover:scale-105"
+                  />
+                </div>
+                <span className="text-lg sm:text-xl font-bold text-fresh-sky-950 tracking-tight flex items-center leading-none">
+                  GeMTenders.org
+                </span>
+              </Link>
+            </div>
 
-            {!loading && (
-              <>
-                {user ? (
-                  <div className="flex items-center space-x-6">
-                    <Link href="/dashboard" className="flex items-center space-x-2 text-sm font-medium text-fresh-sky-700 hover:text-atomic-tangerine-500 transition-colors">
-                      <LayoutDashboard className="w-4 h-4" />
-                      <span>Dashboard</span>
+            {/* Right Side Icons & Desktop Nav */}
+            <div className="flex items-center space-x-1 sm:space-x-4 z-10">
+              {/* Notification Icon - Right Aligned (Always Visible) */}
+              <button className="p-2 text-fresh-sky-700 hover:bg-fresh-sky-50 rounded-full transition-colors relative group" aria-label="Notifications">
+                <Bell className="w-5 h-5 sm:w-6 sm:h-6 transition-transform group-hover:rotate-12" />
+                <span className="absolute top-2 right-2 w-2 h-2 bg-atomic-tangerine-500 rounded-full border border-white"></span>
+              </button>
+
+              {/* Desktop Nav */}
+              <nav className="hidden md:flex items-center space-x-6">
+                {!loading && user ? (
+                  <>
+                    <Link href="/dashboard/saved" className="flex items-center space-x-1.5 text-xs font-black uppercase tracking-widest text-fresh-sky-700 hover:text-atomic-tangerine-600 transition-colors">
+                      <Bookmark className="w-4 h-4" />
+                      <span>Saved Bids</span>
                     </Link>
-                    <div className="flex items-center space-x-3 bg-fresh-sky-50 px-3 py-1.5 rounded-full border border-fresh-sky-100">
-                      <div className="w-6 h-6 bg-atomic-tangerine-100 rounded-full flex items-center justify-center">
-                        <User className="w-3.5 h-3.5 text-atomic-tangerine-600" />
-                      </div>
-                      <span className="text-xs font-semibold text-fresh-sky-900 truncate max-w-[100px]">{user.email?.split('@')[0]}</span>
-                      <button 
-                        onClick={handleSignOut}
-                        className="p-1 text-fresh-sky-400 hover:text-red-500 transition-colors"
-                        title="Sign Out"
-                      >
-                        <LogOut className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
+                    <Link href="/dashboard/keywords" className="flex items-center space-x-1.5 text-xs font-black uppercase tracking-widest text-fresh-sky-700 hover:text-atomic-tangerine-600 transition-colors">
+                      <Zap className="w-4 h-4" />
+                      <span>Saved Keywords</span>
+                    </Link>
+                    <Link href="/dashboard/subscriptions" className="flex items-center space-x-1.5 text-xs font-black uppercase tracking-widest text-fresh-sky-700 hover:text-atomic-tangerine-600 transition-colors">
+                      <CreditCard className="w-4 h-4" />
+                      <span>Plans</span>
+                    </Link>
+                  </>
                 ) : (
-                  <div className="flex items-center space-x-4">
-                    <Link href="/login" className="text-sm font-semibold text-fresh-sky-700 hover:text-atomic-tangerine-500 transition-colors">
-                      Log in
+                    <Link href="/" className="text-xs font-black uppercase tracking-widest text-fresh-sky-700 hover:text-atomic-tangerine-600 transition-colors">
+                      Explore Bids
                     </Link>
-                    <Link 
-                      href="/signup" 
-                      className="bg-atomic-tangerine-500 hover:bg-atomic-tangerine-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-md shadow-atomic-tangerine-100 transition-all active:scale-95"
-                    >
-                      Get Started
-                    </Link>
-                  </div>
                 )}
-              </>
-            )}
-          </nav>
 
-          {/* Mobile menu button */}
-          <div className="md:hidden flex items-center">
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="text-fresh-sky-700 p-2"
-            >
-              {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
+                <div className="h-6 w-px bg-fresh-sky-100 mx-2"></div>
+
+                {!loading && (
+                  <>
+                    {user ? (
+                      <div className="flex items-center space-x-4">
+                        <div className="flex items-center space-x-3 bg-white px-3 py-1.5 rounded-full border border-fresh-sky-100 shadow-sm">
+                          <div className="w-7 h-7 bg-linear-to-br from-atomic-tangerine-400 to-atomic-tangerine-600 rounded-full flex items-center justify-center border border-white/20">
+                            <User className="w-4 h-4 text-white" />
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-[10px] font-black text-fresh-sky-900 truncate leading-tight">{user.email?.split('@')[0]}</span>
+                            <span className="text-[8px] font-bold text-atomic-tangerine-500 uppercase tracking-tighter">Enterprise</span>
+                          </div>
+                          <button 
+                            onClick={handleSignOut}
+                            className="p-1 text-fresh-sky-300 hover:text-red-500 transition-colors ml-1"
+                            title="Sign Out"
+                          >
+                            <LogOut className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center space-x-3">
+                        <button 
+                          onClick={signInWithGoogle}
+                          disabled={isSigningIn}
+                          className="text-sm font-bold text-fresh-sky-700 hover:text-atomic-tangerine-600 transition-colors disabled:opacity-50"
+                        >
+                          {isSigningIn ? "..." : "Sign In"}
+                        </button>
+                        <button 
+                          onClick={signInWithGoogle}
+                          disabled={isSigningIn}
+                          className="bg-fresh-sky-950 hover:bg-black text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg transition-all active:scale-95 disabled:opacity-50"
+                        >
+                          {isSigningIn ? "Connecting..." : "Join Free"}
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </nav>
+            </div>
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Mobile Menu */}
+      {/* Mobile Menu Overlay - OUTSIDE Header */}
       {isMenuOpen && (
-        <div className="md:hidden bg-white border-t border-fresh-sky-50 px-4 py-6 space-y-4 animate-in slide-in-from-top duration-300">
-          <Link href="/tenders" onClick={() => setIsMenuOpen(false)} className="block text-base font-medium text-fresh-sky-700 px-2">Find Tenders</Link>
-          <Link href="/pricing" onClick={() => setIsMenuOpen(false)} className="block text-base font-medium text-fresh-sky-700 px-2">Pricing</Link>
-          <div className="pt-4 border-t border-fresh-sky-50">
-            {user ? (
-              <div className="space-y-4 px-2">
-                <div className="flex items-center space-x-3 text-fresh-sky-900 font-bold">
-                   <div className="w-8 h-8 bg-atomic-tangerine-100 rounded-full flex items-center justify-center">
-                      <User className="w-4 h-4 text-atomic-tangerine-600" />
-                   </div>
-                   <span>{user.email}</span>
-                </div>
-                <Link href="/dashboard" onClick={() => setIsMenuOpen(false)} className="flex items-center space-x-2 text-base font-medium text-fresh-sky-700">
-                    <LayoutDashboard className="w-5 h-5" />
-                    <span>Dashboard</span>
-                </Link>
-                <button onClick={handleSignOut} className="flex items-center space-x-2 text-red-500 font-medium">
-                    <LogOut className="w-5 h-5" />
-                    <span>Sign Out</span>
-                </button>
+        <div className="fixed inset-0 z-[100] md:hidden">
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-slate-900/60 transition-opacity cursor-pointer" 
+            onClick={() => setIsMenuOpen(false)}
+          />
+          
+          {/* Drawer */}
+          <div className="fixed inset-y-0 left-0 w-[240px] h-[100dvh] bg-white shadow-2xl flex flex-col border-r border-slate-100 animate-in slide-in-from-left duration-300 ease-out">
+            {/* Drawer Header */}
+            <div className="p-4 border-b border-slate-50 flex items-center justify-between h-16 shrink-0 bg-white">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] ml-2">Navigation</span>
+              <button 
+                onClick={() => setIsMenuOpen(false)}
+                className="p-2 text-slate-400 hover:text-slate-900 transition-colors rounded-lg bg-slate-50 border border-slate-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Drawer Content */}
+            <div className="flex-1 overflow-y-auto p-5 pb-10 scrollbar-none">
+              <div className="space-y-6">
+                {!loading && (
+                  <>
+                    {user ? (
+                      /* User Profile Summary - Only when logged in */
+                      <div className="flex items-center space-x-3 p-4 bg-slate-50 rounded-xl border border-slate-200/50">
+                        <div className="w-10 h-10 bg-slate-900 rounded-lg flex items-center justify-center shadow-md">
+                          <User className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-xs font-bold text-slate-900 truncate tracking-tight">{user.email?.split('@')[0]}</span>
+                          <span className="text-[9px] font-medium text-slate-400 uppercase tracking-widest">Active Account</span>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Sign In Button - Only in Guest Mode */
+                      <button 
+                        onClick={() => { signInWithGoogle(); setIsMenuOpen(false); }} 
+                        disabled={isSigningIn}
+                        className="w-full text-center py-3.5 text-slate-900 font-bold text-xs uppercase tracking-widest border border-slate-200 rounded-xl hover:bg-slate-50 transition-all disabled:opacity-50"
+                      >
+                        {isSigningIn ? "Connecting..." : "Sign In"}
+                      </button>
+                    )}
+
+                    {/* Navigation Links - Always Visible */}
+                    <div className="flex flex-col space-y-1">
+                      <MenuListItem 
+                        href="/dashboard/saved" 
+                        icon={<Bookmark className="w-4 h-4 text-slate-400" />} 
+                        label="Saved Bids" 
+                        onClick={() => setIsMenuOpen(false)} 
+                      />
+                      <MenuListItem 
+                        href="/dashboard/keywords" 
+                        icon={<Zap className="w-4 h-4 text-slate-400" />} 
+                        label="Saved Keywords" 
+                        onClick={() => setIsMenuOpen(false)} 
+                      />
+                      <MenuListItem 
+                        href="/dashboard/subscriptions" 
+                        icon={<CreditCard className="w-4 h-4 text-slate-400" />} 
+                        label="Plans" 
+                        onClick={() => setIsMenuOpen(false)} 
+                      />
+                    </div>
+
+                    {/* Conditional Bottom Action: Sign Out or Register */}
+                    <div className="pt-4 border-t border-slate-100">
+                      {user ? (
+                        <button 
+                          onClick={() => { handleSignOut(); setIsMenuOpen(false); }} 
+                          className="w-full flex items-center justify-center space-x-2 py-3.5 text-red-500 font-bold text-[10px] uppercase tracking-widest border border-red-50 rounded-xl bg-red-50/50 hover:bg-red-50 transition-all"
+                        >
+                            <LogOut className="w-4 h-4" />
+                            <span>Sign Out Account</span>
+                        </button>
+                      ) : (
+                        <button 
+                          onClick={() => { signInWithGoogle(); setIsMenuOpen(false); }} 
+                          disabled={isSigningIn}
+                          className="w-full text-center py-3.5 text-white font-bold text-xs uppercase tracking-widest bg-slate-900 rounded-xl shadow-lg active:scale-95 transition-all disabled:opacity-50"
+                        >
+                          {isSigningIn ? "Creating Account..." : "Register Free"}
+                        </button>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
-            ) : (
-              <div className="flex flex-col space-y-3">
-                <Link href="/login" onClick={() => setIsMenuOpen(false)} className="text-center py-3 text-fresh-sky-700 font-medium bg-fresh-sky-50 rounded-xl">Log in</Link>
-                <Link href="/signup" onClick={() => setIsMenuOpen(false)} className="text-center py-3 text-white font-medium bg-atomic-tangerine-500 rounded-xl shadow-lg shadow-atomic-tangerine-100">Get Started</Link>
-              </div>
-            )}
+            </div>
           </div>
         </div>
       )}
-    </header>
+    </>
+  );
+}
+
+function MenuListItem({ href, icon, label, onClick }: { href: string, icon: React.ReactNode, label: string, onClick: () => void }) {
+  return (
+    <Link 
+      href={href} 
+      onClick={onClick} 
+      className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-xl hover:bg-slate-50 transition-all group"
+    >
+      <div className="flex items-center space-x-3">
+        {icon}
+        <span className="text-xs font-bold text-slate-700 uppercase tracking-wide leading-none">{label}</span>
+      </div>
+      <ChevronRight className="w-4 h-4 text-slate-300 group-hover:translate-x-1 transition-transform" />
+    </Link>
   );
 }

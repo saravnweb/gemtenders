@@ -2,48 +2,27 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { Zap, Mail, Lock, ArrowRight, Github, Chrome } from "lucide-react";
+import { Zap } from "lucide-react";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        setError(error.message);
-        setLoading(false);
-      } else {
-        router.push("/tenders");
-        router.refresh();
-      }
-    } catch (err: any) {
-      setError("An unexpected error occurred. Please try again.");
-      setLoading(false);
-    }
-  };
 
   const signInWithGoogle = async () => {
-     await supabase.auth.signInWithOAuth({
+    setLoading(true);
+    setError(null);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-            redirectTo: `${window.location.origin}/auth/callback`
+          redirectTo: `${window.location.origin}/auth/callback`
         }
-     });
+      });
+      if (error) throw error;
+    } catch (err: any) {
+      setError(err.message || "An unexpected error occurred. Please try again.");
+      setLoading(false);
+    }
   };
 
   return (
@@ -51,11 +30,11 @@ export default function LoginPage() {
       <div className="max-w-md w-full bg-white rounded-4xl p-8 sm:p-10 shadow-2xl shadow-fresh-sky-200/50 border border-fresh-sky-100 animate-in fade-in zoom-in duration-500">
         
         <div className="text-center mb-10">
-          <div className="w-16 h-16 bg-linear-to-br from-atomic-tangerine-500 to-atomic-tangerine-600 rounded-3xl flex items-center justify-center shadow-xl shadow-atomic-tangerine-200 mx-auto mb-6">
-            <Zap className="w-10 h-10 text-white fill-current" />
+          <div className="mb-8">
+            <img src="/logo.png" alt="GeMTenders.org" className="h-16 w-auto mx-auto object-contain brightness-110" />
           </div>
-          <h1 className="text-3xl font-black text-fresh-sky-950 tracking-tight mb-2">Welcome Back</h1>
-          <p className="text-fresh-sky-600 font-medium">Log in to your GeM Watch account</p>
+          <h1 className="text-3xl font-black text-fresh-sky-950 tracking-tight mb-2">Welcome</h1>
+          <p className="text-fresh-sky-600 font-medium">Sign in to your GeMTenders.org account</p>
         </div>
 
         {error && (
@@ -65,80 +44,25 @@ export default function LoginPage() {
           </div>
         )}
 
-        <form onSubmit={handleLogin} className="space-y-6">
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-fresh-sky-900 uppercase tracking-widest ml-1">Email Address</label>
-            <div className="relative group">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-fresh-sky-300 group-focus-within:text-atomic-tangerine-500 transition-colors" />
-              <input
-                type="email"
-                placeholder="name@company.com"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-fresh-sky-50/50 border border-fresh-sky-100 rounded-2xl py-4 pl-12 pr-4 text-sm focus:ring-4 focus:ring-atomic-tangerine-100 focus:border-atomic-tangerine-300 outline-none transition-all placeholder:text-fresh-sky-200"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex justify-between items-center ml-1">
-              <label className="text-xs font-bold text-fresh-sky-900 uppercase tracking-widest">Password</label>
-              <Link href="/forgot-password" className="text-xs font-bold text-atomic-tangerine-600 hover:text-atomic-tangerine-700">Forgot?</Link>
-            </div>
-            <div className="relative group">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-fresh-sky-300 group-focus-within:text-atomic-tangerine-500 transition-colors" />
-              <input
-                type="password"
-                placeholder="••••••••"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-fresh-sky-50/50 border border-fresh-sky-100 rounded-2xl py-4 pl-12 pr-4 text-sm focus:ring-4 focus:ring-atomic-tangerine-100 focus:border-atomic-tangerine-300 outline-none transition-all placeholder:text-fresh-sky-200"
-              />
-            </div>
-          </div>
-
-          <button
-            type="submit"
+        <div className="space-y-4">
+          <button 
+            type="button"
             disabled={loading}
-            className="w-full bg-linear-to-r from-atomic-tangerine-500 to-atomic-tangerine-600 hover:from-atomic-tangerine-600 hover:to-atomic-tangerine-700 text-white font-bold py-4 rounded-2xl shadow-xl shadow-atomic-tangerine-200 flex items-center justify-center space-x-2 transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed group"
-          >
-            <span className="text-base">{loading ? "Authenticating..." : "Sign In"}</span>
-            {!loading && <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}
-          </button>
-        </form>
-
-        <div className="relative my-8">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-fresh-sky-100"></div>
-          </div>
-          <div className="relative flex justify-center text-[10px] uppercase font-bold tracking-widest bg-white px-4 text-fresh-sky-300">
-            Or continue with
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <button 
-            type="button"
             onClick={signInWithGoogle}
-            className="flex items-center justify-center space-x-2 py-3.5 border border-fresh-sky-100 rounded-2xl hover:bg-fresh-sky-50 transition-colors font-bold text-sm text-fresh-sky-700 active:scale-95"
+            className="w-full flex items-center justify-center space-x-3 py-4 border-2 border-fresh-sky-100 rounded-2xl hover:bg-fresh-sky-50 hover:border-atomic-tangerine-200 transition-all font-bold text-base text-fresh-sky-700 active:scale-95 disabled:opacity-50"
           >
-            <Chrome className="w-4 h-4 text-atomic-tangerine-500" />
-            <span>Google</span>
-          </button>
-          <button 
-            type="button"
-            className="flex items-center justify-center space-x-2 py-3.5 border border-fresh-sky-100 rounded-2xl hover:bg-fresh-sky-50 transition-colors font-bold text-sm text-fresh-sky-700 active:scale-95"
-          >
-            <Github className="w-4 h-4 text-fresh-sky-900" />
-            <span>GitHub</span>
+            <svg viewBox="0 0 24 24" className="w-6 h-6" xmlns="http://www.w3.org/2000/svg">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+            </svg>
+            <span>{loading ? "Connecting..." : "Continue with Google"}</span>
           </button>
         </div>
 
-        <p className="mt-10 text-center text-sm text-fresh-sky-600 font-medium">
-          Don't have an account?{" "}
-          <Link href="/signup" className="text-atomic-tangerine-600 font-bold hover:text-atomic-tangerine-700 hover:underline decoration-2 underline-offset-4">Create one for free</Link>
+        <p className="mt-8 text-center text-[11px] text-fresh-sky-400 leading-relaxed px-4">
+          By continuing, you agree to our <span className="text-fresh-sky-500 underline cursor-pointer hover:text-fresh-sky-600 transition-colors">Terms of Service</span> and <span className="text-fresh-sky-500 underline cursor-pointer hover:text-fresh-sky-600 transition-colors">Privacy Policy</span>.
         </p>
       </div>
     </div>

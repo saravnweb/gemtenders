@@ -1,5 +1,8 @@
-import { supabase } from '../lib/supabase';
-import { extractTenderData } from '../lib/gemini';
+import dotenv from 'dotenv';
+dotenv.config({ path: '.env.local' });
+
+const { supabase } = await import('../lib/supabase');
+const { extractTenderData } = await import('../lib/gemini');
 import { chromium } from 'playwright';
 import path from 'path';
 import fs from 'fs';
@@ -21,9 +24,9 @@ async function enrichTenders() {
   // Fetch tenders that are missing PDF data (not yet enriched)
   const { data: pendingTenders, error } = await supabase
     .from('tenders')
-    .select('id, bid_number, details_url')
+    .select('id, bid_number, details_url, end_date, start_date')
     .is('pdf_url', null)
-    .order('created_at', { ascending: true })
+    .order('created_at', { ascending: false })
     .limit(LIMIT);
 
   if (error) {
@@ -38,10 +41,15 @@ async function enrichTenders() {
 
   console.log(`>>> [ENRICHER] Found ${pendingTenders.length} tenders to enrich.`);
 
-  // Launch browser to handle PDF downloads
+  // Launch browser to handle PDF downloads with stealth settings
   const browser = await chromium.launch({
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu'],
+    args: [
+      '--disable-blink-features=AutomationControlled',
+      '--no-sandbox', 
+      '--disable-setuid-sandbox', 
+      '--disable-gpu'
+    ],
   });
   const context = await browser.newContext({
     userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
@@ -53,36 +61,35 @@ async function enrichTenders() {
   for (const tender of pendingTenders) {
     console.log(`\n>>> [ENRICHER] Processing ${tender.bid_number} ...`);
 
-    // Build the PDF link from the bid number
-    const pdfLink = `https://bidplus.gem.gov.in/showbiddata/${tender.bid_number}`;
+    // Use the stored details URL which preferably contains the direct PDF download link
+    const pdfLink = tender.details_url || `https://bidplus.gem.gov.in/showbiddata/${tender.bid_number}`;
     let pdfPublicUrl: string | null = null;
     let aiData: any = null;
 
     try {
       // ── Step 1: Download PDF ──────────────────────────────────────────────
       let buffer: Buffer | undefined;
-      const downloadPage = await context.newPage();
-
+      console.log(`>>> [ENRICHER] Attempting direct download via fetch: ${pdfLink}`);
       try {
-        const downloadPromise = downloadPage.waitForEvent('download', { timeout: 30000 });
-        await downloadPage.goto(pdfLink, { waitUntil: 'load', timeout: 30000 }).catch(() => {});
-        const download = await downloadPromise;
-        const tempPath = path.join(process.cwd(), 'tmp', `enrich_${tender.bid_number.replace(/\//g, '-')}.pdf`);
-        await download.saveAs(tempPath);
-        buffer = fs.readFileSync(tempPath);
-        fs.unlinkSync(tempPath);
-      } catch {
-        // Try direct request as fallback
-        const response = await context.request.get(pdfLink).catch(() => null);
-        if (response && response.headers()['content-type']?.includes('pdf')) {
-          buffer = Buffer.from(await response.body());
+        const response = await fetch(pdfLink, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+            'Accept': 'application/pdf,application/xhtml+xml,application/xml'
+          }
+        });
+
+        if (response.ok && response.headers.get('content-type')?.includes('pdf')) {
+           const arrayBuffer = await response.arrayBuffer();
+           buffer = Buffer.from(arrayBuffer);
+        } else {
+           console.log(`>>> [ENRICHER] Direct fetch failed or returned non-PDF: Status ${response.status}, Type ${response.headers.get('content-type')}`);
         }
-      } finally {
-        await downloadPage.close();
+      } catch (e: any) {
+        console.log(`>>> [ENRICHER] Fetch error: ${e.message}`);
       }
 
-      if (!buffer || buffer.length < 5000) {
-        console.warn(`>>> [ENRICHER] PDF too small or missing for ${tender.bid_number}. Skipping.`);
+      if (!buffer || buffer.length < 1000) {
+        console.warn(`>>> [ENRICHER] PDF invalid or missing for ${tender.bid_number} (URL: ${pdfLink}). Skipping.`);
         failCount++;
         continue;
       }
@@ -102,12 +109,20 @@ async function enrichTenders() {
       }
 
       // ── Step 3: Extract text & call AI ───────────────────────────────────
-      let extractedText = '';
+      let extractedText = "";
       try {
-        const parserFunc = typeof pdf === 'function' ? pdf : (pdf as any).default;
-        if (typeof parserFunc === 'function') {
-          const data = await parserFunc(buffer);
-          extractedText = data.text || '';
+        const ParserClass = (pdf as any).PDFParse || pdf;
+        if (typeof ParserClass === 'function' && ParserClass.toString().includes('class')) {
+          const instance = new (ParserClass as any)({ data: buffer });
+          const textResult = await instance.getText();
+          extractedText = textResult.text || "";
+          await instance.destroy?.();
+        } else {
+          const parserFunc = typeof pdf === 'function' ? pdf : (pdf as any).default || (pdf as any).PDFParse;
+          if (typeof parserFunc === 'function') {
+            const data = await parserFunc(buffer);
+            extractedText = data.text || "";
+          }
         }
       } catch (e: any) {
         console.warn(`>>> [ENRICHER] PDF parse error: ${e.message}`);
@@ -115,7 +130,15 @@ async function enrichTenders() {
 
       if (extractedText.length > 50) {
         console.log(`>>> [ENRICHER] Calling AI for ${tender.bid_number}...`);
-        aiData = await extractTenderData(extractedText);
+        try {
+          aiData = await extractTenderData(extractedText);
+        } catch (e: any) {
+          if (e.message?.includes('429') || e.message?.includes('quota')) {
+            console.warn(`>>> [ENRICHER] AI Rate Limit hit. Skipping AI part for this tender.`);
+          } else {
+            console.warn(`>>> [ENRICHER] AI Error: ${e.message}`);
+          }
+        }
       }
 
       // ── Step 4: Update the tender record ─────────────────────────────────
@@ -134,13 +157,22 @@ async function enrichTenders() {
         updatePayload.city = auth?.city || null;
         updatePayload.department = auth?.organisation || auth?.department || auth?.ministry || null;
         updatePayload.emd_amount = aiData.emd_amount ?? null;
+        updatePayload.quantity = aiData.quantity || null;
         updatePayload.ai_summary = aiData.technical_summary || null;
         updatePayload.eligibility_msme = aiData.eligibility?.msme || false;
         updatePayload.eligibility_mii = aiData.eligibility?.mii || false;
         updatePayload.mse_relaxation = aiData.relaxations?.mse_experience || null;
         updatePayload.startup_relaxation = aiData.relaxations?.startup_experience || null;
+        updatePayload.mse_turnover_relaxation = aiData.relaxations?.mse_turnover || null;
+        updatePayload.startup_turnover_relaxation = aiData.relaxations?.startup_turnover || null;
         updatePayload.documents_required = aiData.documents_required || [];
-        updatePayload.opening_date = aiData.bid_opening_date || null;
+        if (aiData.dates?.bid_opening_date) updatePayload.opening_date = aiData.dates.bid_opening_date;
+        if (aiData.dates?.bid_end_date) updatePayload.end_date = aiData.dates.bid_end_date;
+        if (aiData.dates?.bid_start_date) updatePayload.start_date = aiData.dates.bid_start_date;
+        
+        updatePayload.gemarpts_strings = aiData.gemarpts_strings || null;
+        updatePayload.gemarpts_result = aiData.gemarpts_result || null;
+        updatePayload.relevant_categories = aiData.relevant_categories || null;
       }
 
       const { error: updateErr } = await supabase

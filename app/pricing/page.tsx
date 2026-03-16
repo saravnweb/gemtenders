@@ -42,7 +42,7 @@ export default function PricingPage() {
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 pb-20">
         
         {/* Free Tier */}
-        <div className="bg-white rounded-[2rem] p-8 border border-fresh-sky-100 shadow-sm shadow-fresh-sky-200/20 hover:shadow-xl hover:shadow-fresh-sky-200/40 transition-shadow">
+        <div className="bg-white rounded-4xl p-8 border border-fresh-sky-100 shadow-sm shadow-fresh-sky-200/20 hover:shadow-xl hover:shadow-fresh-sky-200/40 transition-shadow">
           <div className="mb-8">
             <h3 className="text-xl font-bold text-fresh-sky-900 mb-2">Basic</h3>
             <p className="text-sm text-fresh-sky-500 font-medium h-10">Manual tracking for casual users.</p>
@@ -52,7 +52,7 @@ export default function PricingPage() {
             <span className="text-sm text-fresh-sky-400 ml-2 font-bold uppercase tracking-wider">/forever</span>
           </div>
           <Link 
-            href="/signup"
+            href="/signup?plan=free"
             className="w-full block text-center py-4 bg-fresh-sky-50 hover:bg-fresh-sky-100 text-fresh-sky-900 font-bold rounded-2xl transition-colors mb-8 focus:outline-none"
           >
             Get Started
@@ -66,57 +66,68 @@ export default function PricingPage() {
           </ul>
         </div>
 
-        {/* Pro Tier (Popular) */}
-        <div className="bg-white rounded-[2rem] p-8 border-2 border-atomic-tangerine-500 shadow-2xl shadow-atomic-tangerine-200/50 relative transform md:-translate-y-4">
+        {/* Starter Tier (Popular) */}
+        <div className="bg-white rounded-4xl p-8 border-2 border-atomic-tangerine-500 shadow-2xl shadow-atomic-tangerine-200/50 relative transform md:-translate-y-4">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-atomic-tangerine-500 text-white px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest flex items-center space-x-1 drop-shadow-md">
              <Zap className="w-3.5 h-3.5 fill-current" />
              <span>Most Popular</span>
           </div>
           
           <div className="mb-8 mt-2">
-            <h3 className="text-xl font-bold text-atomic-tangerine-600 mb-2">Pro</h3>
-            <p className="text-sm text-fresh-sky-500 font-medium h-10">Automated alerts and AI insights for serious bidders.</p>
+            <h3 className="text-xl font-bold text-atomic-tangerine-600 mb-2">Starter</h3>
+            <p className="text-sm text-fresh-sky-500 font-medium h-10">Essential alerts and insights for freelancers & small MSMEs.</p>
           </div>
           <div className="mb-8 flex items-baseline">
-            <span className="text-5xl font-black text-fresh-sky-950 outline-none focus:outline-none">{isAnnual ? '₹499' : '₹599'}</span>
+            <span className="text-5xl font-black text-fresh-sky-950 outline-none focus:outline-none">{isAnnual ? '₹79' : '₹99'}</span>
             <span className="text-sm text-fresh-sky-400 ml-2 font-bold uppercase tracking-wider">/month</span>
           </div>
-          <Link 
-            href="/signup"
-            className="w-full flex items-center justify-center py-4 bg-linear-to-r from-atomic-tangerine-500 to-atomic-tangerine-600 hover:from-atomic-tangerine-600 hover:to-atomic-tangerine-700 text-white font-bold rounded-2xl shadow-xl shadow-atomic-tangerine-200 transition-all active:scale-95 mb-8 focus:outline-none"
-          >
-            Start Free Trial
-          </Link>
+          <div className="flex flex-col mb-8">
+            <Link 
+              href={`/signup?plan=starter&billing=${isAnnual ? 'annual' : 'monthly'}`}
+              className="w-full flex items-center justify-center py-4 bg-linear-to-r from-atomic-tangerine-500 to-atomic-tangerine-600 hover:from-atomic-tangerine-600 hover:to-atomic-tangerine-700 text-white font-bold rounded-2xl shadow-xl shadow-atomic-tangerine-200 transition-all active:scale-95 focus:outline-none"
+            >
+              Start Free Trial
+            </Link>
+            {isAnnual && (
+              <span className="text-center text-xs text-fresh-sky-500 mt-2 font-medium">Billed ₹948 once per year</span>
+            )}
+          </div>
           <ul className="space-y-4">
             <FeatureItem text="Unlimited saved tenders" />
             <FeatureItem text="Daily email digest matching your keywords" />
-            <FeatureItem text="Gemini AI technical summaries" />
+            <FeatureItem text="Basic AI technical summaries" />
             <FeatureItem text="Direct PDF downloads" />
-            <FeatureItem text="Priority email support" />
+            <FeatureItem text="Email support" />
           </ul>
         </div>
 
-        {/* Enterprise Tier */}
-        <div className="bg-fresh-sky-950 rounded-[2rem] p-8 border border-fresh-sky-800 shadow-sm text-fresh-sky-50">
+        {/* Pro Tier */}
+        <div className="bg-fresh-sky-950 rounded-4xl p-8 border border-fresh-sky-800 shadow-sm text-fresh-sky-50">
           <div className="mb-8">
-            <h3 className="text-xl font-bold text-white mb-2">Enterprise</h3>
-            <p className="text-sm text-fresh-sky-400 font-medium h-10">Custom workflows and team collaboration.</p>
+            <h3 className="text-xl font-bold text-white mb-2">Pro</h3>
+            <p className="text-sm text-fresh-sky-400 font-medium h-10">Advanced features for power users and growing teams.</p>
           </div>
           <div className="mb-8 flex items-baseline">
-            <span className="text-5xl font-black text-white outline-none focus:outline-none">Custom</span>
+            <span className="text-5xl font-black text-white outline-none focus:outline-none">{isAnnual ? '₹239' : '₹299'}</span>
+            <span className="text-sm text-fresh-sky-400 ml-2 font-bold uppercase tracking-wider">/month</span>
           </div>
-          <button 
-            type="button"
-            className="w-full py-4 bg-fresh-sky-800 hover:bg-fresh-sky-700 text-white font-bold rounded-2xl transition-colors mb-8 focus:outline-none"
-          >
-            Contact Sales
-          </button>
+          <div className="flex flex-col mb-8">
+            <Link 
+              href={`/signup?plan=pro&billing=${isAnnual ? 'annual' : 'monthly'}`}
+              className="w-full block text-center py-4 bg-fresh-sky-800 hover:bg-fresh-sky-700 text-white font-bold rounded-2xl transition-colors focus:outline-none"
+            >
+              Get Started
+            </Link>
+            {isAnnual && (
+              <span className="text-center text-xs text-fresh-sky-400 mt-2 font-medium">Billed ₹2,868 once per year</span>
+            )}
+          </div>
           <ul className="space-y-4">
-            <FeatureItem text="Everything in Pro" dark />
+            <FeatureItem text="Everything in Starter" dark />
             <FeatureItem text="Instant WhatsApp/SMS alerts" dark />
+            <FeatureItem text="Deep AI technical analysis" dark />
             <FeatureItem text="Multi-user team dashboard" dark />
-            <FeatureItem text="API Access to raw data" dark />
-            <FeatureItem text="Dedicated account manager" dark />
+            <FeatureItem text="Priority support" dark />
           </ul>
         </div>
 
@@ -129,7 +140,7 @@ function FeatureItem({ text, disabled = false, dark = false }: { text: string, d
   return (
     <li className={`flex items-start space-x-3 ${disabled ? (dark ? 'opacity-40' : 'opacity-40') : ''}`}>
       <div className={`mt-0.5 shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${disabled ? 'bg-fresh-sky-100 text-fresh-sky-300' : (dark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-green-100 text-green-600')}`}>
-        <Check className="w-3 h-3 stroke-[3]" />
+        <Check className="w-3 h-3 stroke-3" />
       </div>
       <span className={`text-sm font-medium ${disabled ? (dark ? 'text-fresh-sky-500 outline-none focus:outline-none' : 'text-fresh-sky-400 outline-none focus:outline-none') : (dark ? 'text-fresh-sky-200 outline-none focus:outline-none' : 'text-fresh-sky-700 outline-none focus:outline-none')}`}>
         {text}

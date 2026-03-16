@@ -4,55 +4,59 @@ const apiKey = process.env.GEMINI_API_KEY?.trim() || "";
 const genAI = new GoogleGenerativeAI(apiKey);
 
 export async function extractTenderData(pdfText: string) {
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-  // Pre-process text: Strip Hindi characters and common non-ASCII noise 
-  // (Range \u0900-\u097F covers Devanagari/Hindi)
+  // PRE-PROCESS: Extract as much as possible. 
+  // DO NOT STRIP HINDI. Gemini handles Hindi-English tables best when labels are present.
   const cleanedText = pdfText
-    .replace(/[\u0900-\u097F]/g, "")
-    .replace(/[^\x20-\x7E\n]/g, "") // remove non-printable ASCII
+    .replace(/[^\x20-\x7E\n\u0900-\u097F]/g, " ") // keep printable ASCII and Devanagari (Hindi)
     .replace(/\s+/g, " ")
     .trim()
     .substring(0, 35000);
 
   const prompt = `
-    You are an expert Procurement Analyst. Extract HIGHLY ACCURATE structured information from this GeM (Government e-Marketplace) Bid Document.
-    The document is a table with Hindi and English labels. Ignore the Hindi text and focus on the English values.
-
-    CRITICAL INSTRUCTIONS:
-    1. EXHAUSTIVE AUTHORITY EXTRACTION: 
-       - Look for "Ministry/State Name", "Department Name", "Organisation Name", "Office Name".
-       - Extract them separately and precisely. Do NOT merge them.
-    2. LOCATION INTELLIGENCE (VERY IMPORTANT):
-       - "state": Extract ONLY the Indian State/UT name (e.g. Gujarat, Madhya Pradesh, Delhi).
-       - Look inside "Office Name" or the "Consignee/Reporting Officer" section.
-       - Expand abbreviations: M.P. -> Madhya Pradesh, U.P. -> Uttar Pradesh, W.B. -> West Bengal, etc.
-       - "city": Extract the City or District name from the address fields.
-    3. KEYWORDS & TITLE:
-       - Look for "Item Category" - this is the primary title.
-       - Look for "GeMARPTS में खोजी गई स्ट्रिंग्स / Searched Strings used in GeMARPTS". These are the primary keywords.
-       - Look for "GeMARPTS में खोजा गया परिणाम / Searched Result generated in GeMARPTS". These are detailed keywords.
-       - Incorporate these keywords into the "technical_summary" field.
-    4. DATES:
-       - Extract "Bid End Date/Time" and "Bid Opening Date/Time".
-       - Format as ISO-8601 strings.
-
+    You are an expert Procurement Data Scientist. Extract RAW, UNTRUNCATED structured data from this GeM (Government e-Marketplace) Bid Document.
+    The document layout is a table with Hindi and English headers. The values are usually in English.
+    
+    CRITICAL EXTRACTION RULES:
+    1. AUTHORITY HIERARCHY:
+       - ministry: "Ministry/State Name"
+       - department: "Department Name"
+       - organisation: "Organisation Name" (e.g., "Indian Army")
+       - office: "Office Name"
+       DO NOT leave these null if they are present in the text.
+    2. ITEM DETAILS:
+       - tender_title: Extract the FULL value of "Item Category" or "BOQ Title". If it's a long list of items, extract EVERYTHING.
+       - quantity: Extract the "Total Quantity" or "कुल मात्रा". It must be a NUMBER (e.g., 1346).
+    3. GeMARPTS & CATEGORIES:
+       - gemarpts_strings: Value of "Searched Strings used in GeMARPTS".
+       - gemarpts_result: Value of "Searched Result generated in GeMARPTS".
+       - relevant_categories: Value of "Relevant Categories selected for notification".
+    4. DATES (ISO-8601):
+       - bid_end_date: "Bid End Date/Time"
+       - bid_opening_date: "Bid Opening Date/Time" - ENSURE THIS IS EXTRACTED.
+    5. RELAXATIONS:
+       - Check "MSE Relaxation for Years Of Experience and Turnover" and the Startup equivalent.
+    
     Output Schema (JSON):
     {
-      "tender_title": "string (The official Item Category)",
+      "tender_title": "string (FULL, UNTRUNCATED title/category)",
       "authority": {
         "ministry": "string",
         "department": "string",
         "organisation": "string",
         "office": "string",
-        "state": "string (Full State Name)",
-        "city": "string (City/District Name)"
+        "state": "string",
+        "city": "string"
       },
       "dates": {
-        "bid_start_date": "ISO-8601 (Optional)",
         "bid_end_date": "ISO-8601",
         "bid_opening_date": "ISO-8601"
       },
+      "quantity": number,
+      "gemarpts_strings": "string",
+      "gemarpts_result": "string",
+      "relevant_categories": "string",
       "emd_amount": number,
       "relaxations": {
         "mse_experience": "string",
@@ -65,8 +69,7 @@ export async function extractTenderData(pdfText: string) {
         "msme": boolean,
         "mii": boolean
       },
-      "technical_summary": "string (Detailed summary including keywords)",
-      "evaluation_method": "string"
+      "technical_summary": "string"
     }
 
     Document Text Content:

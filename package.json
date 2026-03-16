@@ -8,7 +8,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "scrape": "tsx test-scrape.ts"
+    "scrape": "tsx scripts/run-scraper.ts",
+    "enrich": "tsx scripts/enrich-tenders.ts",
+    "stats": "tsx scripts/db-stats.ts",
+    "clean": "tsx scripts/clean-supabase.ts",
+    "fast-scrape": "tsx scripts/fast-api-scraper.ts"
   },
   "keywords": [],
   "author": "",
@@ -25,6 +29,7 @@
     "@types/react-dom": "^19.2.3",
     "autoprefixer": "^10.4.27",
     "axios": "^1.13.6",
+    "cheerio": "^1.2.0",
     "clsx": "^2.1.1",
     "dotenv": "^17.3.1",
     "eslint": "^9.39.4",

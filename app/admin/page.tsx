@@ -1,78 +1,138 @@
-import { Zap, Play, CheckCircle, AlertTriangle, List } from "lucide-react";
+import { Zap, Play, CheckCircle, Database, Shield, LayoutDashboard, Globe, Cpu, ArrowRight } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { scrapeGeMBids } from "@/lib/scraper/gem-scraper";
+import { runEnrichment } from "@/lib/scraper/enricher";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
+import { ScrapeButton, EnrichButton } from "./client-buttons";
 
 export default async function AdminPage() {
-  // Fetch stats on server
-  const { count: tenderCount } = await supabase
+  // Fetch detailed stats on server
+  const { count: totalCount } = await supabase
     .from("tenders")
     .select("*", { count: "exact", head: true });
+
+  const { count: enrichedCount } = await supabase
+    .from("tenders")
+    .select("*", { count: "exact", head: true })
+    .not("pdf_url", "is", null);
+
+  const pendingEnrichment = (totalCount || 0) - (enrichedCount || 0);
 
   async function startScrapeAction() {
     "use server";
     try {
-      console.log("Server Action: Starting Scrape...");
-      await scrapeGeMBids();
-      revalidatePath("/tenders");
+      await scrapeGeMBids({ maxPages: 3 });
       revalidatePath("/admin");
+      revalidatePath("/");
     } catch (e) {
-      console.error("Server Action Scrape Failed:", e);
+      console.error(e);
+    }
+  }
+
+  async function startEnrichAction() {
+    "use server";
+    try {
+      await runEnrichment(15);
+      revalidatePath("/admin");
+      revalidatePath("/");
+    } catch (e) {
+      console.error(e);
     }
   }
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-6 text-gray-900 border-t-4 border-emerald-600">
-      <div className="max-w-md w-full bg-white rounded-4xl p-10 shadow-2xl shadow-emerald-500/5 border border-gray-100 italic-gradient-fix">
-        
-        <div className="flex items-center justify-between mb-10">
-          <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-emerald-600 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-200">
-              <Zap className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-black tracking-tight text-gray-900">GeM Admin</h1>
-              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Automation Dashboard</p>
-            </div>
+    <div className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6">
+      <div className="max-w-4xl mx-auto">
+        {/* Header Area */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center">
+              <LayoutDashboard className="mr-3 text-blue-600 w-8 h-8" />
+              Command Center
+            </h1>
+            <p className="text-slate-500 font-medium mt-1">Manage tender ingestion and AI enrichment</p>
           </div>
-          <Link href="/tenders" className="p-3 bg-gray-50 rounded-2xl text-gray-400 hover:text-emerald-600 transition-colors">
-            <List className="w-5 h-5" />
+          <Link href="/" className="flex items-center space-x-2 text-sm font-bold text-slate-400 hover:text-blue-600 transition-colors bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm">
+            <span>View Live Site</span>
+            <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 mb-10">
-          <div className="bg-gray-50 rounded-3xl p-6 border border-gray-100">
-            <p className="text-gray-500 text-xs font-bold uppercase tracking-tighter mb-1">Indexed Tenders</p>
-            <p className="text-4xl font-black text-emerald-600">{tenderCount || 0}</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+            <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-4">
+              <Database className="w-5 h-5" />
+            </div>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Total Indexed</p>
+            <p className="text-3xl font-black text-slate-800">{totalCount || 0}</p>
+          </div>
+          
+          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+            <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center mb-4">
+              <Shield className="w-5 h-5" />
+            </div>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">AI Enriched</p>
+            <p className="text-3xl font-black text-slate-800">{enrichedCount || 0}</p>
+          </div>
+
+          <div className="bg-blue-600 p-6 rounded-3xl shadow-xl shadow-blue-200 text-white relative overflow-hidden">
+            <Zap className="absolute -right-4 -top-4 w-24 h-24 text-white/10 rotate-12" />
+            <div className="w-10 h-10 bg-white/20 text-white rounded-xl flex items-center justify-center mb-4">
+              <Cpu className="w-5 h-5" />
+            </div>
+            <p className="text-xs font-bold text-white/80 uppercase tracking-widest mb-1">Queue Pending</p>
+            <p className="text-3xl font-black">{pendingEnrichment}</p>
           </div>
         </div>
 
-        <div className="space-y-6">
-          <form action={startScrapeAction}>
-            <button
-              type="submit"
-              className="w-full flex items-center justify-center space-x-3 py-5 bg-emerald-600 text-white rounded-3xl font-bold text-lg hover:bg-emerald-700 active:scale-[0.97] transition-all shadow-xl shadow-emerald-200 group"
-            >
-              <Play className="w-5 h-5 fill-current group-hover:scale-110 transition-transform" />
-              <span>Perform Deep Scan</span>
-            </button>
-          </form>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* Main Action: Full Pipeline */}
+          <div className="bg-slate-900 rounded-4xl p-8 border border-slate-800 shadow-xl relative overflow-hidden text-white">
+            <Zap className="absolute -right-4 -top-4 w-32 h-32 text-white/5 rotate-12" />
+            <div className="flex items-center space-x-3 mb-6 relative">
+              <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-md shadow-blue-500/50">1</div>
+              <h2 className="text-xl font-bold">Run Full Pipeline (Crawl + AI)</h2>
+            </div>
+            <p className="text-slate-400 text-sm leading-relaxed mb-8 relative">
+              This completely unified process launches a stealth browser, scans GeM BidPlus, downloads latest PDFs, runs them through Gemini AI for deep extraction, and saves fully enriched tenders. No partial data is saved.
+            </p>
+            <form action={startScrapeAction} className="relative">
+              <ScrapeButton />
+            </form>
+          </div>
 
-          <p className="text-center text-[11px] text-gray-400 leading-relaxed px-4">
-            Clicking will launch a background browser to scan GeM BidPlus and perform AI extraction from newest PDFs.
-          </p>
+          {/* Secondary Action: Backlog */}
+          <div className="bg-white rounded-4xl p-8 border border-slate-200 shadow-sm relative overflow-hidden">
+            {pendingEnrichment > 0 && (
+              <div className="absolute top-4 right-4 animate-bounce">
+                <div className="bg-amber-100 text-amber-600 p-1.5 rounded-full">
+                  <Database className="w-4 h-4 fill-current" />
+                </div>
+              </div>
+            )}
+            <div className="flex items-center space-x-3 mb-6">
+              <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center text-slate-500 font-bold text-sm">2</div>
+              <h2 className="text-xl font-bold text-slate-800">Process Backlog Queue</h2>
+            </div>
+            <p className="text-slate-500 text-sm leading-relaxed mb-8">
+              Since we now process everything in the Full Pipeline, this tool is only for cleaning up older/legacy tenders in your database that missed AI extraction earlier.
+            </p>
+            <form action={startEnrichAction}>
+              <EnrichButton pendingEnrichment={pendingEnrichment} />
+            </form>
+          </div>
         </div>
 
-        <div className="mt-12 pt-8 border-t border-gray-50 flex items-center justify-center space-x-6">
-          <div className="flex items-center space-x-1.5">
-            <div className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Database Linked</span>
-          </div>
-          <div className="flex items-center space-x-1.5">
-            <div className="w-2 h-2 rounded-full bg-emerald-500" />
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">AI Agent Ready</span>
-          </div>
+        <div className="mt-12 p-6 bg-slate-100 rounded-3xl flex items-center justify-center space-x-8">
+           <div className="flex items-center space-x-2">
+             <CheckCircle className="w-4 h-4 text-emerald-500" />
+             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Supabase Connected</span>
+           </div>
+           <div className="flex items-center space-x-2">
+             <CheckCircle className="w-4 h-4 text-emerald-500" />
+             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Gemini-2.0 Ready</span>
+           </div>
         </div>
       </div>
     </div>

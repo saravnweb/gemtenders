@@ -1,4 +1,7 @@
-import { scrapeGeMBids } from '../lib/scraper/gem-scraper';
+import dotenv from 'dotenv';
+dotenv.config({ path: '.env.local' });
+
+const { scrapeGeMBids } = await import('../lib/scraper/gem-scraper');
 
 async function run() {
   const args = process.argv.slice(2);

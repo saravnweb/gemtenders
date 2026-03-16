@@ -13,11 +13,13 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "GeM Tender Watch | Automated Tender Tracking",
-  description: "Track Indian Government e-Marketplace (GeM) tenders with AI-powered summaries and alerts.",
+  title: "GeMTenders.org | Automated Tender Tracking",
+  description: "Identify and track Government e-Marketplace (GeM) tenders with AI-powered summaries and real-time alerts.",
 };
 
 import Navbar from "@/components/Navbar";
+import GoogleOneTap from "@/components/GoogleOneTap";
+import ScrollToTop from "@/components/ScrollToTop";
 
 export default function RootLayout({
   children,
@@ -27,8 +29,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${outfit.variable} ${jetbrainsMono.variable}`}>
       <body className="font-sans antialiased bg-white">
+        <GoogleOneTap />
         <Navbar />
         {children}
+        <ScrollToTop />
       </body>
     </html>
   );
