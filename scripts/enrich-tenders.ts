@@ -10,40 +10,42 @@ const { extractTenderData } = await import('../lib/gemini');
 import { chromium } from 'playwright-extra';
 import stealth from 'puppeteer-extra-plugin-stealth';
 chromium.use(stealth());
-import path from 'path';
-import fs from 'fs';
-import { exec } from 'child_process';
-import util from 'util';
-const execPromise = util.promisify(exec);
-
-// Helper function to safely read file
-const fsReadFileSync = fs.readFileSync;
-const fsUnlinkSync = fs.unlinkSync;
-const fsExistsSync = fs.existsSync;
 
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const pdf = require('pdf-parse');
 
 // ─── CONFIG ────────────────────────────────────────────────────────────────
-// How many tenders to process per run. Set higher once on Paid Tier.
 const args = process.argv.slice(2);
 const limitArg = args.find(a => a.startsWith('--limit='));
 const LIMIT = limitArg ? parseInt(limitArg.split('=')[1], 10) : 1000;
 
-// How many to process at the EXACT same time
-const CONCURRENCY = 1;
+// Process 3 at a time — safe balance between speed and GeM WAF avoidance
+const CONCURRENCY = 3;
+
+// Delay between batches in ms. Lower = faster but more WAF risk.
+const BATCH_DELAY_MS = 3000;
+
+// Skip bids where end_date is more than this many days in the past (expired bids = dead PDFs)
+const SKIP_EXPIRED_DAYS = 7;
 // ────────────────────────────────────────────────────────────────────────────
 
 async function enrichTenders() {
-  console.log(`\n>>> [ENRICHER] Starting enrichment run. Processing up to ${LIMIT} tenders...\n`);
+  const skipArg = args.find(a => a.startsWith('--skip-expired='));
+  const skipExpiredDays = skipArg ? parseInt(skipArg.split('=')[1], 10) : SKIP_EXPIRED_DAYS;
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - skipExpiredDays);
 
-  // Fetch tenders that are missing PDF data (not yet enriched)
+  console.log(`\n>>> [ENRICHER] Starting enrichment run.`);
+  console.log(`    Limit: ${LIMIT} | Concurrency: ${CONCURRENCY} | Skip bids expired before: ${cutoffDate.toDateString()}\n`);
+
+  // Prioritize: active bids first (end_date in the future), skip old expired ones
   const { data: pendingTenders, error } = await supabase
     .from('tenders')
     .select('id, bid_number, details_url, end_date, start_date')
     .is('pdf_url', null)
-    .order('created_at', { ascending: false })
+    .gt('end_date', cutoffDate.toISOString())
+    .order('end_date', { ascending: false })
     .limit(LIMIT);
 
   if (error) {
@@ -52,11 +54,12 @@ async function enrichTenders() {
   }
 
   if (!pendingTenders || pendingTenders.length === 0) {
-    console.log('>>> [ENRICHER] No pending tenders found. All tenders are fully enriched!');
+    console.log('>>> [ENRICHER] No active pending tenders found.');
+    console.log('    To also process expired bids: npm run enrich -- --skip-expired=999');
     return;
   }
 
-  console.log(`>>> [ENRICHER] Found ${pendingTenders.length} tenders to enrich.`);
+  console.log(`>>> [ENRICHER] Found ${pendingTenders.length} active tenders to enrich.`);
 
   // Acquire GeM cookies directly via native fetch to bypass WAF
   console.log('>>> [ENRICHER] Fetching GeM cookies...');
@@ -288,7 +291,7 @@ async function enrichTenders() {
     });
 
     // Pause between single items so we don't get IP blocked by GeM WAF (which sends 0 bytes back)
-    await new Promise(r => setTimeout(r, 8000));
+    await new Promise(r => setTimeout(r, BATCH_DELAY_MS));
   }
 
   console.log(`\n>>> [ENRICHER] Run complete.`);
