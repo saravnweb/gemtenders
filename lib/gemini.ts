@@ -33,6 +33,7 @@ export async function extractTenderData(pdfText: string) {
        - gemarpts_result: Value of "Searched Result generated in GeMARPTS".
        - relevant_categories: Value of "Relevant Categories selected for notification".
     4. DATES (ISO-8601):
+       - bid_start_date: "Document Date" or "Published Date" or "Bid Start Date"
        - bid_end_date: "Bid End Date/Time"
        - bid_opening_date: "Bid Opening Date/Time" - ENSURE THIS IS EXTRACTED.
     5. RELAXATIONS:
@@ -50,6 +51,7 @@ export async function extractTenderData(pdfText: string) {
         "city": "string"
       },
       "dates": {
+        "bid_start_date": "ISO-8601",
         "bid_end_date": "ISO-8601",
         "bid_opening_date": "ISO-8601"
       },

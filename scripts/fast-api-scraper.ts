@@ -103,14 +103,25 @@ export async function runFastScrape(maxPages: number, concurrency: number = 10) 
          finalDept = `${minName}, ${deptName}`;
       }
       
-      let parentPdf = bid.b_id_parent ? String(bid.b_id_parent[0]) : "";
-      if (!parentPdf && bid.b_id) parentPdf = String(bid.b_id[0]);
-      const pdfLink = `https://bidplus.gem.gov.in/showbidDocument/${parentPdf}`;
+      // Use b_id for PDF fetching instead of b_id_parent
+      let pdfId = bid.b_id ? String(bid.b_id[0]) : "";
+      let docLbl = 'showbidDocument';
+      if (bid.b_bid_type && bid.b_bid_type[0] === 5) {
+        docLbl = 'showdirectradocumentPdf';
+      } else if (bid.b_bid_type && bid.b_bid_type[0] === 2) {
+        docLbl = 'showradocumentPdf';
+      }
+      
+      const pdfLink = `https://bidplus.gem.gov.in/${docLbl}/${pdfId}`;
       
       let startDate = bid.final_start_date_sort ? bid.final_start_date_sort[0] : null;
       let endDate = bid.final_end_date_sort ? bid.final_end_date_sort[0] : null;
+      
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 30); // 30 days from now
+      
       if (!startDate || startDate.startsWith("-")) startDate = new Date().toISOString();
-      if (!endDate || endDate.startsWith("-")) endDate = new Date().toISOString();
+      if (!endDate || endDate.startsWith("-")) endDate = futureDate.toISOString();
 
       return {
         bid_number: bidNo,
@@ -123,13 +134,21 @@ export async function runFastScrape(maxPages: number, concurrency: number = 10) 
       };
     }).filter(b => b.bid_number !== "UNKNOWN");
     
-    if (upsertBatch.length > 0) {
+    const uniqueBatchMap = new Map();
+    for (const b of upsertBatch) {
+      if (!uniqueBatchMap.has(b.bid_number)) {
+        uniqueBatchMap.set(b.bid_number, b);
+      }
+    }
+    const finalBatch = Array.from(uniqueBatchMap.values());
+    
+    if (finalBatch.length > 0) {
       const { supabase } = await import('@/lib/supabase');
-      const { error } = await supabase.from('tenders').upsert(upsertBatch, { onConflict: 'bid_number' });
+      const { error } = await supabase.from('tenders').upsert(finalBatch, { onConflict: 'bid_number' });
       if (error) {
         console.error(">>> [FAST-SCRAPE] Postgres Upsert Error:", error);
       } else {
-        console.log(`>>> [FAST-SCRAPE] Successfully upserted ${upsertBatch.length} items into Supabase.`);
+        console.log(`>>> [FAST-SCRAPE] Successfully upserted ${finalBatch.length} items into Supabase.`);
       }
     }
     

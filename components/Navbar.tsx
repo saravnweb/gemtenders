@@ -161,7 +161,7 @@ export default function Navbar() {
 
       {/* Mobile Menu Overlay - OUTSIDE Header */}
       {isMenuOpen && (
-        <div className="fixed inset-0 z-[100] md:hidden">
+        <div className="fixed inset-0 z-100 md:hidden">
           {/* Backdrop */}
           <div 
             className="fixed inset-0 bg-slate-900/60 transition-opacity cursor-pointer" 
@@ -169,7 +169,7 @@ export default function Navbar() {
           />
           
           {/* Drawer */}
-          <div className="fixed inset-y-0 left-0 w-[240px] h-[100dvh] bg-white shadow-2xl flex flex-col border-r border-slate-100 animate-in slide-in-from-left duration-300 ease-out">
+          <div className="fixed inset-y-0 left-0 w-[240px] h-dvh bg-white shadow-2xl flex flex-col border-r border-slate-100 animate-in slide-in-from-left duration-300 ease-out">
             {/* Drawer Header */}
             <div className="p-4 border-b border-slate-50 flex items-center justify-between h-16 shrink-0 bg-white">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] ml-2">Navigation</span>

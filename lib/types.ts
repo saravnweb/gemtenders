@@ -6,6 +6,7 @@ export interface Tender {
   department: string;
   start_date: string;
   end_date: string;
+  opening_date: string | null;
   quantity: number;
   pdf_url: string | null;
   details_url: string;

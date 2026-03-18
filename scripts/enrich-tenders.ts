@@ -1,21 +1,38 @@
 import dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
 
-const { supabase } = await import('../lib/supabase');
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabase = createClient(supabaseUrl, supabaseKey);
 const { extractTenderData } = await import('../lib/gemini');
-import { chromium } from 'playwright';
+import { chromium } from 'playwright-extra';
+import stealthPlugin from 'puppeteer-extra-plugin-stealth';
+chromium.use(stealthPlugin());
 import path from 'path';
 import fs from 'fs';
-import { createRequire } from 'module';
+import { exec } from 'child_process';
+import util from 'util';
+const execPromise = util.promisify(exec);
 
+// Helper function to safely read file
+const fsReadFileSync = fs.readFileSync;
+const fsUnlinkSync = fs.unlinkSync;
+const fsExistsSync = fs.existsSync;
+
+import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const pdf = require('pdf-parse');
 
 // ─── CONFIG ────────────────────────────────────────────────────────────────
-// How many tenders to process per run. Keep this small (50-100) to be safe.
+// How many tenders to process per run. Set higher once on Paid Tier.
 const args = process.argv.slice(2);
 const limitArg = args.find(a => a.startsWith('--limit='));
-const LIMIT = limitArg ? parseInt(limitArg.split('=')[1], 10) : 50;
+const LIMIT = limitArg ? parseInt(limitArg.split('=')[1], 10) : 1000;
+
+// How many to process at the EXACT same time
+const CONCURRENCY = 1;
 // ────────────────────────────────────────────────────────────────────────────
 
 async function enrichTenders() {
@@ -41,7 +58,7 @@ async function enrichTenders() {
 
   console.log(`>>> [ENRICHER] Found ${pendingTenders.length} tenders to enrich.`);
 
-  // Launch browser to handle PDF downloads with stealth settings
+  // Playwright context not needed since we're using native curl
   const browser = await chromium.launch({
     headless: true,
     args: [
@@ -51,6 +68,7 @@ async function enrichTenders() {
       '--disable-gpu'
     ],
   });
+  
   const context = await browser.newContext({
     userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
   });
@@ -58,8 +76,18 @@ async function enrichTenders() {
   let successCount = 0;
   let failCount = 0;
 
-  for (const tender of pendingTenders) {
-    console.log(`\n>>> [ENRICHER] Processing ${tender.bid_number} ...`);
+  // Helper chunking function to process in batches of CONCURRENCY
+  const chunks = [];
+  for (let i = 0; i < pendingTenders.length; i += CONCURRENCY) {
+    chunks.push(pendingTenders.slice(i, i + CONCURRENCY));
+  }
+
+  for (let i = 0; i < chunks.length; i++) {
+    const chunk = chunks[i];
+    console.log(`\n>>> [ENRICHER] Processing batch ${i + 1} of ${chunks.length} (${chunk.length} items concurrently)...`);
+
+    const promises = chunk.map(async (tender) => {
+      console.log(`>>> [ENRICHER] Processing ${tender.bid_number} ...`);
 
     // Use the stored details URL which preferably contains the direct PDF download link
     const pdfLink = tender.details_url || `https://bidplus.gem.gov.in/showbiddata/${tender.bid_number}`;
@@ -69,36 +97,45 @@ async function enrichTenders() {
     try {
       // ── Step 1: Download PDF ──────────────────────────────────────────────
       let buffer: Buffer | undefined;
-      console.log(`>>> [ENRICHER] Attempting direct download via fetch: ${pdfLink}`);
+      console.log(`>>> [ENRICHER] Attempting direct download via Playwright: ${pdfLink}`);
       try {
-        const response = await fetch(pdfLink, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-            'Accept': 'application/pdf,application/xhtml+xml,application/xml'
-          }
-        });
-
-        if (response.ok && response.headers.get('content-type')?.includes('pdf')) {
-           const arrayBuffer = await response.arrayBuffer();
-           buffer = Buffer.from(arrayBuffer);
-        } else {
-           console.log(`>>> [ENRICHER] Direct fetch failed or returned non-PDF: Status ${response.status}, Type ${response.headers.get('content-type')}`);
+        const downloadPage = await context.newPage();
+        const downloadPromise = downloadPage.waitForEvent('download', { timeout: 30000 });
+        try {
+          await downloadPage.goto(pdfLink, { waitUntil: 'load', timeout: 30000 });
+        } catch (e: any) {
+          console.log(`>>> [ENRICHER] Navigation note: ${e.message}`);
         }
+        
+        try {
+          const download = await downloadPromise;
+          const tmpPath = path.join(process.cwd(), 'tmp', `enrich_${tender.bid_number.replace(/[\\/]/g, '_')}.pdf`);
+          await download.saveAs(tmpPath);
+          buffer = fs.readFileSync(tmpPath);
+          fs.unlinkSync(tmpPath);
+        } catch (e) {
+          console.log(`>>> [ENRICHER] Fallback to manual request...`);
+          const response = await downloadPage.request.get(pdfLink);
+          if (response.headers()['content-type']?.includes('pdf')) {
+             buffer = await response.body();
+          }
+        }
+        await downloadPage.close();
       } catch (e: any) {
-        console.log(`>>> [ENRICHER] Fetch error: ${e.message}`);
+        console.log(`>>> [ENRICHER] Try error: ${e.message}`);
       }
 
       if (!buffer || buffer.length < 1000) {
-        console.warn(`>>> [ENRICHER] PDF invalid or missing for ${tender.bid_number} (URL: ${pdfLink}). Skipping.`);
-        failCount++;
-        continue;
+        console.warn(`>>> [ENRICHER] PDF invalid or missing for ${tender.bid_number} (URL: ${pdfLink}). Length: ${buffer?.length}.`);
+        console.warn(`>>> [ENRICHER] ⚠️  GeM Anti-Scraping WAF Triggered (0 Bytes). Skipping...`);
+        return false;
       }
 
       // ── Step 2: Upload PDF to Supabase Storage ────────────────────────────
       const fileName = `${tender.bid_number.replace(/\//g, '-')}.pdf`;
       const { data: uploadData, error: uploadErr } = await supabase.storage
         .from('tender-documents')
-        .upload(fileName, buffer, { contentType: 'application/pdf', upsert: true });
+        .upload(fileName, buffer as Buffer, { contentType: 'application/pdf', upsert: true });
 
       if (uploadErr) {
         console.error(`>>> [ENRICHER] Upload error: ${uploadErr.message}`);
@@ -166,9 +203,11 @@ async function enrichTenders() {
         updatePayload.mse_turnover_relaxation = aiData.relaxations?.mse_turnover || null;
         updatePayload.startup_turnover_relaxation = aiData.relaxations?.startup_turnover || null;
         updatePayload.documents_required = aiData.documents_required || [];
-        if (aiData.dates?.bid_opening_date) updatePayload.opening_date = aiData.dates.bid_opening_date;
-        if (aiData.dates?.bid_end_date) updatePayload.end_date = aiData.dates.bid_end_date;
-        if (aiData.dates?.bid_start_date) updatePayload.start_date = aiData.dates.bid_start_date;
+        if (aiData.dates) {
+          if (aiData.dates.bid_opening_date) updatePayload.opening_date = aiData.dates.bid_opening_date;
+          if (aiData.dates.bid_start_date) updatePayload.start_date = aiData.dates.bid_start_date;
+          if (aiData.dates.bid_end_date) updatePayload.end_date = aiData.dates.bid_end_date;
+        }
         
         updatePayload.gemarpts_strings = aiData.gemarpts_strings || null;
         updatePayload.gemarpts_result = aiData.gemarpts_result || null;
@@ -181,19 +220,27 @@ async function enrichTenders() {
         .eq('id', tender.id);
 
       if (updateErr) {
-        console.error(`>>> [ENRICHER] DB update error: ${updateErr.message}`);
-        failCount++;
+        console.error(`>>> [ENRICHER] DB update error for ${tender.bid_number}: ${updateErr.message}`);
+        return false;
       } else {
         console.log(`>>> [ENRICHER] ✓ SUCCESS: ${tender.bid_number}`);
-        successCount++;
+        return true;
       }
     } catch (err: any) {
       console.error(`>>> [ENRICHER] Unexpected error for ${tender.bid_number}: ${err.message}`);
-      failCount++;
+      return false;
     }
+    });
 
-    // Small delay to avoid overloading the system and API rate limits
-    await new Promise(r => setTimeout(r, 3000));
+    // Wait for the entire batch to finish processing concurrently
+    const results = await Promise.all(promises);
+    results.forEach(res => {
+      if (res) successCount++;
+      else failCount++;
+    });
+
+    // Pause between single items so we don't get IP blocked by GeM WAF (which sends 0 bytes back)
+    await new Promise(r => setTimeout(r, 8000));
   }
 
   await browser.close();

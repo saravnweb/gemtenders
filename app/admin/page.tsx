@@ -116,7 +116,7 @@ export default async function AdminPage() {
               <h2 className="text-xl font-bold text-slate-800">Process Backlog Queue</h2>
             </div>
             <p className="text-slate-500 text-sm leading-relaxed mb-8">
-              Since we now process everything in the Full Pipeline, this tool is only for cleaning up older/legacy tenders in your database that missed AI extraction earlier.
+              This tool processes <strong>15 items per click</strong> to prevent server timeouts. Since you have a large backlog, it is highly recommended to run <code className="bg-slate-100 px-1 py-0.5 rounded text-slate-700 font-mono text-xs">npm run enrich -- --limit=1000</code> in your terminal instead of clicking this button manually!
             </p>
             <form action={startEnrichAction}>
               <EnrichButton pendingEnrichment={pendingEnrichment} />

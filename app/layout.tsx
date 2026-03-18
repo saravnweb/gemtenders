@@ -28,7 +28,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${outfit.variable} ${jetbrainsMono.variable}`}>
-      <body className="font-sans antialiased bg-white">
+      <body className="font-sans antialiased">
         <GoogleOneTap />
         <Navbar />
         {children}

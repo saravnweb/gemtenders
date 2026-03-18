@@ -115,8 +115,8 @@ function TendersPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredTenders, setFilteredTenders] = useState<any[]>([]);
-  const [selectedState, setSelectedState] = useState("");
-  const [selectedCity, setSelectedCity] = useState("");
+  const [selectedStates, setSelectedStates] = useState<string[]>([]);
+  const [selectedCities, setSelectedCities] = useState<string[]>([]);
   const [emdFilter, setEmdFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -133,6 +133,7 @@ function TendersPage() {
   const [savedSearches, setSavedSearches] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<"all" | "foryou">("all");
   const [visibleCount, setVisibleCount] = useState(21);
+  const [sortOrder, setSortOrder] = useState<"newest" | "ending_soon">("newest");
 
   useEffect(() => {
     if (showFilters) {
@@ -197,12 +198,20 @@ function TendersPage() {
           }
         }
         
-        if (params.state && tender.state !== params.state) {
-          matchesSearch = false;
+        const alertStates = params.states || (params.state ? [params.state] : []);
+        const globalStates = user?.user_metadata?.preferred_states || [];
+        const finalStates = alertStates.length > 0 ? alertStates : globalStates;
+        
+        if (finalStates.length > 0 && !finalStates.includes(tender.state)) {
+           matchesSearch = false;
         }
 
-        if (params.city && tender.city !== params.city) {
-          matchesSearch = false;
+        const alertCities = params.cities || (params.city ? [params.city] : []);
+        const globalCities = user?.user_metadata?.preferred_cities || [];
+        const finalCities = alertCities.length > 0 ? alertCities : globalCities;
+
+        if (finalCities.length > 0 && !finalCities.includes(tender.city)) {
+           matchesSearch = false;
         }
         
         if (params.category) {
@@ -225,7 +234,7 @@ function TendersPage() {
         return matchesSearch;
       });
     });
-  }, [tenders, savedSearches]);
+  }, [tenders, savedSearches, user]);
 
   useEffect(() => {
     fetchTenders();
@@ -234,20 +243,28 @@ function TendersPage() {
   useEffect(() => {
     const q = searchParams.get("q");
     if (q) setSearchQuery(q);
-    const s = searchParams.get("state");
-    const prefState = localStorage.getItem("preferredState");
-    if (s) {
-      setSelectedState(s);
-    } else if (prefState) {
-      setSelectedState(prefState);
+    const s = searchParams.getAll("state");
+    try {
+      const prefStates = JSON.parse(localStorage.getItem("preferredStates") || "[]");
+      if (s.length > 0) {
+        setSelectedStates(s);
+      } else if (prefStates.length > 0) {
+        setSelectedStates(prefStates);
+      }
+    } catch {
+      setSelectedStates([]);
     }
 
-    const c = searchParams.get("city");
-    const prefCity = localStorage.getItem("preferredCity");
-    if (c) {
-      setSelectedCity(c);
-    } else if (prefCity) {
-      setSelectedCity(prefCity);
+    const c = searchParams.getAll("city");
+    try {
+      const prefCities = JSON.parse(localStorage.getItem("preferredCities") || "[]");
+      if (c.length > 0) {
+        setSelectedCities(c);
+      } else if (prefCities.length > 0) {
+        setSelectedCities(prefCities);
+      }
+    } catch {
+      setSelectedCities([]);
     }
   }, [searchParams]);
 
@@ -259,30 +276,33 @@ function TendersPage() {
   }, [tenders]);
 
   useEffect(() => {
-    if (tenders.length > 0 && selectedState) {
-      const stateTenders = tenders.filter(t => t.state === selectedState);
+    if (tenders.length > 0 && selectedStates.length > 0) {
+      const stateTenders = tenders.filter(t => selectedStates.includes(t.state));
       const uniqueCities = Array.from(new Set(stateTenders.map(t => t.city).filter(Boolean))) as string[];
+      setCities(uniqueCities.sort());
+    } else if (tenders.length > 0) {
+      const uniqueCities = Array.from(new Set(tenders.map(t => t.city).filter(Boolean))) as string[];
       setCities(uniqueCities.sort());
     } else {
       setCities([]);
     }
-  }, [tenders, selectedState]);
+  }, [tenders, selectedStates]);
 
   useEffect(() => {
-    if (selectedState) {
-      localStorage.setItem("preferredState", selectedState);
+    if (selectedStates.length > 0) {
+      localStorage.setItem("preferredStates", JSON.stringify(selectedStates));
     } else {
-      localStorage.removeItem("preferredState");
+      localStorage.removeItem("preferredStates");
     }
-  }, [selectedState]);
+  }, [selectedStates]);
 
   useEffect(() => {
-    if (selectedCity) {
-      localStorage.setItem("preferredCity", selectedCity);
+    if (selectedCities.length > 0) {
+      localStorage.setItem("preferredCities", JSON.stringify(selectedCities));
     } else {
-      localStorage.removeItem("preferredCity");
+      localStorage.removeItem("preferredCities");
     }
-  }, [selectedCity]);
+  }, [selectedCities]);
 
   useEffect(() => {
     let filtered = tenders;
@@ -307,12 +327,12 @@ function TendersPage() {
       }
     }
 
-    if (selectedState) {
-      filtered = filtered.filter(t => t.state === selectedState);
+    if (selectedStates.length > 0) {
+      filtered = filtered.filter(t => selectedStates.includes(t.state));
     }
 
-    if (selectedCity) {
-      filtered = filtered.filter(t => t.city === selectedCity);
+    if (selectedCities.length > 0) {
+      filtered = filtered.filter(t => selectedCities.includes(t.city));
     }
 
     if (descriptionQuery.trim()) {
@@ -373,16 +393,57 @@ function TendersPage() {
       filtered = filtered.filter(tender => forYouTenders.includes(tender));
     }
 
+    if (sortOrder === "newest") {
+      filtered = [...filtered].sort((a, b) => {
+        // Handle possible date string inconsistencies
+        const parseDate = (dString: any) => {
+          if (!dString) return 0;
+          let ms = new Date(dString).getTime();
+          if (isNaN(ms) && typeof dString === 'string') {
+            const parts = dString.split('-');
+            if (parts.length === 3 && parts[0].length <= 2) {
+              // try DD-MM-YYYY parsing
+              ms = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00Z`).getTime();
+            }
+          }
+          return isNaN(ms) ? 0 : ms;
+        };
+        const dateA = parseDate(a.start_date);
+        const dateB = parseDate(b.start_date);
+        if (dateA !== dateB) return dateB - dateA; // Descending
+        return (b.created_at || "").localeCompare(a.created_at || "");
+      });
+    } else if (sortOrder === "ending_soon") {
+      filtered = [...filtered].sort((a, b) => {
+        const parseDate = (dString: any) => {
+          if (!dString) return 8640000000000000;
+          let ms = new Date(dString).getTime();
+          if (isNaN(ms) && typeof dString === 'string') {
+            const parts = dString.split('-');
+            if (parts.length === 3 && parts[0].length <= 2) {
+              ms = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T23:59:59Z`).getTime();
+            }
+          }
+          return isNaN(ms) ? 8640000000000000 : ms;
+        };
+        const dateA = parseDate(a.end_date);
+        const dateB = parseDate(b.end_date);
+        if (dateA !== dateB) return dateA - dateB; // Ascending
+        return (a.created_at || "").localeCompare(b.created_at || "");
+      });
+    }
+
     setFilteredTenders(filtered);
     setVisibleCount(21);
-  }, [searchQuery, tenders, selectedState, selectedCity, emdFilter, dateFilter, msmeOnly, miiOnly, selectedCategory, descriptionQuery, activeTab, savedSearches]);
+  }, [searchQuery, tenders, selectedStates, selectedCities, emdFilter, dateFilter, msmeOnly, miiOnly, selectedCategory, descriptionQuery, activeTab, savedSearches, sortOrder]);
 
   async function fetchTenders() {
     setLoading(true);
     const { data, error } = await supabase
       .from("tenders")
       .select("*")
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .limit(3000);
 
     if (!error && data) {
       setTenders(data);
@@ -405,8 +466,8 @@ function TendersPage() {
       name: `${searchName} Alert`,
       query_params: {
         q: searchQuery,
-        state: selectedState,
-        city: selectedCity,
+        states: selectedStates,
+        cities: selectedCities,
         emd: emdFilter,
         date: dateFilter,
         category: selectedCategory,
@@ -506,14 +567,14 @@ function TendersPage() {
                 >
                   <Filter className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${showFilters ? 'text-white' : 'text-slate-500'}`} />
                   <span className="hidden sm:inline">Filters</span>
-                  {(!showFilters && (selectedState || selectedCity || emdFilter !== "all" || dateFilter !== "all" || msmeOnly || miiOnly || selectedCategory || descriptionQuery)) && (
+                  {(!showFilters && (selectedStates.length > 0 || selectedCities.length > 0 || emdFilter !== "all" || dateFilter !== "all" || msmeOnly || miiOnly || selectedCategory || descriptionQuery)) && (
                     <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-blue-500 sm:ml-1"></span>
                   )}
                 </button>
               </div>
 
               {/* Save Keyword Quick Action */}
-              {(searchQuery.trim() || selectedState || selectedCity || emdFilter !== "all" || dateFilter !== "all" || msmeOnly || miiOnly || selectedCategory || descriptionQuery) && (
+              {(searchQuery.trim() || selectedStates.length > 0 || selectedCities.length > 0 || emdFilter !== "all" || dateFilter !== "all" || msmeOnly || miiOnly || selectedCategory || descriptionQuery) && (
                 <div className="mt-3 sm:mt-4 flex items-center space-x-3 animate-in fade-in duration-300">
                   <button
                     onClick={handleSaveSearch}
@@ -581,9 +642,13 @@ function TendersPage() {
             </div>
             <div className="flex items-center bg-slate-50 sm:bg-transparent px-2 sm:px-0 py-1 sm:py-0 rounded font-medium">
               <span className="text-[10px] sm:text-xs text-slate-500 mr-1 sm:mr-1.5 hidden sm:inline">Sort:</span>
-              <select className="text-xs sm:text-sm bg-transparent border-none outline-none cursor-pointer text-slate-900 font-bold min-w-max p-0 pr-1">
-                <option>Newest First</option>
-                <option>Ending Soon</option>
+              <select 
+                value={sortOrder} 
+                onChange={(e) => setSortOrder(e.target.value as "newest" | "ending_soon")}
+                className="text-xs sm:text-sm bg-transparent border-none outline-none cursor-pointer text-slate-900 font-bold min-w-max p-0 pr-1"
+              >
+                <option value="newest">Newest First</option>
+                <option value="ending_soon">Ending Soon</option>
               </select>
             </div>
           </div>
@@ -591,7 +656,7 @@ function TendersPage() {
 
         {/* Filter Bar (Tags only now) */}
         <div className="flex items-center space-x-2 mb-4 overflow-x-auto pb-1 no-scrollbar min-h-[32px]">
-          {(selectedState || selectedCity || emdFilter !== "all" || dateFilter !== "all" || msmeOnly || miiOnly || selectedCategory || descriptionQuery) && (
+          {(selectedStates.length > 0 || selectedCities.length > 0 || emdFilter !== "all" || dateFilter !== "all" || msmeOnly || miiOnly || selectedCategory || descriptionQuery) && (
             <div className="flex items-center space-x-2">
               {selectedCategory && (
                 <button onClick={() => setSelectedCategory(null)} className="flex items-center space-x-1 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs border border-blue-700 whitespace-nowrap">
@@ -605,18 +670,18 @@ function TendersPage() {
                    <X className="w-3 h-3" />
                 </button>
               )}
-              {selectedState && (
-                <button onClick={() => { setSelectedState(""); setSelectedCity(""); }} className="flex items-center space-x-1 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs border border-blue-100 whitespace-nowrap">
-                  <span>{selectedState}</span>
+              {selectedStates.map(st => (
+                <button key={`tag-${st}`} onClick={() => { setSelectedStates(prev => prev.filter(s => s !== st)); setSelectedCities([]); }} className="flex items-center space-x-1 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs border border-blue-100 whitespace-nowrap">
+                  <span>{st}</span>
                   <X className="w-3 h-3" />
                 </button>
-              )}
-              {selectedCity && (
-                <button onClick={() => setSelectedCity("")} className="flex items-center space-x-1 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs border border-blue-100 whitespace-nowrap">
-                  <span>{selectedCity}</span>
+              ))}
+              {selectedCities.map(ct => (
+                <button key={`tag-${ct}`} onClick={() => setSelectedCities(prev => prev.filter(c => c !== ct))} className="flex items-center space-x-1 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs border border-blue-100 whitespace-nowrap">
+                  <span>{ct}</span>
                   <X className="w-3 h-3" />
                 </button>
-              )}
+              ))}
               {msmeOnly && (
                 <button onClick={() => setMsmeOnly(false)} className="flex items-center space-x-1 px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-xs border border-indigo-100 whitespace-nowrap">
                    <span>MSE</span>
@@ -643,8 +708,8 @@ function TendersPage() {
               )}
               <button
                 onClick={() => { 
-                  setSelectedState(""); 
-                  setSelectedCity("");
+                  setSelectedStates([]); 
+                  setSelectedCities([]);
                   setEmdFilter("all"); 
                   setDateFilter("all"); 
                   setMsmeOnly(false); 
@@ -662,7 +727,7 @@ function TendersPage() {
 
         {/* Expanded Filters Drawer */}
         {showFilters && (
-          <div className="fixed inset-0 z-[100] flex justify-end">
+          <div className="fixed inset-0 z-100 flex justify-end">
             {/* Backdrop */}
             <div 
               className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity cursor-pointer"
@@ -712,16 +777,19 @@ function TendersPage() {
                   </label>
                   <div className="grid grid-cols-2 gap-2">
                     <button
-                      onClick={() => { setSelectedState(""); setSelectedCity(""); }}
-                      className={`px-3 py-2.5 rounded-xl text-xs font-bold transition-all border ${!selectedState ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-white border-slate-200 text-slate-600 hover:border-blue-200 hover:bg-blue-50/30'}`}
+                      onClick={() => { setSelectedStates([]); setSelectedCities([]); }}
+                      className={`px-3 py-2.5 rounded-xl text-xs font-bold transition-all border ${selectedStates.length === 0 ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-white border-slate-200 text-slate-600 hover:border-blue-200 hover:bg-blue-50/30'}`}
                     >
                       All States
                     </button>
                     {states.map(state => (
                       <button
                         key={state}
-                        onClick={() => { setSelectedState(state); setSelectedCity(""); }}
-                        className={`px-3 py-2.5 rounded-xl text-xs font-bold border transition-all truncate text-left ${selectedState === state ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-white border-slate-200 text-slate-600 hover:border-blue-200 hover:bg-blue-50/30'}`}
+                        onClick={() => { 
+                          setSelectedStates(prev => prev.includes(state) ? prev.filter(s => s !== state) : [...prev, state]); 
+                          // Optional: clear cities when states change to avoid conflicting states-cities? Or keep them. 
+                        }}
+                        className={`px-3 py-2.5 rounded-xl text-xs font-bold border transition-all truncate text-left ${selectedStates.includes(state) ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-white border-slate-200 text-slate-600 hover:border-blue-200 hover:bg-blue-50/30'}`}
                       >
                         {state}
                       </button>
@@ -730,23 +798,23 @@ function TendersPage() {
                 </div>
 
                 {/* City Filter */}
-                {selectedState && cities.length > 0 && (
+                {cities.length > 0 && (
                   <div className="space-y-4">
                     <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center">
                       <MapPin className="w-3.5 h-3.5 mr-2" /> City
                     </label>
                     <div className="grid grid-cols-2 gap-2 max-h-[200px] overflow-y-auto no-scrollbar">
                       <button
-                        onClick={() => setSelectedCity("")}
-                        className={`px-3 py-2.5 rounded-xl text-xs font-bold transition-all border ${!selectedCity ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-white border-slate-200 text-slate-600 hover:border-blue-200 hover:bg-blue-50/30'}`}
+                        onClick={() => setSelectedCities([])}
+                        className={`px-3 py-2.5 rounded-xl text-xs font-bold transition-all border ${selectedCities.length === 0 ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-white border-slate-200 text-slate-600 hover:border-blue-200 hover:bg-blue-50/30'}`}
                       >
                         All Cities
                       </button>
                       {cities.map(city => (
                         <button
                           key={city}
-                          onClick={() => setSelectedCity(city)}
-                          className={`px-3 py-2.5 rounded-xl text-xs font-bold border transition-all truncate text-left ${selectedCity === city ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-white border-slate-200 text-slate-600 hover:border-blue-200 hover:bg-blue-50/30'}`}
+                          onClick={() => setSelectedCities(prev => prev.includes(city) ? prev.filter(c => c !== city) : [...prev, city])}
+                          className={`px-3 py-2.5 rounded-xl text-xs font-bold border transition-all truncate text-left ${selectedCities.includes(city) ? 'bg-blue-600 border-blue-600 text-white shadow-md' : 'bg-white border-slate-200 text-slate-600 hover:border-blue-200 hover:bg-blue-50/30'}`}
                         >
                           {city}
                         </button>
@@ -838,8 +906,8 @@ function TendersPage() {
                   </span>
                   <button 
                     onClick={() => {
-                      setSelectedState("");
-                      setSelectedCity("");
+                      setSelectedStates([]);
+                      setSelectedCities([]);
                       setEmdFilter("all");
                       setDateFilter("all");
                       setMsmeOnly(false);
@@ -926,7 +994,7 @@ function TendersPage() {
                     key={tender.id} 
                     tender={tender} 
                     setSearchQuery={setSearchQuery}
-                    setSelectedState={setSelectedState}
+                    setSelectedStates={setSelectedStates}
                     isSaved={savedTenderIds.has(tender.id)}
                     onToggleSave={() => handleToggleSaveTender(tender.id)}
                     highlightTerms={highlightTerms}
@@ -986,20 +1054,21 @@ function HighlightedText({ text, highlightTerms }: { text: string; highlightTerm
 function TenderCard({ 
   tender, 
   setSearchQuery, 
-  setSelectedState,
+  setSelectedStates,
   isSaved,
   onToggleSave,
   highlightTerms = []
 }: { 
   tender: any, 
   setSearchQuery: (q: string) => void,
-  setSelectedState: (s: string) => void,
+  setSelectedStates: React.Dispatch<React.SetStateAction<string[]>>,
   isSaved: boolean,
   onToggleSave: () => void,
   highlightTerms?: string[]
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const isClosingSoon = new Date(tender.end_date).getTime() - Date.now() < 86400000;
+  const isFallbackDate = tender.start_date === tender.end_date;
+  const isClosingSoon = !isFallbackDate && (new Date(tender.end_date).getTime() - Date.now() < 86400000);
   const formattedEMD = tender.emd_amount === 0
     ? "No EMD"
     : tender.emd_amount
@@ -1110,7 +1179,7 @@ function TenderCard({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  setSelectedState(tender.state);
+                  setSelectedStates([tender.state]);
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 className="hover:text-blue-600 hover:underline transition-colors truncate"
@@ -1145,16 +1214,16 @@ function TenderCard({
         <div className="flex flex-col items-center border-l border-slate-200">
           <span className="text-[10px] text-slate-400 mb-0.5">Start Date</span>
           <span className="text-[13px] font-medium text-slate-700">
-            {tender.start_date ? new Date(tender.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : "N/A"}
+            {isFallbackDate ? "Pending" : (tender.start_date ? new Date(tender.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' }) : "N/A")}
           </span>
         </div>
         <div className="flex flex-col items-end border-l border-slate-200 pl-1">
           <div className="flex items-center space-x-1 mb-0.5">
             <Clock className="w-2.5 h-2.5 text-slate-400" />
-            <span className="text-[10px] text-slate-400">Closing</span>
+            <span className="text-[10px] text-slate-400">Close Date</span>
           </div>
           <span className={`text-[13px] font-medium ${isClosingSoon ? 'text-red-500' : 'text-slate-700'}`}>
-            {new Date(tender.end_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+            {isFallbackDate ? "Pending" : new Date(tender.end_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' })}
           </span>
         </div>
       </div>

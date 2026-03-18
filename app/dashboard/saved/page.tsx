@@ -54,7 +54,7 @@ export default async function SavedBidsPage() {
                        {new Date(tender.end_date).getDate()}
                     </span>
                     <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">
-                       {new Date(tender.end_date).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}
+                       {new Date(tender.end_date).toLocaleDateString('en-GB', { month: 'short', year: 'numeric', timeZone: 'UTC' })}
                     </span>
                  </div>
 
@@ -90,7 +90,13 @@ export default async function SavedBidsPage() {
                       <div>
                         <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-0.5">Start Date</span>
                         <span className="text-xs font-bold text-slate-700">
-                          {tender.start_date ? new Date(tender.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : "N/A"}
+                          {tender.start_date ? new Date(tender.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' }) : "N/A"}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-0.5">Opening Date</span>
+                        <span className="text-xs font-bold text-slate-700">
+                          {tender.opening_date ? new Date(tender.opening_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' }) : "N/A"}
                         </span>
                       </div>
                     </div>

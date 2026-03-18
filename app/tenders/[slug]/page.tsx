@@ -134,7 +134,7 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 font-sans pb-28 lg:pb-12 selection:bg-indigo-100 selection:text-indigo-900">
       
       {/* Dynamic Header Gradient Background */}
-      <div className="absolute top-0 left-0 right-0 h-96 bg-gradient-to-b from-slate-200/50 via-slate-100/30 to-transparent -z-10 pointer-events-none" />
+      <div className="absolute top-0 left-0 right-0 h-96 bg-linear-to-b from-slate-200/50 via-slate-100/30 to-transparent -z-10 pointer-events-none" />
 
       <main className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-12">
         
@@ -201,11 +201,11 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
             
             {/* AI Summary Highlight */}
             {tender.ai_summary && (
-              <div className="relative p-[1px] rounded-3xl bg-gradient-to-br from-blue-300 via-indigo-300 to-purple-300">
+              <div className="relative p-px rounded-3xl bg-linear-to-br from-blue-300 via-indigo-300 to-purple-300">
                 <div className="bg-white rounded-[23px] p-6 lg:p-8 h-full">
                   <div className="flex items-center space-x-2 mb-4">
-                    <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-1.5 rounded-lg text-white shadow-md">
-                      <Zap className="w-4 h-4 fill-white flex-shrink-0" />
+                    <div className="bg-linear-to-r from-blue-500 to-indigo-600 p-1.5 rounded-lg text-white shadow-md">
+                      <Zap className="w-4 h-4 fill-white shrink-0" />
                     </div>
                     <h3 className="text-base font-bold text-slate-900 tracking-tight">Smart Summary</h3>
                   </div>
@@ -229,15 +229,16 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
               
               <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 divide-slate-100">
                 {[
-                  { icon: Clock, label: "Bid End Date/Time", val: tender.end_date ? new Date(tender.end_date).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : "N/A" },
-                  { icon: Clock, label: "Bid Opening Date/Time", val: tender.opening_date ? new Date(tender.opening_date).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : "N/A" },
+                  { icon: Clock, label: "Bid Start Date/Time", val: tender.start_date ? new Date(tender.start_date).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'UTC' }) : "N/A" },
+                  { icon: Clock, label: "Bid End Date/Time", val: tender.end_date ? new Date(tender.end_date).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'UTC' }) : "N/A" },
+                  { icon: Clock, label: "Bid Opening Date/Time", val: tender.opening_date ? new Date(tender.opening_date).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'UTC' }) : "N/A" },
                   { icon: FileCheck, label: "Bid Offer Validity", val: "120 Days" },
                   { icon: Package, label: "Total Quantity", val: tender.quantity || "N/A" },
                   { icon: Layers, label: "Item Category", val: tender.title ? tender.title.substring(0, 100) + (tender.title.length > 100 ? '...' : '') : "N/A" },
                   { icon: Search, label: "GeMARPTS Result", val: tender.gemarpts_result || "N/A", highlighted: true },
                 ].map((row, i) => (
                   <div key={i} className={`p-5 flex items-start space-x-4 hover:bg-slate-50/50 transition-colors ${i % 2 !== 0 ? 'md:border-l md:border-slate-100' : ''} ${i > 1 ? 'md:border-t md:border-slate-100' : ''}`}>
-                    <div className="mt-0.5 w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0 text-slate-400">
+                    <div className="mt-0.5 w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0 text-slate-400">
                       <row.icon className="w-4 h-4" />
                     </div>
                     <div>
@@ -262,7 +263,7 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
                
                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
                   <div className={`flex items-center p-4 rounded-2xl border ${tender.eligibility_msme ? 'bg-indigo-50/50 border-indigo-100' : 'bg-slate-50 border-slate-100'}`}>
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center mr-4 flex-shrink-0 ${tender.eligibility_msme ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-200 text-slate-400'}`}>
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center mr-4 shrink-0 ${tender.eligibility_msme ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-200 text-slate-400'}`}>
                       <Building className="w-6 h-6" />
                     </div>
                     <div>
@@ -272,7 +273,7 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
                   </div>
                   
                   <div className={`flex items-center p-4 rounded-2xl border ${tender.eligibility_mii ? 'bg-emerald-50/50 border-emerald-100' : 'bg-slate-50 border-slate-100'}`}>
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center mr-4 flex-shrink-0 ${tender.eligibility_mii ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-200 text-slate-400'}`}>
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center mr-4 shrink-0 ${tender.eligibility_mii ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-200 text-slate-400'}`}>
                       <Shield className="w-6 h-6" />
                     </div>
                     <div>
@@ -298,9 +299,9 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
                   <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
                     <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Documents Required</h4>
                     <ul className="text-sm text-slate-700 font-medium space-y-2">
-                      {(tender.documents_required || ["Experience Criteria", "Past Performance", "Bidder Turnover", "ATC Certificate"]).map((doc, idx) => (
+                      {(tender.documents_required || ["Experience Criteria", "Past Performance", "Bidder Turnover", "ATC Certificate"]).map((doc: string, idx: number) => (
                         <li key={idx} className="flex flex-start">
-                          <span className="w-1.5 h-1.5 rounded-full bg-slate-400 mt-1.5 mr-2.5 flex-shrink-0" />
+                          <span className="w-1.5 h-1.5 rounded-full bg-slate-400 mt-1.5 mr-2.5 shrink-0" />
                           {doc}
                         </li>
                       ))}
@@ -323,12 +324,12 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
                       <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">EMD Amount</span>
-                      <span className="text-lg font-black text-slate-800 break-words">{formattedEMD}</span>
+                      <span className="text-lg font-black text-slate-800 wrap-break-word">{formattedEMD}</span>
                     </div>
                     <div className={`rounded-2xl p-4 border ${isClosingSoon ? 'bg-red-50/50 border-red-100' : 'bg-slate-50 border-slate-100'}`}>
                       <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Ends On</span>
-                      <span className={`text-base font-bold ${isClosingSoon ? 'text-red-600' : 'text-slate-800'} block break-words`}>
-                        {new Date(tender.end_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      <span className={`text-base font-bold ${isClosingSoon ? 'text-red-600' : 'text-slate-800'} block wrap-break-word`}>
+                        {new Date(tender.end_date).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'UTC' })}
                       </span>
                       {isClosingSoon && (
                         <span className="text-[10px] uppercase font-bold text-red-500 tracking-wide mt-1 block">Act Fast</span>
@@ -371,7 +372,7 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
 
               {/* Disclaimer Card */}
               <div className="bg-slate-100/50 border border-slate-200 rounded-3xl p-5 flex items-start space-x-3">
-                <Info className="w-5 h-5 text-slate-400 flex-shrink-0 mt-0.5" />
+                <Info className="w-5 h-5 text-slate-400 shrink-0 mt-0.5" />
                 <p className="text-xs text-slate-500 leading-relaxed font-medium">
                   Summary information is processed by AI. Always refer to the official tender document for accurate dates, requirements, and legal specifics before bidding.
                 </p>

@@ -108,7 +108,11 @@ export async function runEnrichment(limit: number = 20) {
           updatePayload.emd_amount = aiData.emd_amount;
           updatePayload.quantity = aiData.quantity;
           updatePayload.ai_summary = aiData.technical_summary;
-          updatePayload.opening_date = aiData.dates?.bid_opening_date;
+          if (aiData.dates) {
+            if (aiData.dates.bid_opening_date) updatePayload.opening_date = aiData.dates.bid_opening_date;
+            if (aiData.dates.bid_start_date) updatePayload.start_date = aiData.dates.bid_start_date;
+            if (aiData.dates.bid_end_date) updatePayload.end_date = aiData.dates.bid_end_date;
+          }
         }
 
         await supabase.from('tenders').update(updatePayload).eq('id', tender.id);

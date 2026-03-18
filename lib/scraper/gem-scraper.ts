@@ -1,4 +1,6 @@
-import { chromium } from "playwright";
+import { chromium } from "playwright-extra";
+import stealthPlugin from 'puppeteer-extra-plugin-stealth';
+chromium.use(stealthPlugin());
 import { supabase } from "@/lib/supabase";
 import path from "path";
 import fs from "fs";
@@ -365,10 +367,9 @@ export async function scrapeGeMBids(options?: { lightMode?: boolean; maxPages?: 
     const finalDept = auth?.organisation || auth?.department || auth?.ministry || bid.department || "N/A";
     const slug = generateSlug(bid.bidNo, finalTitle);
 
-    // The user explicitly requested to use the END DATE from the PDF document instead of the front-page HTML date, 
-    // because the front-page GeM lists often display the exact current day/time for actively closing bids.
-    const finalStartDate = aiData?.dates?.bid_start_date || parseGeMDate(bid.startDate) || new Date().toISOString();
-    const finalEndDate = aiData?.dates?.bid_end_date || parseGeMDate(bid.endDate) || new Date().toISOString();
+    // Use the exact start and end dates directly from the frontend UI.
+    const finalStartDate = parseGeMDate(bid.startDate) || new Date().toISOString();
+    const finalEndDate = parseGeMDate(bid.endDate) || new Date().toISOString();
     const finalOpeningDate = aiData?.dates?.bid_opening_date || aiData?.bid_opening_date || null;
 
     const { error } = await supabase.from("tenders").upsert({

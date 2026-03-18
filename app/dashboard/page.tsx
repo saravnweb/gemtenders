@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase-server';
 import { User, Mail, Shield, Zap, Bookmark, ChevronRight, Bell, CreditCard } from 'lucide-react';
 import Link from 'next/link';
+import MyLocations from './MyLocations';
 
 export default async function ProfilePage() {
   const supabase = await createClient();
@@ -93,20 +94,25 @@ export default async function ProfilePage() {
                 </div>
              </div>
 
-             <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm">
-                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-4">Safety Info</h4>
-                <div className="space-y-3">
-                   <div className="flex items-center justify-between text-xs">
-                      <span className="font-medium text-slate-500">Last Active</span>
-                      <span className="font-bold text-slate-700">Just Now</span>
-                   </div>
-                   <div className="flex items-center justify-between text-xs">
-                      <span className="font-medium text-slate-500">Security</span>
-                      <span className="text-emerald-600 font-bold">Encrypted</span>
-                   </div>
-                </div>
-             </div>
-          </div>
+              <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm">
+                 <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-4">Safety Info</h4>
+                 <div className="space-y-3">
+                    <div className="flex items-center justify-between text-xs">
+                       <span className="font-medium text-slate-500">Last Active</span>
+                       <span className="font-bold text-slate-700">Just Now</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                       <span className="font-medium text-slate-500">Security</span>
+                       <span className="text-emerald-600 font-bold">Encrypted</span>
+                    </div>
+                 </div>
+              </div>
+           </div>
+
+           {/* Full Width Bottom Section */}
+           <div className="lg:col-span-3">
+              <MyLocations user={user} />
+           </div>
       </div>
     </div>
   );
