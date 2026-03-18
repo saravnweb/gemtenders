@@ -1,0 +1,20 @@
+﻿node.exe : Invalid project 
+directory provided, no such 
+directory: 
+D:\websites\Tenders\lint
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~
+    + CategoryInfo          : 
+    NotSpecified: (Invalid p  
+  roject...es\Tenders\lint:   
+ String) [], RemoteExcepti    
+on
+    + FullyQualifiedErrorId : 
+    NativeCommandError
+ 

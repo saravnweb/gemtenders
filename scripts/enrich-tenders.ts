@@ -8,8 +8,8 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PU
 const supabase = createClient(supabaseUrl, supabaseKey);
 const { extractTenderData } = await import('../lib/gemini');
 import { chromium } from 'playwright-extra';
-import stealthPlugin from 'puppeteer-extra-plugin-stealth';
-chromium.use(stealthPlugin());
+import stealth from 'puppeteer-extra-plugin-stealth';
+chromium.use(stealth());
 import path from 'path';
 import fs from 'fs';
 import { exec } from 'child_process';
@@ -58,20 +58,17 @@ async function enrichTenders() {
 
   console.log(`>>> [ENRICHER] Found ${pendingTenders.length} tenders to enrich.`);
 
-  // Playwright context not needed since we're using native curl
-  const browser = await chromium.launch({
-    headless: true,
-    args: [
-      '--disable-blink-features=AutomationControlled',
-      '--no-sandbox', 
-      '--disable-setuid-sandbox', 
-      '--disable-gpu'
-    ],
+  // Acquire GeM cookies directly via native fetch to bypass WAF
+  console.log('>>> [ENRICHER] Fetching GeM cookies...');
+  const cRes = await fetch('https://bidplus.gem.gov.in/all-bids', {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36' }
   });
-  
-  const context = await browser.newContext({
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+  const cookieJar: string[] = [];
+  cRes.headers.forEach((val, key) => {
+      if (key.toLowerCase() === 'set-cookie') cookieJar.push(val.split(';')[0]);
   });
+  const sessionCookies = cookieJar.join('; ');
+  console.log('>>> [ENRICHER] Cookies acquired effectively.');
 
   let successCount = 0;
   let failCount = 0;
@@ -81,6 +78,18 @@ async function enrichTenders() {
   for (let i = 0; i < pendingTenders.length; i += CONCURRENCY) {
     chunks.push(pendingTenders.slice(i, i + CONCURRENCY));
   }
+
+  // Launch browser once for all UI fallback operations
+  const browser = await chromium.launch({ headless: true });
+  const context = await browser.newContext({
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+    extraHTTPHeaders: {
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Referer': 'https://bidplus.gem.gov.in/all-bids',
+      'Cookie': sessionCookies
+    }
+  });
 
   for (let i = 0; i < chunks.length; i++) {
     const chunk = chunks[i];
@@ -97,38 +106,77 @@ async function enrichTenders() {
     try {
       // ── Step 1: Download PDF ──────────────────────────────────────────────
       let buffer: Buffer | undefined;
-      console.log(`>>> [ENRICHER] Attempting direct download via Playwright: ${pdfLink}`);
+      console.log(`>>> [ENRICHER] Attempting direct download natively: ${pdfLink}`);
       try {
-        const downloadPage = await context.newPage();
-        const downloadPromise = downloadPage.waitForEvent('download', { timeout: 30000 });
-        try {
-          await downloadPage.goto(pdfLink, { waitUntil: 'load', timeout: 30000 });
-        } catch (e: any) {
-          console.log(`>>> [ENRICHER] Navigation note: ${e.message}`);
-        }
+        const res = await fetch(pdfLink, {
+            method: 'GET',
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Referer': 'https://bidplus.gem.gov.in/all-bids',
+                'Cookie': sessionCookies
+            }
+        });
         
-        try {
-          const download = await downloadPromise;
-          const tmpPath = path.join(process.cwd(), 'tmp', `enrich_${tender.bid_number.replace(/[\\/]/g, '_')}.pdf`);
-          await download.saveAs(tmpPath);
-          buffer = fs.readFileSync(tmpPath);
-          fs.unlinkSync(tmpPath);
-        } catch (e) {
-          console.log(`>>> [ENRICHER] Fallback to manual request...`);
-          const response = await downloadPage.request.get(pdfLink);
-          if (response.headers()['content-type']?.includes('pdf')) {
-             buffer = await response.body();
-          }
+        const arrayBuf = await res.arrayBuffer();
+        if (arrayBuf.byteLength > 1000) {
+            buffer = Buffer.from(arrayBuf);
+        } else {
+            console.log(`>>> [ENRICHER] Warn: Returned buffer too small. Content: `, Buffer.from(arrayBuf).toString('utf-8').substring(0, 150));
         }
-        await downloadPage.close();
       } catch (e: any) {
         console.log(`>>> [ENRICHER] Try error: ${e.message}`);
       }
 
       if (!buffer || buffer.length < 1000) {
-        console.warn(`>>> [ENRICHER] PDF invalid or missing for ${tender.bid_number} (URL: ${pdfLink}). Length: ${buffer?.length}.`);
-        console.warn(`>>> [ENRICHER] ⚠️  GeM Anti-Scraping WAF Triggered (0 Bytes). Skipping...`);
-        return false;
+        console.warn(`>>> [ENRICHER] PDF invalid or URL expired for ${tender.bid_number} (URL: ${pdfLink}). Length: ${buffer?.length}.`);
+        console.warn(`>>> [ENRICHER] ⚠️  Executing UI Fallback Request to bypass WAF & fix expired URL...`);
+        
+        try {
+          const searchPage = await context.newPage();
+          await searchPage.goto('https://bidplus.gem.gov.in/all-bids', { waitUntil: 'load', timeout: 30000 });
+          // The search box might take a moment to load via JS
+          await searchPage.waitForSelector('input[type="search"], input#searchBid, .dataTables_filter input', { timeout: 15000 });
+          
+          const searchInput = await searchPage.$('input[type="search"], input#searchBid, .dataTables_filter input');
+          if (searchInput) {
+            await searchInput.fill(tender.bid_number);
+            await searchPage.keyboard.press('Enter');
+            // Try clicking the search button if the enter key didn't work
+            try {
+              const searchBtn = await searchPage.$('button.search, button.custom_search_button, #btn-search');
+              if (searchBtn) await searchBtn.click();
+            } catch (e) {}
+          }
+          
+          await searchPage.waitForSelector(`a[href*="showbidDocument"], a[href*="showdirectradocument"], a.bid_no_hover`, { timeout: 15000 });
+          
+          let realPdfUrl = await searchPage.evaluate(() => document.querySelector('a.bid_no_hover, a[href*="showbidDocument"]')?.getAttribute('href'));
+          if (realPdfUrl && realPdfUrl.startsWith('/')) {
+            realPdfUrl = 'https://bidplus.gem.gov.in' + realPdfUrl;
+          }
+          await searchPage.close();
+
+          if (realPdfUrl && realPdfUrl !== pdfLink) {
+             console.log(`>>> [ENRICHER] Fallback found FRESH URL: ${realPdfUrl}`);
+             // Retry download via manual request with new URL
+             const fallbackPage = await context.newPage();
+             const fallbackResponse = await fallbackPage.request.get(realPdfUrl);
+             if (fallbackResponse.headers()['content-type']?.includes('pdf')) {
+                 buffer = await fallbackResponse.body();
+                 console.log(`>>> [ENRICHER] Fallback Download successful: ${buffer.length} bytes.`);
+             }
+             await fallbackPage.close();
+          }
+        } catch (searchErr: any) {
+          console.log(`>>> [ENRICHER] Fallback UI search failed: ${searchErr.message}`);
+        }
+
+        if (!buffer || buffer.length < 1000) {
+          console.warn(`>>> [ENRICHER] ⚠️  GeM Anti-Scraping WAF Triggered / No Document Found (0 Bytes). Skipping...`);
+          return false;
+        }
       }
 
       // ── Step 2: Upload PDF to Supabase Storage ────────────────────────────
@@ -243,12 +291,12 @@ async function enrichTenders() {
     await new Promise(r => setTimeout(r, 8000));
   }
 
-  await browser.close();
-
   console.log(`\n>>> [ENRICHER] Run complete.`);
   console.log(`    ✓ Enriched: ${successCount}`);
   console.log(`    ✗ Failed:   ${failCount}`);
   console.log(`    Remaining:  Run again to process the next batch.\n`);
+
+  await browser.close();
 }
 
 enrichTenders();

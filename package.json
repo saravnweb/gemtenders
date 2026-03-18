@@ -7,7 +7,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "scrape": "tsx scripts/run-scraper.ts",
     "enrich": "tsx scripts/enrich-tenders.ts",
     "stats": "tsx scripts/db-stats.ts",

@@ -103,13 +103,14 @@ export async function runFastScrape(maxPages: number, concurrency: number = 10) 
          finalDept = `${minName}, ${deptName}`;
       }
       
-      // Use b_id for PDF fetching instead of b_id_parent
-      let pdfId = bid.b_id ? String(bid.b_id[0]) : "";
+      let pdfId = bid.b_id_parent ? String(bid.b_id_parent[0]) : (bid.b_id ? String(bid.b_id[0]) : "");
       let docLbl = 'showbidDocument';
       if (bid.b_bid_type && bid.b_bid_type[0] === 5) {
         docLbl = 'showdirectradocumentPdf';
+        pdfId = bid.b_id ? String(bid.b_id[0]) : pdfId; // RA sometimes uses b_id
       } else if (bid.b_bid_type && bid.b_bid_type[0] === 2) {
         docLbl = 'showradocumentPdf';
+        pdfId = bid.b_id ? String(bid.b_id[0]) : pdfId; // RA uses b_id
       }
       
       const pdfLink = `https://bidplus.gem.gov.in/${docLbl}/${pdfId}`;
