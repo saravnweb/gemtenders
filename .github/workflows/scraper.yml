@@ -1,13 +1,22 @@
-name: Tender Scraper
+name: Tender Scraper & Enricher
 
 on:
   schedule:
-    - cron: '0 */6 * * *' # Every 6 hours
+    - cron: '0 0 * * *' # Every day at 00:00 UTC
   workflow_dispatch: # Allows manual trigger
 
 jobs:
-  scrape:
+  scrape-and-enrich:
     runs-on: ubuntu-latest
+    timeout-minutes: 120 # Prevent infinite hanging
+
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
+
     steps:
       - uses: actions/checkout@v4
 
@@ -23,10 +32,10 @@ jobs:
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps chromium
 
-      - name: Run Scraper
-        run: npm run scrape
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
+      - name: Run Fast Scraper
+        # Scrapes all available recent pages
+        run: npm run fast-scrape
+
+      - name: Run Enricher
+        # Enriches the newly scraped tenders (downloads PDF & calls AI)
+        run: npm run enrich
