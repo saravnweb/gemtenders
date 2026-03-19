@@ -13,9 +13,9 @@ const supabase = createClient(
 
 // ─── CONFIG ────────────────────────────────────────────────────────────────
 const args = process.argv.slice(2);
-const LIMIT       = parseInt(args.find(a => a.startsWith('--limit='))?.split('=')[1]       || '500', 10);
-const CONCURRENCY = parseInt(args.find(a => a.startsWith('--concurrency='))?.split('=')[1] || '3',   10);
-const BATCH_DELAY = parseInt(args.find(a => a.startsWith('--delay='))?.split('=')[1]       || '1000',10);
+const LIMIT       = parseInt(args.find(a => a.startsWith('--limit='))?.split('=')[1]       || '2000', 10);
+const CONCURRENCY = parseInt(args.find(a => a.startsWith('--concurrency='))?.split('=')[1] || '10',   10);
+const BATCH_DELAY = parseInt(args.find(a => a.startsWith('--delay='))?.split('=')[1]       || '0',10);
 const BUCKET      = 'tender-documents';
 // ──────────────────────────────────────────────────────────────────────────
 

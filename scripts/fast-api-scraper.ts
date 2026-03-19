@@ -153,16 +153,24 @@ export async function runFastScrape(maxPages: number, concurrency: number = 10) 
       if (insertErr) console.error(">>> [FAST-SCRAPE] Insert Error:", insertErr);
 
       // Step 2: Update only dates + URL for EXISTING tenders (never touch title/dept/ai_summary)
-      const dateUpdates = finalBatch.map(b => ({
-        bid_number: b.bid_number,
-        start_date: b.start_date,
-        end_date:   b.end_date,
-        details_url: b.details_url,
-      }));
-      const { error: updateErr } = await supabase
-        .from('tenders')
-        .upsert(dateUpdates, { onConflict: 'bid_number' });
-      if (updateErr) console.error(">>> [FAST-SCRAPE] Date Update Error:", updateErr);
+      // Postgres upsert with missing NOT NULL columns fails, so we run parallel individual updates.
+      const updatePromises = finalBatch.map(b => 
+        supabase
+          .from('tenders')
+          .update({
+            start_date: b.start_date,
+            end_date:   b.end_date,
+            details_url: b.details_url,
+          })
+          .eq('bid_number', b.bid_number)
+      );
+      
+      const updateResults = await Promise.all(updatePromises);
+      const updateErrors = updateResults.map(r => r.error).filter(Boolean);
+      
+      if (updateErrors.length > 0) {
+        console.error(">>> [FAST-SCRAPE] Date Update Error:", updateErrors[0]);
+      }
 
       console.log(`>>> [FAST-SCRAPE] Processed ${finalBatch.length} bids (new inserted, existing dates refreshed).`);
     }

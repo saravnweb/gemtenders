@@ -39,8 +39,14 @@ export async function runEnrichment(limit: number = 20) {
   });
 
   let successCount = 0;
+  const CONCURRENCY = 5; // Download 5 PDFs in parallel
+  const chunks = [];
+  for (let i = 0; i < pendingTenders.length; i += CONCURRENCY) {
+    chunks.push(pendingTenders.slice(i, i + CONCURRENCY));
+  }
 
-  for (const tender of pendingTenders) {
+  for (const chunk of chunks) {
+    await Promise.all(chunk.map(async (tender) => {
     const pdfLink = tender.details_url || `https://bidplus.gem.gov.in/showbiddata/${tender.bid_number}`;
     let pdfPublicUrl: string | null = null;
     let aiData: any = null;
@@ -151,9 +157,10 @@ export async function runEnrichment(limit: number = 20) {
         successCount++;
       }
     } catch (err) {
-      console.error(err);
+      console.error(`    ✗ Error scraping ${tender.bid_number}:`, err);
     }
-  }
+  }));
+}
 
   await browser.close();
   return { success: true, processed: successCount };

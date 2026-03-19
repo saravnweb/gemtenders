@@ -16,14 +16,24 @@ const COLUMNS =
   "id,title,bid_number,state,city,department,ministry_name,department_name,organisation_name,office_name,emd_amount,start_date,end_date,ai_summary,eligibility_msme,eligibility_mii,created_at,slug";
 
 const KEYWORD_CATEGORIES = [
-  { id: "civil",   name: "Civil Works",  icon: "🏗️", keywords: ["civil","construction","concrete","building","repair","road","flooring"] },
-  { id: "electric",name: "Electrical",   icon: "⚡",  keywords: ["elec","wiring","transformer","cable","ups","battery","light"] },
-  { id: "it",      name: "IT & Tech",    icon: "💻",  keywords: ["software","hardware","computer","server","it","networking","cctv"] },
-  { id: "service", name: "Services",     icon: "🛠️", keywords: ["service","manpower","maintenance","consultancy","security","cleaning"] },
-  { id: "medical", name: "Medical",      icon: "🏥",  keywords: ["medical","hospital","medicine","surgical","health","lab"] },
-  { id: "furn",    name: "Furniture",    icon: "🪑",  keywords: ["furniture","chair","table","almirah","cupboard","modular"] },
-  { id: "auto",    name: "Vehicles",     icon: "🚗",  keywords: ["vehicle","car","truck","transport","driver","taxi"] },
-  { id: "supply",  name: "Supplies",     icon: "📦",  keywords: ["supply","stationery","paper","consumables","item"] },
+  { id: "it",       name: "IT & Tech",        icon: "💻",  keywords: ["software","hardware","computer","laptop","server","networking","cctv","tablet","printer","scanner","desktop","data center","cybersecurity","firewall","switch","router","erp","website"] },
+  { id: "civil",    name: "Civil Works",       icon: "🏗️", keywords: ["civil","construction","concrete","building","repair","road","flooring","painting","plumbing","renovation","fabrication","infrastructure","bridge","canal","drain","compound wall","tile","earthwork"] },
+  { id: "electric", name: "Electrical",        icon: "⚡",  keywords: ["electrical","wiring","transformer","cable","ups","battery","led","solar","switchgear","mccb","generator","substation","inverter","mcb","dg set","streetlight","luminar","panel board"] },
+  { id: "medical",  name: "Medical",           icon: "🏥",  keywords: ["medical","hospital","medicine","surgical","health","lab","pharmaceutical","ambulance","ppe","sanitizer","oxygen","gloves","syringe","diagnostic","x-ray","ventilator","stretcher","wheelchair"] },
+  { id: "furn",     name: "Furniture",         icon: "🪑",  keywords: ["furniture","chair","table","almirah","cupboard","modular","workstation","shelving","rack","sofa","bench","locker","partition","cabin","pedestal"] },
+  { id: "auto",     name: "Vehicles",          icon: "🚗",  keywords: ["vehicle","car","truck","bus","tractor","jeep","cab","fleet","motorbike","ambulance","mini bus","pickup","tempo","chassis","motor cycle"] },
+  { id: "manpower", name: "Manpower",          icon: "👷",  keywords: ["manpower","staffing","outsourcing","labour","labor","worker","operator","helper","housekeeping","sweeper","attendant","peon","sanitation staff","data entry","contractual"] },
+  { id: "security", name: "Security",          icon: "🔒",  keywords: ["security","guard","surveillance","access control","watch","patrol","armed","gunman","security agency","fire safety","fire fighting"] },
+  { id: "transport",name: "Transport & Logistics",icon: "🚚",keywords: ["transport","logistics","goods","freight","cargo","courier","shifting","relocation","packers","movers","taxi hiring","cab hiring","vehicle hiring","bus hiring"] },
+  { id: "print",    name: "Printing",          icon: "🖨️", keywords: ["printing","printed","flex","banner","hoarding","signage","letterhead","brochure","booklet","publication","offset","digital printing","screen printing"] },
+  { id: "catering", name: "Catering & Food",   icon: "🍽️", keywords: ["catering","canteen","food","meal","snack","vending","tea","coffee","tiffin","mess","kitchen","lunch","refreshment"] },
+  { id: "textile",  name: "Textile & Uniform", icon: "👕",  keywords: ["textile","uniform","cloth","fabric","handloom","garment","linen","towel","bedsheet","curtain","mat","blanket","apparel","stitching","hosiery","woolen"] },
+  { id: "maint",    name: "Maintenance / AMC", icon: "🔧",  keywords: ["maintenance","amc","annual maintenance","overhauling","servicing","breakdown","preventive","corrective","facility management","calibration","repair of"] },
+  { id: "pipes",    name: "Pipes & Hardware",  icon: "🔩",  keywords: ["pipe","fitting","valve","pump","hose","hardware","bolt","nut","screw","steel structure","iron","ms fabrication","galvanized","pvc","cpvc","gi pipe","hdpe"] },
+  { id: "clean",    name: "Cleaning",          icon: "🧹",  keywords: ["cleaning","housekeeping","sanitation","disinfection","pest control","fumigation","garbage","waste management","sweeping","mopping","horticulture","gardening"] },
+  { id: "event",    name: "Events & Training", icon: "🎪",  keywords: ["event","seminar","workshop","exhibition","conference","training","expo","meeting","inauguration","ceremony","awareness programme","coaching"] },
+  { id: "supply",   name: "Supplies",          icon: "📦",  keywords: ["supply","stationery","paper","consumables","toner","cartridge","pen","diary","register","item","material","stock","kit","tool kit","spare"] },
+  { id: "survey",   name: "Survey & Consulting",icon: "📋", keywords: ["survey","consultancy","consulting","advisory","audit","inspection","testing","assessment","feasibility","detailed project report","dpr","gis","mapping","valuation"] },
 ];
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
@@ -663,47 +673,49 @@ function TendersClient({
         </div>
 
         {/* ── Tabs ── */}
-        <div className="flex items-center justify-between mb-4 border-b border-slate-200 dark:border-slate-700">
-          <div className="flex space-x-4 sm:space-x-6 overflow-x-auto no-scrollbar flex-1 pt-1">
+        <div className="flex items-start sm:items-center justify-between mb-4 border-b border-slate-200 dark:border-slate-700">
+          <div className="flex flex-wrap gap-x-4 sm:gap-x-6 gap-y-2 flex-1 pt-1 pr-2">
             <TabButton label="All Active Bids" active={activeTab === "all"} onClick={() => setActiveTab("all")} />
+
+            <button
+              onClick={() => setActiveTab("archived")}
+              className={`pb-2 sm:pb-3 text-sm font-bold flex items-center space-x-1.5 sm:space-x-2 transition-all relative whitespace-nowrap ${activeTab === "archived" ? "text-blue-600 dark:text-blue-400" : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"}`}
+            >
+              <Archive className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${activeTab === "archived" ? "text-blue-600" : "text-slate-500 dark:text-slate-400"}`} />
+              <span>Archived Bids</span>
+              {activeTab === "archived" && <div className="absolute bottom-[-8px] sm:bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-t-full" />}
+            </button>
+
+            <div className="w-full sm:hidden border-b border-transparent"></div>
 
             {user && savedSearches.length > 0 ? (
               <button
                 onClick={() => setActiveTab("foryou")}
-                className={`pb-3 text-sm font-bold flex items-center space-x-2 transition-all relative whitespace-nowrap ${activeTab === "foryou" ? "text-blue-600 dark:text-blue-400" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"}`}
+                className={`pb-2 sm:pb-3 text-sm font-bold flex items-center space-x-1.5 sm:space-x-2 transition-all relative whitespace-nowrap ${activeTab === "foryou" ? "text-blue-600 dark:text-blue-400" : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"}`}
               >
-                <Zap className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${activeTab === "foryou" ? "text-blue-500" : "text-slate-400 dark:text-slate-500"}`} />
+                <Zap className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${activeTab === "foryou" ? "text-blue-600" : "text-slate-500 dark:text-slate-400"}`} />
                 <span>For You</span>
-                <span className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] font-black tracking-widest uppercase ${activeTab === "foryou" ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300" : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"}`}>
+                <span className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] font-black tracking-widest uppercase ${activeTab === "foryou" ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"}`}>
                   {forYouLoading ? "…" : forYouTenders.length}
                 </span>
-                {activeTab === "foryou" && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-t-full" />}
+                {activeTab === "foryou" && <div className="absolute bottom-[-8px] sm:bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-t-full" />}
               </button>
             ) : (
               <button
                 onClick={() => { if (!user) window.location.href = "/login"; else window.location.href = "/dashboard/keywords"; }}
-                className="group pb-3 text-sm font-bold flex items-center space-x-2 transition-all relative text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 whitespace-nowrap"
+                className="group pb-2 sm:pb-3 text-sm font-bold flex items-center space-x-1.5 sm:space-x-2 transition-all relative text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 whitespace-nowrap"
               >
-                <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 group-hover:text-blue-500 transition-colors" />
+                <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-500 group-hover:text-blue-600 transition-colors" />
                 <span>For You</span>
-                <span className="px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] font-black tracking-widest uppercase bg-slate-100 dark:bg-slate-800 text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-700 transition-colors hidden sm:inline-block">
+                <span className="px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] font-black tracking-widest uppercase bg-slate-100 dark:bg-slate-800 text-slate-600 group-hover:bg-blue-100 group-hover:text-blue-700 transition-colors hidden sm:inline-block">
                   + Add Keywords
                 </span>
               </button>
             )}
-
-            <button
-              onClick={() => setActiveTab("archived")}
-              className={`pb-3 text-sm font-bold flex items-center space-x-2 transition-all relative whitespace-nowrap ${activeTab === "archived" ? "text-blue-600 dark:text-blue-400" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"}`}
-            >
-              <Archive className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${activeTab === "archived" ? "text-blue-500" : "text-slate-400 dark:text-slate-500"}`} />
-              <span>Archived Bids</span>
-              {activeTab === "archived" && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-t-full" />}
-            </button>
           </div>
 
-          <div className="flex items-center space-x-3 sm:space-x-4 shrink-0 pl-2 pb-3">
-            <div className="hidden md:block text-xs font-bold text-slate-400 dark:text-slate-500">
+          <div className="flex items-center space-x-3 sm:space-x-4 shrink-0 pl-2 pb-2 sm:pb-3 pt-1">
+            <div className="hidden md:block text-xs font-bold text-slate-500 dark:text-slate-400">
               {loading ? "…" : activeTab === "foryou"
                 ? `${forYouTenders.length} results`
                 : totalCount !== null
@@ -711,7 +723,7 @@ function TendersClient({
                   : `${displayTenders.length}${hasMore ? "+" : ""} results`}
             </div>
             <div className="flex items-center bg-slate-50 dark:bg-slate-900 sm:bg-transparent px-2 sm:px-0 py-1 sm:py-0 rounded font-medium">
-              <span className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mr-1 sm:mr-1.5 hidden sm:inline">Sort:</span>
+              <span className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 mr-1 sm:mr-1.5 hidden sm:inline">Sort:</span>
               <select
                 aria-label="Sort order"
                 value={sortOrder}
@@ -973,9 +985,9 @@ function TendersClient({
 // ─── Small reusable components ────────────────────────────────────────────────
 function TabButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
-    <button onClick={onClick} className={`pb-3 text-sm font-bold transition-all relative whitespace-nowrap ${active ? "text-blue-600 dark:text-blue-400" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"}`}>
+    <button onClick={onClick} className={`pb-2 sm:pb-3 text-sm font-bold transition-all relative whitespace-nowrap ${active ? "text-blue-600 dark:text-blue-400" : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"}`}>
       {label}
-      {active && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-t-full" />}
+      {active && <div className="absolute bottom-[-8px] sm:bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-t-full" />}
     </button>
   );
 }
@@ -1067,14 +1079,6 @@ function TenderCard({
   return (
     <div className="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-4 transition-all duration-200 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-md flex flex-col h-full relative overflow-hidden">
 
-      {category && (
-        <div className="absolute top-4 right-4 z-10">
-          <span className="flex items-center space-x-1 px-2 py-1 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-slate-100 dark:border-slate-700 rounded-md text-[10px] font-bold text-slate-500 shadow-sm transition-all group-hover:bg-blue-50 dark:group-hover:bg-blue-900/30 group-hover:border-blue-100 group-hover:text-blue-600">
-            <span>{category.icon}</span><span>{category.name}</span>
-          </span>
-        </div>
-      )}
-
       {/* Title */}
       <div className="mb-2">
         <Link href={`/tenders/${encodeURIComponent(tender.slug || "")}`} className="hover:no-underline group/title focus:outline-none">
@@ -1083,9 +1087,23 @@ function TenderCard({
           </h3>
         </Link>
         {tender.title && tender.title.length > 60 && (
-          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsExpanded(!isExpanded); }} className="text-[11px] text-blue-500 mt-1 hover:text-blue-700 flex items-center relative z-10">
-            {isExpanded ? "Show less" : "Show more"}
-          </button>
+          <div className="flex items-center space-x-2 mt-1 relative z-10">
+            <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsExpanded(!isExpanded); }} className="text-[11px] text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">
+              {isExpanded ? "Show less" : "Show more"}
+            </button>
+            {category && (
+              <span className="flex items-center space-x-1 px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                <span>{category.icon}</span><span>{category.name}</span>
+              </span>
+            )}
+          </div>
+        )}
+        {tender.title && tender.title.length <= 60 && category && (
+          <div className="flex items-center space-x-2 mt-1 relative z-10">
+            <span className="flex items-center space-x-1 px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-[10px] font-bold text-slate-500 dark:text-slate-400">
+              <span>{category.icon}</span><span>{category.name}</span>
+            </span>
+          </div>
         )}
       </div>
 
@@ -1108,7 +1126,7 @@ function TenderCard({
         <div className="mb-3 p-2.5 bg-blue-50/50 dark:bg-blue-900/20 rounded-lg border border-blue-50 dark:border-blue-900 relative z-10">
           <div className="flex items-center space-x-1 mb-1 opacity-60">
             <Zap className="w-2.5 h-2.5 text-blue-500" />
-            <span className="text-[9px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-tighter">AI Insight</span>
+            <span className="text-[9px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-tighter">Insight</span>
           </div>
           <p className="text-[11px] text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed italic">
             "<HighlightedText text={tender.ai_summary} highlightTerms={highlightTerms} />"

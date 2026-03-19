@@ -27,7 +27,12 @@ export default function GoogleOneTap() {
 
     const filterLog = (originalMethod: any, ...args: any[]) => {
       const msg = typeof args[0] === 'string' ? args[0] : (args[0]?.message || String(args[0] || ''));
-      if (msg.includes('[GSI_LOGGER]:') || msg.includes('FedCM get() rejects with AbortError') || msg.includes('stop functioning when FedCM becomes mandatory')) {
+      if (
+        msg.includes('[GSI_LOGGER]:') || 
+        msg.includes('FedCM get() rejects with AbortError') || 
+        msg.includes('stop functioning when FedCM becomes mandatory') ||
+        msg.includes('The request has been aborted')
+      ) {
         return;
       }
       originalMethod(...args);
@@ -40,7 +45,12 @@ export default function GoogleOneTap() {
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
       const reason = event.reason;
       const msg = typeof reason === 'string' ? reason : (reason?.message || String(reason || ''));
-      if (msg.includes('[GSI_LOGGER]:') || msg.includes('FedCM get() rejects with AbortError') || msg.includes('signal is aborted without reason')) {
+      if (
+        msg.includes('[GSI_LOGGER]:') || 
+        msg.includes('FedCM get() rejects with AbortError') || 
+        msg.includes('signal is aborted without reason') ||
+        msg.includes('The request has been aborted')
+      ) {
         event.preventDefault();
       }
     };

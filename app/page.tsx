@@ -5,22 +5,12 @@ export const revalidate = 60; // Cache for 60s — tenders change frequently but
 
 const COLUMNS = 'id,title,bid_number,state,city,department,ministry_name,department_name,organisation_name,office_name,emd_amount,start_date,end_date,ai_summary,eligibility_msme,eligibility_mii,created_at,slug';
 
-export default async function Page({
-  searchParams,
-}: {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-}) {
+export default async function Page() {
   // Use a public (anon) client — no cookies needed for public tender data
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
-
-  const sp = await searchParams;
-  const q = (sp.q as string) || '';
-  const initStates = sp.state
-    ? Array.isArray(sp.state) ? sp.state : [sp.state]
-    : [];
 
   let query = supabase
     .from('tenders')
@@ -29,22 +19,13 @@ export default async function Page({
     .order('start_date', { ascending: false })
     .range(0, 20);
 
-  if (q) {
-    query = query.or(
-      `title.ilike.%${q}%,bid_number.ilike.%${q}%,ai_summary.ilike.%${q}%`
-    );
-  }
-  if (initStates.length > 0) {
-    query = query.in('state', initStates);
-  }
-
   const { data: initialTenders } = await query;
 
   return (
     <TendersClient
       initialTenders={initialTenders || []}
-      initialQ={q}
-      initialStates={initStates}
+      initialQ=""
+      initialStates={[]}
     />
   );
 }

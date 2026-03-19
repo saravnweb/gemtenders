@@ -71,18 +71,18 @@ export default function Navbar() {
 
             {/* Logo - Centered on Mobile, Left on Desktop */}
             <div className="absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0 md:flex-1 flex items-center justify-center md:justify-start">
-              <Link href="/" className="flex items-center space-x-2 sm:space-x-3 group scale-90 sm:scale-100 transition-transform">
-                <div className="relative h-10 w-10 sm:h-12 sm:w-12 shrink-0 flex items-center justify-center">
+              <Link href="/" className="flex items-center space-x-2 sm:space-x-3 group scale-100 sm:scale-110 transition-transform origin-left">
+                <div className="relative h-12 w-12 sm:h-14 sm:w-14 shrink-0 flex items-center justify-center">
                   <Image 
                     src="/favicon.png" 
                     alt="GeMTenders Logo" 
-                    width={48}
-                    height={48}
+                    width={64}
+                    height={64}
                     priority
                     className="h-full w-auto object-contain transition-transform duration-300 group-hover:scale-105"
                   />
                 </div>
-                <span className="text-lg sm:text-xl font-bold text-fresh-sky-950 dark:text-white tracking-tight flex items-center leading-none">
+                <span className="text-xl sm:text-2xl font-black text-fresh-sky-950 dark:text-white tracking-tight flex items-center leading-none">
                   GeMTenders.org
                 </span>
               </Link>

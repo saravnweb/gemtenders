@@ -31,8 +31,8 @@ export default function LoginPage() {
       <div className="max-w-md w-full bg-white rounded-4xl p-8 sm:p-10 shadow-2xl shadow-fresh-sky-200/50 border border-fresh-sky-100 animate-in fade-in zoom-in duration-500">
         
         <div className="text-center mb-10">
-          <div className="mb-8">
-            <Image src="/logo.png" alt="GeMTenders.org Logo" width={200} height={64} priority className="h-16 w-auto mx-auto object-contain brightness-110" />
+          <div className="mb-8 flex justify-center">
+            <Image src="/logo.png" alt="GeMTenders.org Logo" width={400} height={128} priority className="w-64 sm:w-80 h-auto object-contain brightness-110" />
           </div>
           <h1 className="text-3xl font-black text-fresh-sky-950 tracking-tight mb-2">Welcome</h1>
           <p className="text-fresh-sky-600 font-medium">Sign in to your GeMTenders.org account</p>

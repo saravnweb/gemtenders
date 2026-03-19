@@ -6,7 +6,15 @@
       "Bash(node scripts/debug-dates.mjs)",
       "Bash(node scripts/debug-pdf.mjs)",
       "Bash(npm install:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "WebFetch(domain:gem.gov.in)",
+      "WebFetch(domain:mkp.gem.gov.in)",
+      "WebFetch(domain:admin-mkp.gem.gov.in)",
+      "WebFetch(domain:data.gov.in)",
+      "WebSearch",
+      "WebFetch(domain:tendersplus.com)",
+      "WebFetch(domain:blog.mygov.in)",
+      "WebFetch(domain:gemportal.vercel.app)"
     ]
   }
 }
