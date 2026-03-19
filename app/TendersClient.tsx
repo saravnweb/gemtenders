@@ -673,20 +673,9 @@ function TendersClient({
         </div>
 
         {/* ── Tabs ── */}
-        <div className="flex items-start sm:items-center justify-between mb-4 border-b border-slate-200 dark:border-slate-700">
-          <div className="flex flex-wrap gap-x-4 sm:gap-x-6 gap-y-2 flex-1 pt-1 pr-2">
+        <div className="flex items-start sm:items-center justify-between mb-4 border-b border-slate-200 dark:border-slate-700 w-full overflow-x-auto no-scrollbar">
+          <div className="flex flex-nowrap items-center gap-x-4 sm:gap-x-6 flex-1 pt-1 pr-2 shrink-0">
             <TabButton label="All Active Bids" active={activeTab === "all"} onClick={() => setActiveTab("all")} />
-
-            <button
-              onClick={() => setActiveTab("archived")}
-              className={`pb-2 sm:pb-3 text-sm font-bold flex items-center space-x-1.5 sm:space-x-2 transition-all relative whitespace-nowrap ${activeTab === "archived" ? "text-blue-600 dark:text-blue-400" : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"}`}
-            >
-              <Archive className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${activeTab === "archived" ? "text-blue-600" : "text-slate-500 dark:text-slate-400"}`} />
-              <span>Archived Bids</span>
-              {activeTab === "archived" && <div className="absolute bottom-[-8px] sm:bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-t-full" />}
-            </button>
-
-            <div className="w-full sm:hidden border-b border-transparent"></div>
 
             {user && savedSearches.length > 0 ? (
               <button

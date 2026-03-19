@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 export default function PricingPage() {
-  const [isAnnual, setIsAnnual] = useState(true);
+  const [isAnnual, setIsAnnual] = useState(false);
 
   return (
     <div className="min-h-screen bg-fresh-sky-50 font-sans py-20 px-4 sm:px-6 lg:px-8">
@@ -45,7 +45,7 @@ export default function PricingPage() {
         <div className="bg-white rounded-4xl p-8 border border-fresh-sky-100 shadow-sm shadow-fresh-sky-200/20 hover:shadow-xl hover:shadow-fresh-sky-200/40 transition-shadow">
           <div className="mb-8">
             <h3 className="text-xl font-bold text-fresh-sky-900 mb-2">Basic</h3>
-            <p className="text-sm text-fresh-sky-500 font-medium h-10">Manual tracking for casual users.</p>
+            <p className="text-sm text-fresh-sky-500 font-medium h-10">Perfect for getting started and exploring active tenders.</p>
           </div>
           <div className="mb-8 flex items-baseline outline-none focus:outline-none">
             <span className="text-5xl font-black text-fresh-sky-950">₹0</span>
@@ -58,11 +58,12 @@ export default function PricingPage() {
             Get Started
           </Link>
           <ul className="space-y-4">
-            <FeatureItem text="Search active tenders" />
-            <FeatureItem text="View basic tender details" />
-            <FeatureItem text="1 saved tender limit" />
-            <FeatureItem disabled text="No daily email summaries" />
-            <FeatureItem disabled text="No AI extraction summaries" />
+            <FeatureItem text="Search & browse all active tenders" />
+            <FeatureItem text="Bookmark unlimited tenders" />
+            <FeatureItem text="Track up to 10 unique keywords" />
+            <FeatureItem text="Quick AI smart-summaries of tenders" />
+            <FeatureItem text="Download up to 5 tender PDFs daily" />
+            <FeatureItem disabled text="No automated email or mobile alerts" />
           </ul>
         </div>
 
@@ -75,7 +76,7 @@ export default function PricingPage() {
           
           <div className="mb-8 mt-2">
             <h3 className="text-xl font-bold text-atomic-tangerine-600 mb-2">Starter</h3>
-            <p className="text-sm text-fresh-sky-500 font-medium h-10">Essential alerts and insights for freelancers & small MSMEs.</p>
+            <p className="text-sm text-fresh-sky-500 font-medium h-10">Automation and alerts to help your business win faster.</p>
           </div>
           <div className="mb-8 flex items-baseline">
             <span className="text-5xl font-black text-fresh-sky-950 outline-none focus:outline-none">{isAnnual ? '₹79' : '₹99'}</span>
@@ -93,11 +94,12 @@ export default function PricingPage() {
             )}
           </div>
           <ul className="space-y-4">
-            <FeatureItem text="Unlimited saved tenders" />
-            <FeatureItem text="Daily email digest matching your keywords" />
-            <FeatureItem text="Basic AI technical summaries" />
-            <FeatureItem text="Direct PDF downloads" />
-            <FeatureItem text="Email support" />
+            <FeatureItem text="Everything in the Basic plan" />
+            <FeatureItem text="Track unlimited keywords" />
+            <FeatureItem text="Download unlimited tender PDFs (Direct PDF downloads)" />
+            <FeatureItem text="Daily email updates (digest) on your keywords" />
+            <FeatureItem text="Get alerts on your phone & computer" />
+            <FeatureItem text="Standard email support" />
           </ul>
         </div>
 
@@ -105,7 +107,7 @@ export default function PricingPage() {
         <div className="bg-fresh-sky-950 rounded-4xl p-8 border border-fresh-sky-800 shadow-sm text-fresh-sky-50">
           <div className="mb-8">
             <h3 className="text-xl font-bold text-white mb-2">Pro</h3>
-            <p className="text-sm text-fresh-sky-400 font-medium h-10">Advanced features for power users and growing teams.</p>
+            <p className="text-sm text-fresh-sky-400 font-medium h-10">Advanced tools for businesses serious about winning tenders.</p>
           </div>
           <div className="mb-8 flex items-baseline">
             <span className="text-5xl font-black text-white outline-none focus:outline-none">{isAnnual ? '₹239' : '₹299'}</span>
@@ -123,11 +125,11 @@ export default function PricingPage() {
             )}
           </div>
           <ul className="space-y-4">
-            <FeatureItem text="Everything in Starter" dark />
-            <FeatureItem text="Instant WhatsApp/SMS alerts" dark />
-            <FeatureItem text="Deep AI technical analysis" dark />
-            <FeatureItem text="Multi-user team dashboard" dark />
-            <FeatureItem text="Priority support" dark />
+            <FeatureItem text="Everything in the Starter plan" dark />
+            <FeatureItem text="Instant alerts sent directly to WhatsApp / SMS" dark />
+            <FeatureItem text="Deep AI breakdown (technical analysis) of tender requirements" dark />
+            <FeatureItem text="Share your account with team members (Multi-user team dashboard)" dark />
+            <FeatureItem text="Priority VIP customer support" dark />
           </ul>
         </div>
 

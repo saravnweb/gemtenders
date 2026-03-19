@@ -10,7 +10,7 @@ export default function SubscriptionsPage() {
 
   const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState<any>(null);
-  const [isAnnual, setIsAnnual] = useState(true);
+  const [isAnnual, setIsAnnual] = useState(false);
 
   useEffect(() => {
     async function loadProfile() {
@@ -19,14 +19,15 @@ export default function SubscriptionsPage() {
         if (user) {
           const { data, error } = await supabase.from("profiles").select("*").eq("id", user.id).single();
           if (data) {
-             setProfile(data);
+             setProfile({ ...data, email: user.email });
           } else {
              // Fallback if the user was created before the DB trigger existed
              setProfile({
                 id: user.id,
                 full_name: user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User',
                 membership_plan: 'free',
-                phone_number: ''
+                phone_number: '',
+                email: user.email
              });
           }
         } else {
@@ -74,20 +75,25 @@ export default function SubscriptionsPage() {
           alert(`Successfully upgraded to ${plan}!`);
         },
         prefill: {
-          name: profile?.full_name || "",
-          email: "", // can't easily get from profile but user object has it
-          contact: profile?.phone_number || "",
+          name: profile?.full_name || undefined,
+          email: profile?.email || undefined,
+          contact: profile?.phone_number || undefined,
         },
         theme: {
           color: "#F97316", // atomic-tangerine base
         },
       };
 
+      if (!(window as any).Razorpay) {
+        throw new Error("Razorpay SDK failed to load. Please check your connection.");
+      }
+
       const rzp = new (window as any).Razorpay(options);
       rzp.open();
 
     } catch (err: any) {
-      alert("Failed to initialize checkout. Please try again.");
+      console.error(err);
+      alert(`Failed to initialize checkout: ${err.message || 'Unknown error. Check console.'}`);
     } finally {
       setLoading(false);
     }
@@ -133,7 +139,46 @@ export default function SubscriptionsPage() {
          </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+        {/* Basic Plan */}
+        <div className={`bg-white dark:bg-zinc-900 rounded-2xl p-6 border-2 transition-all ${profile.membership_plan === 'free' ? 'border-blue-500 shadow-md ring-4 ring-blue-100' : 'border-slate-200 dark:border-zinc-700 hover:border-slate-300'}`}>
+           <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2 flex items-center justify-between">
+              Basic
+              {profile.membership_plan === 'free' && <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full uppercase tracking-wider">Active</span>}
+           </h3>
+           <p className="text-sm text-slate-500 dark:text-slate-400 h-10">Perfect for getting started and exploring active tenders.</p>
+           <div className="my-6">
+             <span className="text-4xl font-black text-slate-900 dark:text-slate-100">₹0</span>
+             <span className="text-sm text-slate-500 dark:text-slate-400 font-bold">/forever</span>
+           </div>
+
+           <div className="flex flex-col mb-6">
+             <button
+               disabled={true}
+               className="w-full py-3 bg-slate-100 dark:bg-zinc-800 text-slate-400 dark:text-slate-500 font-bold rounded-xl"
+             >
+               {profile.membership_plan === 'free' ? 'Current Plan' : 'Free Tier'}
+             </button>
+             {isAnnual && profile.membership_plan !== 'free' && profile.membership_plan !== 'starter' && profile.membership_plan !== 'pro' && (
+               <span className="text-center text-[10px] text-slate-400 font-medium mt-2 invisible">Placeholder</span>
+             )}
+           </div>
+
+           <ul className="space-y-3">
+             <FeatureItem text="Search & browse all active tenders" />
+             <FeatureItem text="Bookmark unlimited tenders" />
+             <FeatureItem text="Track up to 10 unique keywords" />
+             <FeatureItem text="Quick AI smart-summaries of tenders" />
+             <FeatureItem text="Download up to 5 tender PDFs daily" />
+             <li className="flex items-center space-x-3 opacity-50">
+               <div className="w-5 h-5 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center shrink-0">
+                  <Check className="w-3 h-3 text-slate-400 stroke-3" />
+               </div>
+               <span className="text-sm font-medium text-slate-500">No automated email or mobile alerts</span>
+             </li>
+           </ul>
+        </div>
 
         {/* Starter Plan */}
         <div className={`bg-white dark:bg-zinc-900 rounded-2xl p-6 border-2 transition-all ${profile.membership_plan === 'starter' ? 'border-atomic-tangerine-500 shadow-md ring-4 ring-atomic-tangerine-100' : 'border-slate-200 dark:border-zinc-700 hover:border-slate-300'}`}>
@@ -161,9 +206,12 @@ export default function SubscriptionsPage() {
            </div>
 
            <ul className="space-y-3">
-             <FeatureItem text="Unlimited saved tenders" />
-             <FeatureItem text="Daily email digest" />
-             <FeatureItem text="Direct PDF downloads" />
+             <FeatureItem text="Everything in the Basic plan" />
+             <FeatureItem text="Track unlimited keywords" />
+             <FeatureItem text="Download unlimited tender PDFs (Direct PDF downloads)" />
+             <FeatureItem text="Daily email updates (digest) on your keywords" />
+             <FeatureItem text="Get alerts on your phone & computer" />
+             <FeatureItem text="Standard email support" />
            </ul>
         </div>
 
@@ -187,7 +235,7 @@ export default function SubscriptionsPage() {
              <button
                onClick={() => handleCheckout('pro')}
                disabled={loading || profile.membership_plan === 'pro'}
-               className="w-full py-3 bg-linear-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 disabled:opacity-50 text-white font-bold rounded-xl shadow-lg shadow-amber-200 transition-all"
+               className="w-full py-3 bg-linear-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 disabled:opacity-50 text-white font-bold rounded-xl transition-all"
              >
                {profile.membership_plan === 'pro' ? 'Current Plan' : 'Upgrade to Pro'}
              </button>
@@ -197,10 +245,11 @@ export default function SubscriptionsPage() {
            </div>
 
            <ul className="space-y-3">
-             <FeatureItem text="Everything in Starter" />
-             <FeatureItem text="Instant WhatsApp/SMS alerts" />
-             <FeatureItem text="Deep AI technical analysis" />
-             <FeatureItem text="Multi-user team dashboard" />
+             <FeatureItem text="Everything in the Starter plan" />
+             <FeatureItem text="Instant alerts sent directly to WhatsApp / SMS" />
+             <FeatureItem text="Deep AI breakdown (technical analysis) of tender requirements" />
+             <FeatureItem text="Share your account with team members (Multi-user team dashboard)" />
+             <FeatureItem text="Priority VIP customer support" />
            </ul>
         </div>
       </div>

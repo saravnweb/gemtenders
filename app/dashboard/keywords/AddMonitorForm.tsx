@@ -13,7 +13,7 @@ const STATES = [
   "Uttarakhand", "West Bengal", "Delhi", "Puducherry", "Chandigarh", "Ladakh", "Jammu And Kashmir"
 ].sort();
 
-export default function AddMonitorForm({ userId }: { userId: string }) {
+export default function AddMonitorForm({ userId, membershipPlan, totalKeywords }: { userId: string, membershipPlan: string, totalKeywords: number }) {
     const [isAdding, setIsAdding] = useState(false);
     const [keyword, setKeyword] = useState('');
     const [selectedStates, setSelectedStates] = useState<string[]>([]);
@@ -36,6 +36,14 @@ export default function AddMonitorForm({ userId }: { userId: string }) {
         setIsLoading(true);
         const cities = citiesInput.split(",").map(c => c.trim()).filter(Boolean);
         
+        const newKeywordsCount = keyword.split(',').filter(k => k.trim()).length;
+        if (membershipPlan === 'free' && totalKeywords + newKeywordsCount > 10) {
+            if (confirm(`Free plan allows up to 10 keywords across all monitors. You already have ${totalKeywords} keywords.\n\nWould you like to upgrade your plan now to add more?`)) {
+                router.push("/dashboard/subscriptions");
+            }
+            return;
+        }
+
         const query_params: any = { q: keyword.trim() };
         if (selectedStates.length > 0) query_params.states = selectedStates;
         if (cities.length > 0) query_params.cities = cities;

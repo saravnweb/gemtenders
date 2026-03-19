@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { MapPin, Loader2, Check } from "lucide-react";
+import { getNearbyCities } from "@/lib/nearby-cities";
 
 const STATES = [
   "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", 
@@ -85,6 +86,26 @@ export default function MyLocations({ user }: { user: any }) {
              placeholder="e.g. Mumbai, Pune, Nagpur"
              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-blue-100 outline-none shadow-inner transition-all"
            />
+           {/* Nearby cities preview */}
+           {citiesInput.split(",").map(c => c.trim()).filter(Boolean).some(c => getNearbyCities(c).length > 0) && (
+             <div className="mt-3 space-y-2">
+               {citiesInput.split(",").map(c => c.trim()).filter(Boolean).map(city => {
+                 const nearby = getNearbyCities(city);
+                 if (!nearby.length) return null;
+                 return (
+                   <div key={city} className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-500">
+                     <span className="font-semibold text-slate-600">{city}:</span>
+                     <span className="text-slate-400">also includes</span>
+                     {nearby.map(n => (
+                       <span key={n} className="px-2 py-0.5 bg-blue-50 text-blue-600 border border-blue-100 rounded-md font-medium capitalize">
+                         {n}
+                       </span>
+                     ))}
+                   </div>
+                 );
+               })}
+             </div>
+           )}
          </div>
          
          <div className="pt-2">

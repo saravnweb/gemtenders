@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 
-export default function MonitorCard({ search }: { search: any }) {
+export default function MonitorCard({ search, membershipPlan, totalKeywords }: { search: any, membershipPlan: string, totalKeywords: number }) {
     const router = useRouter();
     const [keywords, setKeywords] = useState<string[]>(
         search.query_params.q ? search.query_params.q.split(',').map((k: string) => k.trim()).filter(Boolean) : []
@@ -82,6 +82,14 @@ export default function MonitorCard({ search }: { search: any }) {
         e.preventDefault();
         if (!newKeyword.trim()) {
             setIsAdding(false);
+            return;
+        }
+
+        const addedKwsCount = newKeyword.split(',').filter(k => k.trim()).length;
+        if (membershipPlan === 'free' && totalKeywords + addedKwsCount > 10) {
+            if (confirm(`Free plan allows up to 10 keywords across all monitors. You are tracking ${totalKeywords} currently.\n\nWould you like to upgrade to Starter or Pro to add more?`)) {
+                router.push("/dashboard/subscriptions");
+            }
             return;
         }
 

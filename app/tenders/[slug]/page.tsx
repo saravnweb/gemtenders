@@ -5,9 +5,10 @@ import {
   CheckCircle2, Building, Layers, Activity, FileCheck, ExternalLink as LinkIcon
 } from "lucide-react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase-server";
+import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import DownloadButtons from "./DownloadButtons";
 
 const siteUrl = "https://gemtenders.org";
 
@@ -402,41 +403,14 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
                   <div className="w-full h-px bg-slate-100 dark:bg-slate-700 hidden lg:block" />
 
                   {/* Actions */}
-                  <div className="space-y-3">
-                    {tender.pdf_url ? (
-                      isPremium ? (
-                        <a
-                          href={tender.pdf_url}
-                          target="_blank"
-                          className="hidden lg:flex w-full relative group overflow-hidden py-3.5 bg-slate-900 dark:bg-slate-700 text-white text-sm rounded-2xl font-semibold items-center justify-center space-x-2.5 hover:bg-black dark:hover:bg-slate-600 transition-all shadow-[0_4px_15px_-3px_rgba(0,0,0,0.2)] hover:shadow-[0_6px_20px_-3px_rgba(0,0,0,0.3)]"
-                        >
-                          <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
-                          <Download className="w-5 h-5 relative z-10" />
-                        </a>
-                      ) : (
-                        <Link
-                          href={user ? "/dashboard/subscriptions" : `/login?callback=${encodeURIComponent('/tenders/' + slug)}`}
-                          className="hidden lg:flex w-full relative py-3.5 bg-linear-to-r from-amber-500 to-amber-600 text-white text-sm rounded-2xl font-semibold items-center justify-center space-x-2.5 hover:from-amber-600 hover:to-amber-700 transition-all shadow-[0_4px_15px_-3px_rgba(245,158,11,0.3)] hover:shadow-[0_6px_20px_-3px_rgba(245,158,11,0.4)]"
-                        >
-                          <Zap className="w-4 h-4 fill-white relative z-10" />
-                          <span className="relative z-10">Unlock PDF Download</span>
-                        </Link>
-                      )
-                    ) : (
-                      <div className="hidden lg:flex w-full py-3.5 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 text-sm rounded-2xl font-semibold items-center justify-center space-x-2.5 cursor-not-allowed border border-slate-200/60 dark:border-slate-700">
-                        <Download className="w-4 h-4" />
-                        <span>Document Unavailable</span>
-                      </div>
-                    )}
-
-                    <a
-                      href={tender.details_url}
-                      target="_blank"
-                      className="hidden lg:flex w-full py-3.5 bg-white dark:bg-slate-900 text-indigo-600 text-sm rounded-2xl font-semibold items-center justify-center space-x-2.5 hover:bg-indigo-50 dark:hover:bg-blue-900/30 transition-all border-2 border-indigo-100 dark:border-blue-800 hover:border-indigo-200 dark:hover:border-blue-700"
-                    >
-                      <LinkIcon className="w-4 h-4" />
-                      <span>View on GeM Portal</span>
-                    </a>
+                  <div className="hidden lg:block">
+                     <DownloadButtons 
+                        pdfUrl={tender.pdf_url} 
+                        detailsUrl={tender.details_url} 
+                        isPremium={isPremium} 
+                        slug={slug} 
+                        isMobile={false} 
+                     />
                   </div>
                 </div>
               </div>
@@ -457,44 +431,13 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
 
       {/* Floating Action Bar (Mobile only) */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-200/60 dark:border-slate-700 lg:hidden z-50 shadow-[0_-10px_20px_-5px_rgba(0,0,0,0.05)] flex gap-3 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-        {tender.pdf_url ? (
-          <>
-            {isPremium ? (
-              <a
-                href={tender.pdf_url}
-                target="_blank"
-                className="flex-1 py-3.5 bg-slate-900 dark:bg-slate-700 text-white text-sm rounded-xl font-semibold flex items-center justify-center space-x-2 hover:bg-black dark:hover:bg-slate-600 transition-all shadow-md"
-              >
-                <Download className="w-5 h-5" />
-              </a>
-            ) : (
-              <Link
-                href={user ? "/dashboard/subscriptions" : `/login?callback=${encodeURIComponent('/tenders/' + slug)}`}
-                className="flex-1 py-3.5 bg-linear-to-r from-amber-500 to-amber-600 text-white text-sm rounded-xl font-semibold flex items-center justify-center space-x-2 hover:from-amber-600 hover:to-amber-700 transition-all shadow-md shadow-amber-500/20"
-              >
-                <Zap className="w-4 h-4 fill-white" />
-                <span>Unlock PDF</span>
-              </Link>
-            )}
-            <a
-              href={tender.details_url}
-              target="_blank"
-              className="px-4 py-3.5 bg-indigo-50 text-indigo-600 text-sm rounded-xl font-semibold flex items-center justify-center border border-indigo-100 hover:bg-indigo-100 transition-all"
-              title="View on GeM Portal"
-            >
-              <LinkIcon className="w-4 h-4" />
-            </a>
-          </>
-        ) : (
-          <a
-            href={tender.details_url}
-            target="_blank"
-            className="flex-1 py-3.5 bg-indigo-600 text-white text-sm rounded-xl font-semibold flex items-center justify-center space-x-2 hover:bg-indigo-700 transition-all shadow-md"
-          >
-            <Download className="w-4 h-4" />
-            <span>Download</span>
-          </a>
-        )}
+         <DownloadButtons 
+            pdfUrl={tender.pdf_url} 
+            detailsUrl={tender.details_url} 
+            isPremium={isPremium} 
+            slug={slug} 
+            isMobile={true} 
+         />
       </div>
     </div>
   );

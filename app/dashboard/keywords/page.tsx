@@ -14,6 +14,23 @@ export default async function KeywordsPage() {
     .select("*")
     .order("created_at", { ascending: false });
 
+  // Fetch profile
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('membership_plan')
+    .eq('id', user!.id)
+    .single();
+    
+  const membershipPlan = profile?.membership_plan || 'free';
+
+  // Calculate total keywords tracked by this user
+  const totalKeywords = savedSearches?.reduce((acc: number, search: any) => {
+      const qs = search.query_params?.q;
+      if (!qs) return acc;
+      const kws = qs.split(',').filter(Boolean);
+      return acc + kws.length;
+  }, 0) || 0;
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -21,7 +38,7 @@ export default async function KeywordsPage() {
           <h1 className="text-2xl font-bold text-fresh-sky-950 tracking-tight">Saved Keywords</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Automatic tracking for matching bids.</p>
         </div>
-        <AddMonitorForm userId={user!.id} />
+        <AddMonitorForm userId={user!.id} membershipPlan={membershipPlan} totalKeywords={totalKeywords} />
       </div>
 
       {!savedSearches || savedSearches.length === 0 ? (
@@ -35,7 +52,7 @@ export default async function KeywordsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {savedSearches.map((search: any) => (
-            <MonitorCard key={search.id} search={search} />
+            <MonitorCard key={search.id} search={search} membershipPlan={membershipPlan} totalKeywords={totalKeywords} />
           ))}
         </div>
       )}

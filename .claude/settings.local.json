@@ -14,7 +14,12 @@
       "WebSearch",
       "WebFetch(domain:tendersplus.com)",
       "WebFetch(domain:blog.mygov.in)",
-      "WebFetch(domain:gemportal.vercel.app)"
+      "WebFetch(domain:gemportal.vercel.app)",
+      "Bash(find /d/websites/Tenders -name *.sql -o -name *schema*)",
+      "Bash(npm run:*)",
+      "Bash(netstat -ano)",
+      "Bash(findstr \":300\")",
+      "Bash(findstr LISTENING)"
     ]
   }
 }

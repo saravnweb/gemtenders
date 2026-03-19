@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { normalizeState, normalizeCity } from "./locations";
 
 const apiKey = process.env.GEMINI_API_KEY?.trim() || "";
 const genAI = new GoogleGenerativeAI(apiKey);
@@ -86,7 +87,19 @@ export async function extractTenderData(pdfText: string) {
     
     // Clean JSON markdown if present
     const cleanJson = text.replace(/```json|```/g, "").trim();
-    return JSON.parse(cleanJson);
+    const parsedData = JSON.parse(cleanJson);
+    
+    // Normalize state and city
+    if (parsedData?.authority) {
+      if (parsedData.authority.state) {
+        parsedData.authority.state = normalizeState(parsedData.authority.state);
+      }
+      if (parsedData.authority.city) {
+        parsedData.authority.city = normalizeCity(parsedData.authority.city);
+      }
+    }
+    
+    return parsedData;
   } catch (error: any) {
     console.warn(`>>> [AI] Gemini Error: ${error.message} - ${error.status || ''}`);
     return null;

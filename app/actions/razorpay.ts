@@ -25,12 +25,12 @@ export async function createRazorpayOrder(plan: "starter" | "pro", isAnnual: boo
     amount = isAnnual ? 239 * 12 : 299;
   }
 
-  amount = amount * 100; // Convert to paise
+  amount = Math.round(amount * 100); // Convert to paise and ensure it's an integer
 
   const options = {
     amount,
     currency: "INR",
-    receipt: `rcpt_${user.id}_${Date.now()}`,
+    receipt: `rcpt_${user.id.substring(0, 8)}_${Date.now()}`,
     notes: {
       userId: user.id,
       plan,
@@ -40,7 +40,7 @@ export async function createRazorpayOrder(plan: "starter" | "pro", isAnnual: boo
 
   try {
     const order = await instance.orders.create(options);
-    return order;
+    return JSON.parse(JSON.stringify(order));
   } catch (error) {
     console.error("Razorpay error:", error);
     throw new Error("Could not create Razorpay order");
