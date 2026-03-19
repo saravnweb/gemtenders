@@ -104,6 +104,88 @@ interface Filters {
   sortOrder: "newest" | "ending_soon";
 }
 
+async function queryTendersCount(filters: Filters): Promise<number> {
+  let q = (supabase.from("tenders") as any).select("*", { count: "exact", head: true });
+
+  if (filters.tab === "archived") {
+    q = q.lt("end_date", new Date().toISOString());
+  } else {
+    q = q.gte("end_date", new Date().toISOString());
+  }
+
+  if (filters.q.trim()) {
+    q = q.or(
+      `title.ilike.%${filters.q}%,bid_number.ilike.%${filters.q}%,department.ilike.%${filters.q}%,ministry_name.ilike.%${filters.q}%,organisation_name.ilike.%${filters.q}%,state.ilike.%${filters.q}%,city.ilike.%${filters.q}%,ai_summary.ilike.%${filters.q}%`
+    );
+  }
+
+  if (filters.states.length > 0) q = q.in("state", filters.states);
+  if (filters.cities.length > 0) q = q.in("city", filters.cities);
+  if (filters.msmeOnly) q = q.eq("eligibility_msme", true);
+  if (filters.miiOnly)  q = q.eq("eligibility_mii",  true);
+
+  if      (filters.emdFilter === "free") q = q.eq("emd_amount", 0);
+  else if (filters.emdFilter === "<1L")  q = q.gt("emd_amount", 0).lt("emd_amount", 100000);
+  else if (filters.emdFilter === "1-5L") q = q.gte("emd_amount", 100000).lte("emd_amount", 500000);
+  else if (filters.emdFilter === ">5L")  q = q.gt("emd_amount", 500000);
+
+  if (filters.category) {
+    const cat = KEYWORD_CATEGORIES.find((c) => c.id === filters.category);
+    if (cat) q = q.or(cat.keywords.map((k) => `title.ilike.%${k}%`).join(","));
+  }
+
+  if (filters.descriptionQuery.trim()) {
+    q = q.ilike("ai_summary", `%${filters.descriptionQuery.trim()}%`);
+  }
+
+  if (filters.dateFilter === "today") {
+    const today = new Date(); today.setHours(0,0,0,0);
+    const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
+    q = q.gte("end_date", today.toISOString()).lt("end_date", tomorrow.toISOString());
+  } else if (filters.dateFilter === "week") {
+    const today = new Date();
+    const week = new Date(today); week.setDate(week.getDate() + 7);
+    q = q.gte("end_date", today.toISOString()).lte("end_date", week.toISOString());
+  }
+
+  const { count } = await q;
+  return count ?? 0;
+}
+
+async function queryForYouTenders(searches: any[]): Promise<any[]> {
+  if (!searches.length) return [];
+
+  // Build OR parts from all saved search keywords + category keywords
+  const orParts: string[] = [];
+  searches.forEach(search => {
+    const p = search.query_params;
+    if (!p) return;
+    if (p.q) {
+      p.q.split(",").map((k: string) => k.trim()).filter(Boolean).forEach((kw: string) => {
+        orParts.push(`title.ilike.%${kw}%`, `department.ilike.%${kw}%`, `ai_summary.ilike.%${kw}%`);
+      });
+    }
+    if (p.category) {
+      const cat = KEYWORD_CATEGORIES.find((c) => c.id === p.category);
+      if (cat) cat.keywords.forEach((k) => { orParts.push(`title.ilike.%${k}%`); orParts.push(`ai_summary.ilike.%${k}%`); });
+    }
+  });
+
+  let q = supabase
+    .from("tenders")
+    .select(COLUMNS)
+    .gte("end_date", new Date().toISOString())
+    .order("start_date", { ascending: false });
+
+  if (orParts.length > 0) {
+    const unique = [...new Set(orParts)];
+    q = q.or(unique.join(","));
+  }
+
+  const { data } = await q;
+  return data || [];
+}
+
 async function queryTenders(filters: Filters, page: number): Promise<any[]> {
   let q = supabase
     .from("tenders")
@@ -219,11 +301,14 @@ function TendersClient({
   const searchParams = useSearchParams();
 
   // ── Tender data state ──
-  const [tenders, setTenders]         = useState<any[]>(initialTenders);
-  const [loading, setLoading]         = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [page, setPage]               = useState(0);
-  const [hasMore, setHasMore]         = useState(initialTenders.length === PAGE_SIZE);
+  const [tenders, setTenders]                   = useState<any[]>(initialTenders);
+  const [loading, setLoading]                   = useState(false);
+  const [loadingMore, setLoadingMore]           = useState(false);
+  const [page, setPage]                         = useState(0);
+  const [hasMore, setHasMore]                   = useState(initialTenders.length === PAGE_SIZE);
+  const [totalCount, setTotalCount]             = useState<number | null>(null);
+  const [forYouAllTenders, setForYouAllTenders] = useState<any[]>([]);
+  const [forYouLoading, setForYouLoading]       = useState(false);
 
   // ── Filter state ──
   const [searchQuery, setSearchQuery]           = useState(initialQ);
@@ -320,6 +405,16 @@ function TendersClient({
     if (data) setSavedSearches(data);
   }
 
+  // ── "For You" DB fetch: re-runs whenever saved searches change ──
+  useEffect(() => {
+    if (!savedSearches.length) { setForYouAllTenders([]); return; }
+    setForYouLoading(true);
+    queryForYouTenders(savedSearches).then((data) => {
+      setForYouAllTenders(data);
+      setForYouLoading(false);
+    });
+  }, [savedSearches]);
+
   // ── Lazy-load states for filter panel ──
   async function loadStates() {
     if (statesLoaded) return;
@@ -378,10 +473,14 @@ function TendersClient({
       setLoading(true);
       setPage(0);
 
-      const results = await queryTenders(currentFilters(), 0);
+      const [results, count] = await Promise.all([
+        queryTenders(currentFilters(), 0),
+        queryTendersCount(currentFilters()),
+      ]);
 
       if (seq !== fetchSeq.current) return; // Discard stale response
       setTenders(results);
+      setTotalCount(count);
       setHasMore(results.length === PAGE_SIZE);
       setLoading(false);
     }, delay);
@@ -400,10 +499,10 @@ function TendersClient({
     setLoadingMore(false);
   }
 
-  // ── "For You" matching (client-side on already-loaded tenders) ──
+  // ── "For You" matching (precise client-side filter on DB-fetched forYouAllTenders) ──
   const forYouTenders = useMemo(() => {
     if (!savedSearches.length) return [];
-    return tenders.filter((tender) =>
+    return forYouAllTenders.filter((tender) =>
       savedSearches.some((search) => {
         const p = search.query_params;
         if (!p) return false;
@@ -435,7 +534,7 @@ function TendersClient({
         return match;
       })
     );
-  }, [tenders, savedSearches]);
+  }, [forYouAllTenders, savedSearches]);
 
   // ── Display list (For You tab filtering is client-side on current page) ──
   const displayTenders = activeTab === "foryou" ? forYouTenders : tenders;
@@ -576,7 +675,7 @@ function TendersClient({
                 <Zap className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${activeTab === "foryou" ? "text-blue-500" : "text-slate-400 dark:text-slate-500"}`} />
                 <span>For You</span>
                 <span className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] font-black tracking-widest uppercase ${activeTab === "foryou" ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300" : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"}`}>
-                  {forYouTenders.length}
+                  {forYouLoading ? "…" : forYouTenders.length}
                 </span>
                 {activeTab === "foryou" && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-t-full" />}
               </button>
@@ -605,7 +704,11 @@ function TendersClient({
 
           <div className="flex items-center space-x-3 sm:space-x-4 shrink-0 pl-2 pb-3">
             <div className="hidden md:block text-xs font-bold text-slate-400 dark:text-slate-500">
-              {loading ? "…" : `${displayTenders.length}${hasMore ? "+" : ""} results`}
+              {loading ? "…" : activeTab === "foryou"
+                ? `${forYouTenders.length} results`
+                : totalCount !== null
+                  ? `${totalCount.toLocaleString()} results`
+                  : `${displayTenders.length}${hasMore ? "+" : ""} results`}
             </div>
             <div className="flex items-center bg-slate-50 dark:bg-slate-900 sm:bg-transparent px-2 sm:px-0 py-1 sm:py-0 rounded font-medium">
               <span className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mr-1 sm:mr-1.5 hidden sm:inline">Sort:</span>
