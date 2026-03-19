@@ -61,3 +61,7 @@ body {
   @apply antialiased bg-background text-foreground;
 }
 
+.dark body {
+  color-scheme: dark;
+}
+

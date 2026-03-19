@@ -79,7 +79,7 @@ export async function extractTenderData(pdfText: string) {
   `;
 
   try {
-    console.log(`>>> [AI] Calling Gemini (Model: gemini-2.0-flash)...`);
+    console.log(`>>> [AI] Calling Gemini (Model: gemini-2.5-flash)...`);
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();

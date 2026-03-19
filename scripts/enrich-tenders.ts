@@ -5,9 +5,6 @@ if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
 }
 
 import { createClient } from '@supabase/supabase-js';
-import { chromium } from 'playwright-extra';
-import stealth from 'puppeteer-extra-plugin-stealth';
-chromium.use(stealth());
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -17,54 +14,114 @@ const supabase = createClient(
 // ─── CONFIG ────────────────────────────────────────────────────────────────
 const args = process.argv.slice(2);
 const LIMIT       = parseInt(args.find(a => a.startsWith('--limit='))?.split('=')[1]       || '500', 10);
-const CONCURRENCY = parseInt(args.find(a => a.startsWith('--concurrency='))?.split('=')[1] || '2',   10);
-const BATCH_DELAY = parseInt(args.find(a => a.startsWith('--delay='))?.split('=')[1]       || '2000',10);
-const SKIP_DAYS   = parseInt(args.find(a => a.startsWith('--skip-expired='))?.split('=')[1]|| '7',   10);
+const CONCURRENCY = parseInt(args.find(a => a.startsWith('--concurrency='))?.split('=')[1] || '3',   10);
+const BATCH_DELAY = parseInt(args.find(a => a.startsWith('--delay='))?.split('=')[1]       || '1000',10);
+const BUCKET      = 'tender-documents';
 // ──────────────────────────────────────────────────────────────────────────
 
+/** Convert storage filename back to bid_number: "GEM-2026-B-7303381.pdf" → "GEM/2026/B/7303381" */
+function fileNameToBidNumber(fileName: string): string {
+  return fileName.replace(/\.pdf$/i, '').replace(/-/g, '/');
+}
+
+/** Fetch and parse PDF from a public URL */
+async function parsePdfFromUrl(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const buf = Buffer.from(await res.arrayBuffer());
+    const _lib: any = await import('pdf-parse');
+    const pdfLib = _lib.default || _lib;
+    const ParserClass = pdfLib.PDFParse || pdfLib;
+    let text = '';
+    if (typeof ParserClass === 'function' && ParserClass.toString().includes('class')) {
+      const instance = new ParserClass({ data: buf });
+      const result = await instance.getText();
+      text = result.text || '';
+      await instance.destroy?.();
+    } else {
+      const fn = typeof pdfLib === 'function' ? pdfLib : pdfLib.default;
+      const parsed = await fn(buf);
+      text = parsed.text || '';
+    }
+    return text.trim() || null;
+  } catch (e: any) {
+    console.warn(`    ✗ pdf-parse error: ${e.message}`);
+    return null;
+  }
+}
+
 async function enrichTenders() {
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - SKIP_DAYS);
+  console.log(`\n>>> [ENRICHER] Starting enrichment from Supabase storage PDFs.`);
+  console.log(`    Limit: ${LIMIT} | Concurrency: ${CONCURRENCY}\n`);
 
-  console.log(`\n>>> [ENRICHER] Starting enrichment run.`);
-  console.log(`    Limit: ${LIMIT} | Concurrency: ${CONCURRENCY} | Skip expired before: ${cutoff.toDateString()}\n`);
+  // ── Step 1: List all PDF files in storage ────────────────────────────────
+  console.log(`>>> [ENRICHER] Listing PDFs in bucket '${BUCKET}'...`);
+  const allFiles: string[] = [];
+  let offset = 0;
+  const PAGE_SIZE = 1000;
 
-  const { data: pending, error } = await supabase
-    .from('tenders')
-    .select('id, bid_number')
-    .is('ai_summary', null)
-    .gt('end_date', cutoff.toISOString())
-    .order('end_date', { ascending: false })
-    .limit(LIMIT);
+  while (true) {
+    const { data, error } = await supabase.storage
+      .from(BUCKET)
+      .list('', { limit: PAGE_SIZE, offset });
 
-  if (error) {
-    console.error('>>> [ENRICHER] Failed to fetch tenders:', error.message);
+    if (error) { console.error('Storage list error:', error.message); break; }
+    if (!data?.length) break;
+
+    for (const f of data) {
+      if (f.name.endsWith('.pdf')) allFiles.push(f.name);
+    }
+
+    if (data.length < PAGE_SIZE) break;
+    offset += PAGE_SIZE;
+  }
+
+  console.log(`>>> [ENRICHER] Found ${allFiles.length} PDFs in storage.\n`);
+  if (!allFiles.length) {
+    console.log('    No PDFs found in storage. Nothing to enrich.');
     return;
   }
 
-  if (!pending?.length) {
-    console.log('>>> [ENRICHER] No pending tenders found.');
-    console.log('    To also process expired bids: npm run enrich -- --skip-expired=999');
+  // ── Step 2: Find tenders that need enrichment and have a matching PDF ────
+  // Convert filenames to bid_numbers
+  const storageBidNumbers = allFiles.map(fileNameToBidNumber);
+
+  // Fetch unenriched tenders that match storage PDFs (in batches of 500)
+  const pending: { id: string; bid_number: string; pdf_url: string | null }[] = [];
+
+  for (let i = 0; i < storageBidNumbers.length; i += 500) {
+    const chunk = storageBidNumbers.slice(i, i + 500);
+    const { data, error } = await supabase
+      .from('tenders')
+      .select('id, bid_number, pdf_url')
+      .in('bid_number', chunk)
+      .is('ai_summary', null)
+      .limit(LIMIT - pending.length);
+
+    if (error) { console.error('DB fetch error:', error.message); continue; }
+    if (data) pending.push(...data);
+    if (pending.length >= LIMIT) break;
+  }
+
+  if (!pending.length) {
+    console.log('>>> [ENRICHER] No unenriched tenders found matching stored PDFs.');
+    console.log('    All tenders with PDFs are already enriched, or none match.');
     return;
   }
 
-  console.log(`>>> [ENRICHER] Found ${pending.length} tenders to enrich.`);
+  console.log(`>>> [ENRICHER] Found ${pending.length} tenders to enrich from storage PDFs.\n`);
+
+  // Build a map: bid_number → storage public URL
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL!.replace(/\/$/, '');
+  const storageUrlMap = new Map(
+    allFiles.map(f => [
+      fileNameToBidNumber(f),
+      `${base}/storage/v1/object/public/${BUCKET}/${f}`
+    ])
+  );
 
   const { extractTenderData } = await import('../lib/gemini');
-
-  // Launch ONE stealth browser for all requests
-  const browser = await chromium.launch({ headless: true });
-  const context = await browser.newContext({
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-    extraHTTPHeaders: { 'Accept-Language': 'en-US,en;q=0.9' },
-  });
-
-  // Warm up — get full cookie jar including HttpOnly tokens
-  console.log('>>> [ENRICHER] Warming up browser session on GeM...');
-  const warmup = await context.newPage();
-  await warmup.goto('https://bidplus.gem.gov.in/all-bids', { waitUntil: 'domcontentloaded', timeout: 30000 });
-  await warmup.close();
-  console.log('>>> [ENRICHER] Session ready.\n');
 
   let successCount = 0;
   let failCount = 0;
@@ -76,51 +133,49 @@ async function enrichTenders() {
   for (let i = 0; i < chunks.length; i++) {
     console.log(`>>> [ENRICHER] Batch ${i + 1} / ${chunks.length}...`);
 
-    const results = await Promise.all(chunks[i].map(async (tender) => {
-      const bidUrl = `https://bidplus.gem.gov.in/showbiddata/${tender.bid_number}`;
+    await Promise.all(chunks[i].map(async (tender) => {
       console.log(`    → ${tender.bid_number}`);
 
-      // ── Step 1: Scrape the public bid detail page ─────────────────────
-      const page = await context.newPage();
-      let pageText = '';
-      try {
-        await page.goto(bidUrl, { waitUntil: 'domcontentloaded', timeout: 25000 });
-        await page.waitForSelector('table, .bid-detail, .container', { timeout: 8000 }).catch(() => {});
-        pageText = await page.evaluate(() => document.body.innerText);
-      } catch (e: any) {
-        console.warn(`    ✗ Page load failed: ${e.message.split('\n')[0]}`);
-      } finally {
-        await page.close();
+      const pdfUrl = tender.pdf_url || storageUrlMap.get(tender.bid_number)!;
+
+      // ── Parse PDF ────────────────────────────────────────────────────
+      const pdfText = await parsePdfFromUrl(pdfUrl);
+      if (!pdfText || pdfText.length < 100) {
+        console.warn(`    ✗ Empty PDF: ${tender.bid_number}`);
+        failCount++;
+        return;
       }
 
-      if (pageText.length < 200) {
-        console.warn(`    ✗ No content scraped for ${tender.bid_number}`);
-        return false;
-      }
-
-      // ── Step 2: AI extraction ─────────────────────────────────────────
+      // ── AI extraction ─────────────────────────────────────────────────
       let aiData: any = null;
       try {
-        aiData = await extractTenderData(pageText.substring(0, 10000));
+        aiData = await extractTenderData(pdfText.substring(0, 10000));
       } catch (e: any) {
         if (e.message?.includes('429') || e.message?.includes('quota')) {
-          console.warn(`    ✗ AI rate limit hit. Stopping batch.`);
+          console.warn(`    ✗ AI rate limit hit. Stopping.`);
           throw e;
         }
         console.warn(`    ✗ AI error for ${tender.bid_number}: ${e.message}`);
-        return false;
+        failCount++;
+        return;
       }
 
-      // ── Step 3: Update database ───────────────────────────────────────
+      if (!aiData) {
+        console.warn(`    ✗ No AI data returned for ${tender.bid_number}`);
+        failCount++;
+        return;
+      }
+
+      // ── Update database ───────────────────────────────────────────────
       const auth = aiData?.authority;
       const update: Record<string, any> = {
+        pdf_url:                     pdfUrl,
         ministry_name:               auth?.ministry             || null,
         department_name:             auth?.department           || null,
         organisation_name:           auth?.organisation         || null,
         office_name:                 auth?.office               || null,
         state:                       auth?.state                || null,
         city:                        auth?.city                 || null,
-        department:                  auth?.organisation || auth?.department || auth?.ministry || null,
         emd_amount:                  aiData?.emd_amount         ?? null,
         quantity:                    aiData?.quantity           || null,
         ai_summary:                  aiData?.technical_summary  || null,
@@ -136,6 +191,11 @@ async function enrichTenders() {
         relevant_categories:         aiData?.relevant_categories || null,
       };
 
+      const deptStr = auth?.organisation || auth?.department || auth?.ministry;
+      if (deptStr) {
+        update.department = deptStr;
+      }
+
       if (aiData?.tender_title)             update.title        = aiData.tender_title;
       if (aiData?.dates?.bid_opening_date)  update.opening_date = aiData.dates.bid_opening_date;
       if (aiData?.dates?.bid_start_date)    update.start_date   = aiData.dates.bid_start_date;
@@ -144,20 +204,17 @@ async function enrichTenders() {
       const { error: updateErr } = await supabase.from('tenders').update(update).eq('id', tender.id);
       if (updateErr) {
         console.error(`    ✗ DB error for ${tender.bid_number}: ${updateErr.message}`);
-        return false;
+        failCount++;
+        return;
       }
 
       console.log(`    ✓ ${tender.bid_number}`);
-      return true;
+      successCount++;
     }));
-
-    results.forEach(r => r ? successCount++ : failCount++);
 
     if (i < chunks.length - 1)
       await new Promise(r => setTimeout(r, BATCH_DELAY));
   }
-
-  await browser.close();
 
   console.log(`\n>>> [ENRICHER] Run complete.`);
   console.log(`    ✓ Enriched: ${successCount}`);

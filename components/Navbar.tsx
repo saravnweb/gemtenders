@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Zap, User, LogOut, Menu, X, LayoutDashboard, Bookmark, CreditCard, ChevronRight, Bell } from "lucide-react";
+import { Zap, User, LogOut, Menu, X, LayoutDashboard, Bookmark, CreditCard, ChevronRight, Bell, Sun, Moon } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useTheme } from "next-themes";
 import { supabase } from "@/lib/supabase";
 
 export default function Navbar() {
@@ -10,6 +11,10 @@ export default function Navbar() {
   const [loading, setLoading] = useState(true);
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const { theme, setTheme } = useTheme();
+
+  useEffect(() => setMounted(true), []);
 
   const signInWithGoogle = async () => {
     setIsSigningIn(true);
@@ -49,7 +54,7 @@ export default function Navbar() {
 
   return (
     <>
-      <header className="border-b border-fresh-sky-100 bg-white/80 backdrop-blur-md sticky top-0 z-50 shadow-sm font-sans">
+      <header className="border-b border-fresh-sky-100 dark:border-fresh-sky-900 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md sticky top-0 z-50 shadow-sm font-sans">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16 relative">
             {/* Mobile Menu Button - Left Aligned */}
@@ -73,7 +78,7 @@ export default function Navbar() {
                     className="h-full w-auto object-contain transition-transform duration-300 group-hover:scale-105"
                   />
                 </div>
-                <span className="text-lg sm:text-xl font-bold text-fresh-sky-950 tracking-tight flex items-center leading-none">
+                <span className="text-lg sm:text-xl font-bold text-fresh-sky-950 dark:text-white tracking-tight flex items-center leading-none">
                   GeMTenders.org
                 </span>
               </Link>
@@ -81,10 +86,21 @@ export default function Navbar() {
 
             {/* Right Side Icons & Desktop Nav */}
             <div className="flex items-center space-x-1 sm:space-x-4 z-10">
+              {/* Dark Mode Toggle */}
+              {mounted && (
+                <button
+                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                  className="p-2 text-fresh-sky-700 dark:text-fresh-sky-300 hover:bg-fresh-sky-50 dark:hover:bg-fresh-sky-900/30 rounded-full transition-colors"
+                  aria-label="Toggle dark mode"
+                >
+                  {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                </button>
+              )}
+
               {/* Notification Icon - Right Aligned (Always Visible) */}
-              <button className="p-2 text-fresh-sky-700 hover:bg-fresh-sky-50 rounded-full transition-colors relative group" aria-label="Notifications">
+              <button className="p-2 text-fresh-sky-700 dark:text-fresh-sky-300 hover:bg-fresh-sky-50 dark:hover:bg-fresh-sky-900/30 rounded-full transition-colors relative group" aria-label="Notifications">
                 <Bell className="w-5 h-5 sm:w-6 sm:h-6 transition-transform group-hover:rotate-12" />
-                <span className="absolute top-2 right-2 w-2 h-2 bg-atomic-tangerine-500 rounded-full border border-white"></span>
+                <span className="absolute top-2 right-2 w-2 h-2 bg-atomic-tangerine-500 rounded-full border border-white dark:border-zinc-950"></span>
               </button>
 
               {/* Desktop Nav */}
@@ -116,7 +132,7 @@ export default function Navbar() {
                   <>
                     {user ? (
                       <div className="flex items-center space-x-4">
-                        <div className="flex items-center space-x-3 bg-white px-3 py-1.5 rounded-full border border-fresh-sky-100 shadow-sm">
+                        <div className="flex items-center space-x-3 bg-white dark:bg-zinc-900 px-3 py-1.5 rounded-full border border-fresh-sky-100 dark:border-zinc-700 shadow-sm">
                           <div className="w-7 h-7 bg-linear-to-br from-atomic-tangerine-400 to-atomic-tangerine-600 rounded-full flex items-center justify-center border border-white/20">
                             <User className="w-4 h-4 text-white" />
                           </div>
@@ -169,9 +185,9 @@ export default function Navbar() {
           />
           
           {/* Drawer */}
-          <div className="fixed inset-y-0 left-0 w-[240px] h-dvh bg-white shadow-2xl flex flex-col border-r border-slate-100 animate-in slide-in-from-left duration-300 ease-out">
+          <div className="fixed inset-y-0 left-0 w-[240px] h-dvh bg-white dark:bg-zinc-950 shadow-2xl flex flex-col border-r border-slate-100 dark:border-zinc-800 animate-in slide-in-from-left duration-300 ease-out">
             {/* Drawer Header */}
-            <div className="p-4 border-b border-slate-50 flex items-center justify-between h-16 shrink-0 bg-white">
+            <div className="p-4 border-b border-slate-50 dark:border-zinc-800 flex items-center justify-between h-16 shrink-0 bg-white dark:bg-zinc-950">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] ml-2">Navigation</span>
               <button 
                 onClick={() => setIsMenuOpen(false)}

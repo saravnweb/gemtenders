@@ -3,7 +3,9 @@
     "allow": [
       "WebFetch(domain:bidplus.gem.gov.in)",
       "Bash(node -e \":*)",
-      "Bash(node scripts/debug-dates.mjs)"
+      "Bash(node scripts/debug-dates.mjs)",
+      "Bash(node scripts/debug-pdf.mjs)",
+      "Bash(npm install:*)"
     ]
   }
 }

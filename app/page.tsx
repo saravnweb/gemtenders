@@ -1173,7 +1173,7 @@ function TenderCard({
       {/* 1: Title */}
       <div className="mb-2">
         <Link
-          href={`/tenders/${tender.slug}`}
+          href={`/tenders/${encodeURIComponent(tender.slug || '')}`}
           className="hover:no-underline group/title focus:outline-none"
         >
           <h3 className={`text-sm sm:text-[15px] font-medium text-slate-800 leading-snug transition-colors group-hover/title:text-blue-700 after:absolute after:inset-0 after:z-0 ${isExpanded ? '' : 'line-clamp-2'}`}>
@@ -1304,7 +1304,7 @@ function TenderCard({
       {/* 5: Actions */}
       <div className="flex gap-2 mt-auto relative z-20">
         <Link
-          href={`/tenders/${tender.slug}`}
+          href={`/tenders/${encodeURIComponent(tender.slug || '')}`}
           className="flex-1 h-9 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 text-[11px] sm:text-xs font-bold flex items-center justify-center transition-all hover:bg-blue-100 active:scale-[0.98]"
         >
           View Full Details
@@ -1326,10 +1326,10 @@ function TenderCard({
             if (navigator.share) {
               navigator.share({
                 title: tender.title,
-                url: `${window.location.origin}/tenders/${tender.slug}`
+                url: `${window.location.origin}/tenders/${encodeURIComponent(tender.slug || '')}`
               }).catch(console.error);
             } else {
-              navigator.clipboard.writeText(`${window.location.origin}/tenders/${tender.slug}`);
+              navigator.clipboard.writeText(`${window.location.origin}/tenders/${encodeURIComponent(tender.slug || '')}`);
               alert("Link copied to clipboard!");
             }
           }}

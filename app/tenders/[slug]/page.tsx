@@ -1,4 +1,3 @@
-import { supabase } from "@/lib/supabase";
 import {
   ArrowLeft, Search, Calendar, MapPin, Building2, Package,
   FileText, ShieldCheck, AlertCircle, Clock, ExternalLink,
@@ -14,7 +13,8 @@ const siteUrl = "https://gemtenders.org";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  const { data: tender } = await supabase
+  const supabaseServer = await createClient();
+  const { data: tender } = await supabaseServer
     .from("tenders")
     .select("title, ai_summary, ministry_name, department_name, end_date, slug")
     .eq("slug", slug)
@@ -127,13 +127,14 @@ function formatDepartmentInfo(ministry?: string, dept?: string, org?: string): s
 
 export default async function TenderDetailsPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const { data: tender, error } = await supabase
+  const supabaseServer = await createClient();
+  
+  const { data: tender, error } = await supabaseServer
     .from("tenders")
     .select("*")
     .eq("slug", slug)
     .single();
 
-  const supabaseServer = await createClient();
   const { data: { user } } = await supabaseServer.auth.getUser();
   
   let isPremium = false;
@@ -414,7 +415,7 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
                         </a>
                       ) : (
                         <Link
-                          href={user ? "/dashboard/subscriptions" : `/login?callback=/tenders/${slug}`}
+                          href={user ? "/dashboard/subscriptions" : `/login?callback=${encodeURIComponent('/tenders/' + slug)}`}
                           className="w-full relative py-3.5 bg-linear-to-r from-amber-500 to-amber-600 text-white text-sm rounded-2xl font-semibold flex items-center justify-center space-x-2.5 hover:from-amber-600 hover:to-amber-700 transition-all shadow-[0_4px_15px_-3px_rgba(245,158,11,0.3)] hover:shadow-[0_6px_20px_-3px_rgba(245,158,11,0.4)]"
                         >
                           <Zap className="w-4 h-4 fill-white relative z-10" />
@@ -468,7 +469,7 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
               </a>
             ) : (
               <Link
-                href={user ? "/dashboard/subscriptions" : `/login?callback=/tenders/${slug}`}
+                href={user ? "/dashboard/subscriptions" : `/login?callback=${encodeURIComponent('/tenders/' + slug)}`}
                 className="flex-1 py-3.5 bg-linear-to-r from-amber-500 to-amber-600 text-white text-sm rounded-xl font-semibold flex items-center justify-center space-x-2 hover:from-amber-600 hover:to-amber-700 transition-all shadow-md shadow-amber-500/20"
               >
                 <Zap className="w-4 h-4 fill-white" />

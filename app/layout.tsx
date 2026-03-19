@@ -69,6 +69,7 @@ export const metadata: Metadata = {
 import Navbar from "@/components/Navbar";
 import GoogleOneTap from "@/components/GoogleOneTap";
 import ScrollToTop from "@/components/ScrollToTop";
+import { ThemeProvider } from "next-themes";
 
 export default function RootLayout({
   children,
@@ -76,12 +77,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${outfit.variable} ${jetbrainsMono.variable}`}>
+    <html lang="en" className={`${outfit.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
       <body className="font-sans antialiased">
-        <GoogleOneTap />
-        <Navbar />
-        {children}
-        <ScrollToTop />
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <GoogleOneTap />
+          <Navbar />
+          {children}
+          <ScrollToTop />
+        </ThemeProvider>
       </body>
     </html>
   );
