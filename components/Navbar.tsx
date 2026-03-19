@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Zap, User, LogOut, Menu, X, LayoutDashboard, Bookmark, CreditCard, ChevronRight, Bell, Sun, Moon } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
@@ -72,9 +73,12 @@ export default function Navbar() {
             <div className="absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0 md:flex-1 flex items-center justify-center md:justify-start">
               <Link href="/" className="flex items-center space-x-2 sm:space-x-3 group scale-90 sm:scale-100 transition-transform">
                 <div className="relative h-10 w-10 sm:h-12 sm:w-12 shrink-0 flex items-center justify-center">
-                  <img 
+                  <Image 
                     src="/favicon.png" 
-                    alt="GeMTenders" 
+                    alt="GeMTenders Logo" 
+                    width={48}
+                    height={48}
+                    priority
                     className="h-full w-auto object-contain transition-transform duration-300 group-hover:scale-105"
                   />
                 </div>

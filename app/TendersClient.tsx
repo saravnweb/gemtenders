@@ -523,17 +523,18 @@ function TendersClient({
                   />
                   <div className="absolute right-1 sm:right-1.5 top-1/2 -translate-y-1/2 flex items-center">
                     {searchQuery && (
-                      <button onClick={() => setSearchQuery("")} className="text-slate-400 hover:text-slate-600 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 p-1 sm:p-1.5 rounded-full transition-colors mr-1 sm:mr-1.5">
+                      <button aria-label="Clear Search" onClick={() => setSearchQuery("")} className="text-slate-400 hover:text-slate-600 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 p-1 sm:p-1.5 rounded-full transition-colors mr-1 sm:mr-1.5">
                         <X className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                       </button>
                     )}
-                    <button className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold shadow-sm transition-all flex items-center justify-center">
+                    <button aria-label="Search" className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold shadow-sm transition-all flex items-center justify-center">
                       <span className="hidden sm:inline">Search</span>
                       <Search className="w-3.5 h-3.5 sm:hidden" />
                     </button>
                   </div>
                 </div>
                 <button
+                  aria-label="Toggle Filters"
                   onClick={() => { setShowFilters(!showFilters); if (!showFilters) loadStates(); }}
                   className={`shrink-0 px-3 sm:px-5 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl border transition-all flex items-center justify-center space-x-1.5 sm:space-x-2 font-bold text-xs sm:text-sm ${showFilters ? "bg-slate-800 text-white border-slate-800 shadow-md" : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 shadow-sm"}`}
                 >
@@ -609,6 +610,7 @@ function TendersClient({
             <div className="flex items-center bg-slate-50 dark:bg-slate-900 sm:bg-transparent px-2 sm:px-0 py-1 sm:py-0 rounded font-medium">
               <span className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mr-1 sm:mr-1.5 hidden sm:inline">Sort:</span>
               <select
+                aria-label="Sort order"
                 value={sortOrder}
                 onChange={(e) => setSortOrder(e.target.value as "newest" | "ending_soon")}
                 className="text-xs sm:text-sm bg-transparent border-none outline-none cursor-pointer text-slate-900 dark:text-slate-100 font-bold min-w-max p-0 pr-1"
@@ -658,7 +660,7 @@ function TendersClient({
                   <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Filters</h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400">Refine your tender search</p>
                 </div>
-                <button onClick={() => setShowFilters(false)} className="p-2 text-slate-400 hover:text-slate-900 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-100 dark:border-slate-700 transition-all active:scale-95">
+                <button aria-label="Close filters" onClick={() => setShowFilters(false)} className="p-2 text-slate-400 hover:text-slate-900 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-100 dark:border-slate-700 transition-all active:scale-95">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -989,7 +991,7 @@ function TenderCard({
         <div className="flex flex-wrap gap-x-1.5 gap-y-1 text-xs text-slate-500 dark:text-slate-400 leading-tight">
           {departmentDisplay.split(", ").filter(Boolean).map((part, idx, arr) => (
             <span key={idx} className="flex items-center">
-              <button onClick={(e) => { e.stopPropagation(); setSearchQuery(part); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="hover:text-blue-600 hover:underline transition-colors text-left">
+              <button aria-label={`Search for ${part}`} onClick={(e) => { e.stopPropagation(); setSearchQuery(part); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="hover:text-blue-600 hover:underline transition-colors text-left py-1">
                 {part}
               </button>
               {idx < arr.length - 1 && <span className="ml-1 text-slate-300 dark:text-slate-600">,</span>}
@@ -1032,7 +1034,7 @@ function TenderCard({
             {!tender.city && !tender.state && <span className="truncate">{tender.location || "N/A"}</span>}
           </div>
           <span className="text-slate-200 dark:text-slate-700 shrink-0">|</span>
-          <span className="font-mono text-[11px] text-slate-400 dark:text-slate-500 truncate">{bidId}</span>
+          <span className="font-mono text-[11px] text-slate-500 dark:text-slate-400 truncate">{bidId}</span>
         </div>
         <div className="flex items-center space-x-1 shrink-0">
           {tender.eligibility_msme && <span className="text-[10px] font-bold px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded border border-blue-100 dark:border-blue-800" title="MSE Preferred">MSE</span>}
@@ -1044,19 +1046,19 @@ function TenderCard({
       {/* 4: EMD & Dates */}
       <div className="grid grid-cols-3 gap-2 py-2.5 border-y border-slate-100 dark:border-slate-700 mb-4 bg-slate-50 dark:bg-slate-800 -mx-4 px-4 relative z-10 pointer-events-none mt-auto">
         <div className="flex flex-col">
-          <span className="text-[10px] text-slate-400 dark:text-slate-500 mb-0.5">EMD Amount</span>
+          <span className="text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">EMD Amount</span>
           <span className="text-[13px] font-medium text-slate-700 dark:text-slate-300 truncate">{formattedEMD}</span>
         </div>
         <div className="flex flex-col items-center border-l border-slate-200 dark:border-slate-700">
-          <span className="text-[10px] text-slate-400 dark:text-slate-500 mb-0.5">Start Date</span>
+          <span className="text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">Start Date</span>
           <span className="text-[13px] font-medium text-slate-700 dark:text-slate-300">
             {isFallbackDate ? "Pending" : (tender.start_date ? formatDate(tender.start_date) : "N/A")}
           </span>
         </div>
         <div className="flex flex-col items-end border-l border-slate-200 dark:border-slate-700 pl-1">
           <div className="flex items-center space-x-1 mb-0.5">
-            <Clock className="w-2.5 h-2.5 text-slate-400 dark:text-slate-500" />
-            <span className="text-[10px] text-slate-400 dark:text-slate-500">Close Date</span>
+            <Clock className="w-2.5 h-2.5 text-slate-500 dark:text-slate-400" />
+            <span className="text-[10px] text-slate-500 dark:text-slate-400">Close Date</span>
           </div>
           <span className={`text-[13px] font-medium ${isClosingSoon ? 'text-red-500 dark:text-red-400' : 'text-slate-700 dark:text-slate-300'}`}>
             {isFallbackDate ? "Pending" : formatDate(tender.end_date)}

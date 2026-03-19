@@ -126,6 +126,8 @@ async function enrichTenders() {
   );
 
   const { extractTenderData } = await import('../lib/gemini');
+  const { triggerKeywordNotifications } = await import('../lib/notifications');
+
 
   let successCount = 0;
   let failCount = 0;
@@ -213,6 +215,14 @@ async function enrichTenders() {
       }
 
       console.log(`    ✓ ${tender.bid_number}`);
+      
+      // Trigger user keyword notifications (future integration)
+      await triggerKeywordNotifications({
+        id: tender.id,
+        bid_number: tender.bid_number,
+        ...update
+      });
+
       successCount++;
     }));
 

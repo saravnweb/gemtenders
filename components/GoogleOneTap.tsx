@@ -26,15 +26,9 @@ export default function GoogleOneTap() {
     const originalConsoleWarn = console.warn;
 
     const filterLog = (originalMethod: any, ...args: any[]) => {
-      if (typeof args[0] === 'string' && args[0].includes('[GSI_LOGGER]:')) {
-        // Suppress AbortError, NetworkError, and the deprecation warning
-        if (
-          args[0].includes('AbortError') || 
-          args[0].includes('NetworkError') || 
-          args[0].includes('stop functioning when FedCM becomes mandatory')
-        ) {
-          return;
-        }
+      const msg = typeof args[0] === 'string' ? args[0] : (args[0]?.message || String(args[0] || ''));
+      if (msg.includes('[GSI_LOGGER]:') || msg.includes('FedCM get() rejects with AbortError') || msg.includes('stop functioning when FedCM becomes mandatory')) {
+        return;
       }
       originalMethod(...args);
     };
@@ -43,10 +37,20 @@ export default function GoogleOneTap() {
     console.log = (...args) => filterLog(originalConsoleLog, ...args);
     console.warn = (...args) => filterLog(originalConsoleWarn, ...args);
 
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      const reason = event.reason;
+      const msg = typeof reason === 'string' ? reason : (reason?.message || String(reason || ''));
+      if (msg.includes('[GSI_LOGGER]:') || msg.includes('FedCM get() rejects with AbortError') || msg.includes('signal is aborted without reason')) {
+        event.preventDefault();
+      }
+    };
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
     return () => {
       console.error = originalConsoleError;
       console.log = originalConsoleLog;
       console.warn = originalConsoleWarn;
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
     };
   }, []);
 

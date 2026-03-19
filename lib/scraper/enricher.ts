@@ -5,6 +5,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 import { extractTenderData } from '../gemini';
+import { triggerKeywordNotifications } from '../notifications';
 import { chromium } from 'playwright';
 import path from 'path';
 import fs from 'fs';
@@ -139,6 +140,14 @@ export async function runEnrichment(limit: number = 20) {
         }
 
         await supabase.from('tenders').update(updatePayload).eq('id', tender.id);
+        
+        // Trigger user keyword notifications (future integration)
+        await triggerKeywordNotifications({
+          id: tender.id,
+          bid_number: tender.bid_number,
+          ...updatePayload
+        });
+
         successCount++;
       }
     } catch (err) {

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Zap } from "lucide-react";
+import Image from "next/image";
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
@@ -31,7 +32,7 @@ export default function LoginPage() {
         
         <div className="text-center mb-10">
           <div className="mb-8">
-            <img src="/logo.png" alt="GeMTenders.org" className="h-16 w-auto mx-auto object-contain brightness-110" />
+            <Image src="/logo.png" alt="GeMTenders.org Logo" width={200} height={64} priority className="h-16 w-auto mx-auto object-contain brightness-110" />
           </div>
           <h1 className="text-3xl font-black text-fresh-sky-950 tracking-tight mb-2">Welcome</h1>
           <p className="text-fresh-sky-600 font-medium">Sign in to your GeMTenders.org account</p>
