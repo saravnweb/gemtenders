@@ -1,6 +1,13 @@
+import type { Metadata } from "next";
 import { createClient } from '@/lib/supabase-server';
 import { redirect } from 'next/navigation';
 import ProfileSidebar from '@/components/ProfileSidebar';
+
+export const metadata: Metadata = {
+  title: "Dashboard",
+  description: "Manage your GeM tender keywords, bookmarks, and subscription.",
+  robots: { index: false, follow: false },
+};
 
 export default async function DashboardLayout({
   children,

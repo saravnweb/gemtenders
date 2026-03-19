@@ -12,7 +12,8 @@
     "enrich": "tsx scripts/enrich-tenders.ts",
     "stats": "tsx scripts/db-stats.ts",
     "clean": "tsx scripts/clean-supabase.ts",
-    "fast-scrape": "tsx scripts/fast-api-scraper.ts"
+    "fast-scrape": "tsx scripts/fast-api-scraper.ts",
+    "crawl": "tsx scripts/crawl-stubs.ts"
   },
   "keywords": [],
   "author": "",

@@ -197,6 +197,7 @@ export async function scrapeGeMBids(options?: { lightMode?: boolean; maxPages?: 
 
   for (const bid of uniqueBids) {
     console.log(`\n>>> [SCRAPER] Processing: ${bid.bidNo}`);
+    console.log(`>>> [SCRAPER]   Raw dates — start: "${bid.startDate}" | end: "${bid.endDate}"`);
     
     const { data: existing } = await supabase
       .from("tenders")
@@ -368,8 +369,12 @@ export async function scrapeGeMBids(options?: { lightMode?: boolean; maxPages?: 
     const slug = generateSlug(bid.bidNo, finalTitle);
 
     // Use the exact start and end dates directly from the frontend UI.
-    const finalStartDate = parseGeMDate(bid.startDate) || new Date().toISOString();
-    const finalEndDate = parseGeMDate(bid.endDate) || new Date().toISOString();
+    const parsedStart = parseGeMDate(bid.startDate);
+    const parsedEnd = parseGeMDate(bid.endDate);
+    if (!parsedStart) console.warn(`>>> [SCRAPER] WARNING: start_date parse failed for "${bid.startDate}" — using today as fallback`);
+    if (!parsedEnd) console.warn(`>>> [SCRAPER] WARNING: end_date parse failed for "${bid.endDate}" — using today as fallback`);
+    const finalStartDate = parsedStart || new Date().toISOString();
+    const finalEndDate = parsedEnd || new Date().toISOString();
     const finalOpeningDate = aiData?.dates?.bid_opening_date || aiData?.bid_opening_date || null;
 
     const { error } = await supabase.from("tenders").upsert({
@@ -423,29 +428,30 @@ function parseGeMDate(dateStr: string): string | null {
             const day = dateMatch[1];
             const month = dateMatch[2];
             const year = dateMatch[3];
-            
-            // Try to find time (HH:MM:SS or HH:MM)
-            const timeMatch = dateStr.match(/(\d{2}):(\d{2}):?(\d{2})?\s*(AM|PM)?/i);
+
+            // Use \d{1,2} to match both single and double digit hours (e.g. "9:00 AM" and "10:00 PM")
+            const timeMatch = dateStr.match(/(\d{1,2}):(\d{2}):?(\d{2})?\s*(AM|PM)?/i);
             let hours = "00";
             let minutes = "00";
             let seconds = "00";
-            
+
             if (timeMatch) {
-                hours = timeMatch[1];
+                hours = timeMatch[1].padStart(2, '0');
                 minutes = timeMatch[2];
                 if (timeMatch[3]) {
                     seconds = timeMatch[3];
                 }
                 const ampm = timeMatch[4] ? timeMatch[4].toUpperCase() : null;
-                
+
                 if (ampm === "PM" && parseInt(hours) < 12) {
                     hours = (parseInt(hours) + 12).toString().padStart(2, '0');
                 } else if (ampm === "AM" && parseInt(hours) === 12) {
                     hours = "00";
                 }
             }
-            
-            return new Date(`${year}-${month}-${day}T${hours}:${minutes}:${seconds}`).toISOString();
+
+            // GeM dates are in IST (UTC+5:30) — store as UTC
+            return new Date(`${year}-${month}-${day}T${hours}:${minutes}:${seconds}+05:30`).toISOString();
         }
     } catch (e) {
         // Fallthrough

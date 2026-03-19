@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
-import { Search, Download, Clock, Zap, FileText, Bookmark, Info, RefreshCw, MapPin, Filter, X, ChevronDown, Shield, Bell, CheckCircle, Loader2, Share2 } from "lucide-react";
+import { Search, Download, Clock, Zap, FileText, Bookmark, Info, RefreshCw, MapPin, Filter, X, ChevronDown, Shield, Bell, CheckCircle, Loader2, Share2, Archive } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
@@ -97,6 +97,22 @@ function formatDepartmentInfo(ministry?: string, dept?: string, org?: string): s
   return result.replace(/([A-Z][a-z]+)\1/g, "$1");
 }
 
+function isTenderArchived(tender: any) {
+  if (tender.is_archived) return true;
+  if (!tender.end_date) return false;
+  let ms = new Date(tender.end_date).getTime();
+  if (isNaN(ms) && typeof tender.end_date === 'string') {
+    const parts = tender.end_date.split('-');
+    if (parts.length === 3 && parts[0].length <= 2) {
+      ms = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T23:59:59Z`).getTime();
+    }
+  }
+  if (!isNaN(ms)) {
+    return ms < Date.now();
+  }
+  return false;
+}
+
 export default function TendersPageWrapper() {
   return (
     <Suspense fallback={
@@ -127,11 +143,12 @@ function TendersPage() {
   const [states, setStates] = useState<string[]>([]);
   const [cities, setCities] = useState<string[]>([]);
   const [user, setUser] = useState<any>(null);
+  const [isPremium, setIsPremium] = useState(false);
   const [isSavingSearch, setIsSavingSearch] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [savedTenderIds, setSavedTenderIds] = useState<Set<string>>(new Set());
   const [savedSearches, setSavedSearches] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<"all" | "foryou">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "foryou" | "archived">("all");
   const [visibleCount, setVisibleCount] = useState(21);
   const [sortOrder, setSortOrder] = useState<"newest" | "ending_soon">("newest");
 
@@ -147,11 +164,15 @@ function TendersPage() {
   }, [showFilters]);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
       setUser(user);
       if (user) {
         fetchSavedTenders(user.id);
         fetchSavedSearches(user.id);
+        const { data: profile } = await supabase.from('profiles').select('membership_plan').eq('id', user.id).single();
+        if (profile && (profile.membership_plan === 'starter' || profile.membership_plan === 'pro')) {
+          setIsPremium(true);
+        }
       }
     });
   }, []);
@@ -307,6 +328,12 @@ function TendersPage() {
   useEffect(() => {
     let filtered = tenders;
 
+    if (activeTab === "archived") {
+      filtered = filtered.filter(t => isTenderArchived(t));
+    } else {
+      filtered = filtered.filter(t => !isTenderArchived(t));
+    }
+
     if (searchQuery.trim()) {
       const keywords = searchQuery.toLowerCase().split(',').map(k => k.trim()).filter(Boolean);
       if (keywords.length > 0) {
@@ -439,16 +466,38 @@ function TendersPage() {
 
   async function fetchTenders() {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("tenders")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(3000);
+    let allData: any[] = [];
+    let page = 0;
+    const pageSize = 1000;
+    let hasMore = true;
 
-    if (!error && data) {
-      setTenders(data);
-      setFilteredTenders(data);
+    while (hasMore) {
+      const { data, error } = await supabase
+        .from("tenders")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .range(page * pageSize, (page + 1) * pageSize - 1);
+
+      if (error || !data) {
+        console.error("Error fetching tenders:", error);
+        break;
+      }
+
+      allData = [...allData, ...data];
+      
+      if (data.length < pageSize) {
+        hasMore = false;
+      } else {
+        page++;
+      }
+      
+      // Optional safety limit to prevent browser crash, adjust if you actually have tens of thousands
+      if (allData.length >= 10000) {
+        hasMore = false;
+      }
     }
+
+    setTenders(allData);
     setLoading(false);
   }
 
@@ -635,6 +684,14 @@ function TendersPage() {
                 <span className="px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] font-black tracking-widest uppercase bg-slate-100 text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-700 transition-colors hidden sm:inline-block">+ Add Keywords</span>
               </button>
             )}
+            <button 
+              onClick={() => setActiveTab("archived")}
+              className={`pb-3 text-sm font-bold flex items-center space-x-2 transition-all relative whitespace-nowrap ${activeTab === 'archived' ? 'text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              <Archive className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${activeTab === 'archived' ? 'text-blue-500' : 'text-slate-400'}`} />
+              <span>Archived Bids</span>
+              {activeTab === 'archived' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-t-full"></div>}
+            </button>
           </div>
           <div className="flex items-center space-x-3 sm:space-x-4 shrink-0 pl-2 pb-3">
             <div className="hidden md:block text-xs font-bold text-slate-400">
@@ -753,7 +810,7 @@ function TendersPage() {
               {/* Scrollable Body */}
               <div className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar">
                 {/* Direct Work Search */}
-                <div className="space-y-3">
+                <div className="space-y-3 relative">
                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center">
                       <Zap className="w-3.5 h-3.5 mr-2 text-blue-500" /> Advanced Search
                     </label>
@@ -761,11 +818,17 @@ function TendersPage() {
                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
                      <input 
                       type="text" 
-                      placeholder="Keywords in AI summary..." 
+                      disabled={!isPremium}
+                      placeholder={isPremium ? "Keywords in AI summary..." : "Premium feature..."}
                       value={descriptionQuery}
                       onChange={(e) => setDescriptionQuery(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-11 pr-4 text-sm focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all outline-none"
+                      className={`w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-11 pr-4 text-sm focus:bg-white focus:ring-2 focus:ring-blue-100 transition-all outline-none ${!isPremium ? 'opacity-50 cursor-not-allowed' : ''}`}
                      />
+                     {!isPremium && (
+                       <Link href={user ? "/dashboard/subscriptions" : "/login"} className="absolute right-3 top-1/2 -translate-y-1/2 px-2 py-1 bg-amber-100 text-amber-700 text-[10px] font-bold rounded flex items-center hover:bg-amber-200 transition-colors">
+                         <Zap className="w-3 h-3 mr-1" /> Unlock
+                       </Link>
+                     )}
                    </div>
                    <p className="text-[10px] text-slate-400 leading-relaxed italic">Searches deep within technical specifications extracted from PDFs.</p>
                 </div>
@@ -871,12 +934,21 @@ function TendersPage() {
 
                 {/* Preferences */}
                 <div className="space-y-4 pb-10">
-                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center">
-                    <Shield className="w-3.5 h-3.5 mr-2" /> Preferences
+                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center justify-between">
+                    <span className="flex items-center"><Shield className="w-3.5 h-3.5 mr-2" /> Preferences</span>
+                    {!isPremium && <span className="bg-amber-100 text-amber-700 text-[9px] px-1.5 py-0.5 rounded font-bold">PREMIUM</span>}
                   </label>
-                  <div className="space-y-3">
+                  <div className="space-y-3 relative">
+                    {!isPremium && (
+                       <div className="absolute inset-0 z-10 bg-white/40 backdrop-blur-[1px] rounded-xl flex items-center justify-center">
+                          <Link href={user ? "/dashboard/subscriptions" : "/login"} className="bg-amber-500 text-white shadow-lg text-xs font-bold px-4 py-2 rounded-lg flex items-center hover:bg-amber-600 transition-colors">
+                            <Zap className="w-3.5 h-3.5 mr-1.5" /> Unlock Advanced Filters
+                          </Link>
+                       </div>
+                    )}
                     <button 
-                      onClick={() => setMsmeOnly(!msmeOnly)}
+                      onClick={() => isPremium && setMsmeOnly(!msmeOnly)}
+                      disabled={!isPremium}
                       className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${msmeOnly ? 'bg-blue-50 border-blue-200' : 'bg-white border-slate-100 hover:border-slate-200'}`}
                     >
                       <span className="text-sm font-bold text-slate-700">MSME Eligibility Only</span>
@@ -886,7 +958,8 @@ function TendersPage() {
                     </button>
                     
                     <button 
-                      onClick={() => setMiiOnly(!miiOnly)}
+                      onClick={() => isPremium && setMiiOnly(!miiOnly)}
+                      disabled={!isPremium}
                       className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${miiOnly ? 'bg-amber-50 border-amber-200' : 'bg-white border-slate-100 hover:border-slate-200'}`}
                     >
                       <span className="text-sm font-bold text-slate-700">MII Preference Only</span>
@@ -1223,7 +1296,7 @@ function TenderCard({
             <span className="text-[10px] text-slate-400">Close Date</span>
           </div>
           <span className={`text-[13px] font-medium ${isClosingSoon ? 'text-red-500' : 'text-slate-700'}`}>
-            {isFallbackDate ? "Pending" : new Date(tender.end_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' })}
+            {isFallbackDate ? "Pending" : new Date(tender.end_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })}
           </span>
         </div>
       </div>

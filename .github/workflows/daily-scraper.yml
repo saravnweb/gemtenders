@@ -1,0 +1,44 @@
+name: Daily GeM Scraper and Enricher
+
+on:
+  schedule:
+    # 23:30 UTC = 05:00 IST (UTC+5:30)
+    - cron: '30 23 * * *'
+  workflow_dispatch:
+
+jobs:
+  scrape-and-enrich:
+    name: Scrape and Enrich GeM Tenders
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Step 1 — Fast Scraper (fetch latest tenders from GeM API)
+        # Scrapes 200 pages × 10 bids = up to 2000 tenders.
+        # New tenders are INSERTED; existing tenders get only their dates refreshed.
+        # AI-enriched fields (title, dept, ai_summary, etc.) are never overwritten.
+        run: npm run fast-scrape -- --pages=200 --concurrency=5
+
+      - name: Step 2 — AI Enricher (enrich unenriched tenders with Gemini)
+        # Only processes tenders with no ai_summary that close within the next 7 days.
+        run: npm run enrich -- --limit=200 --concurrency=3

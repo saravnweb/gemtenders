@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:bidplus.gem.gov.in)",
+      "Bash(node -e \":*)",
+      "Bash(node scripts/debug-dates.mjs)"
+    ]
+  }
+}

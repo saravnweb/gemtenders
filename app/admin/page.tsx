@@ -6,6 +6,8 @@ import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import { ScrapeButton, EnrichButton } from "./client-buttons";
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminPage() {
   // Fetch detailed stats on server
   const { count: totalCount } = await supabase

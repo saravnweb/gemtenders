@@ -1,12 +1,62 @@
 import { supabase } from "@/lib/supabase";
-import { 
-  ArrowLeft, Search, Calendar, MapPin, Building2, Package, 
-  FileText, ShieldCheck, AlertCircle, Clock, ExternalLink, 
+import {
+  ArrowLeft, Search, Calendar, MapPin, Building2, Package,
+  FileText, ShieldCheck, AlertCircle, Clock, ExternalLink,
   Download, FileDigit, Landmark, FileSpreadsheet, Shield, Zap, Info,
   CheckCircle2, Building, Layers, Activity, FileCheck, ExternalLink as LinkIcon
 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { createClient } from "@/lib/supabase-server";
+import type { Metadata } from "next";
+
+const siteUrl = "https://gemtenders.org";
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const { data: tender } = await supabase
+    .from("tenders")
+    .select("title, ai_summary, ministry_name, department_name, end_date, slug")
+    .eq("slug", slug)
+    .single();
+
+  if (!tender) {
+    return {
+      title: "Tender Not Found",
+      description: "This tender could not be found on GeMTenders.org.",
+    };
+  }
+
+  const title = tender.title
+    ? `${tender.title.substring(0, 60)}${tender.title.length > 60 ? "..." : ""}`
+    : "GeM Tender Details";
+  const description = tender.ai_summary
+    ? tender.ai_summary.substring(0, 155) + (tender.ai_summary.length > 155 ? "..." : "")
+    : `View details for GeM tender: ${tender.title}. Check eligibility, EMD, and bid dates on GeMTenders.org.`;
+  const dept = tender.ministry_name || tender.department_name || "Government of India";
+  const canonicalUrl = `${siteUrl}/tenders/${slug}`;
+
+  return {
+    title,
+    description,
+    alternates: { canonical: canonicalUrl },
+    openGraph: {
+      type: "article",
+      url: canonicalUrl,
+      title: `${title} | GeMTenders.org`,
+      description,
+      siteName: "GeMTenders.org",
+      images: [{ url: "/logo.png", width: 1200, height: 630, alt: title }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${title} | GeMTenders.org`,
+      description,
+      images: ["/logo.png"],
+    },
+    keywords: ["GeM tender", dept, "government bid", "GeM portal", "tender India"],
+  };
+}
 
 // Utility: convert to Title Case
 function toTitleCase(str: string): string {
@@ -82,6 +132,17 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
     .select("*")
     .eq("slug", slug)
     .single();
+
+  const supabaseServer = await createClient();
+  const { data: { user } } = await supabaseServer.auth.getUser();
+  
+  let isPremium = false;
+  if (user) {
+    const { data: profile } = await supabaseServer.from("profiles").select("membership_plan").eq("id", user.id).single();
+    if (profile && (profile.membership_plan === 'starter' || profile.membership_plan === 'pro')) {
+      isPremium = true;
+    }
+  }
 
   if (error || !tender) {
     notFound();
@@ -229,9 +290,9 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
               
               <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 divide-slate-100">
                 {[
-                  { icon: Clock, label: "Bid Start Date/Time", val: tender.start_date ? new Date(tender.start_date).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'UTC' }) : "N/A" },
-                  { icon: Clock, label: "Bid End Date/Time", val: tender.end_date ? new Date(tender.end_date).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'UTC' }) : "N/A" },
-                  { icon: Clock, label: "Bid Opening Date/Time", val: tender.opening_date ? new Date(tender.opening_date).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'UTC' }) : "N/A" },
+                  { icon: Clock, label: "Bid Start Date/Time", val: tender.start_date ? new Date(tender.start_date).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : "N/A" },
+                  { icon: Clock, label: "Bid End Date/Time", val: tender.end_date ? new Date(tender.end_date).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : "N/A" },
+                  { icon: Clock, label: "Bid Opening Date/Time", val: tender.opening_date ? new Date(tender.opening_date).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : "N/A" },
                   { icon: FileCheck, label: "Bid Offer Validity", val: "120 Days" },
                   { icon: Package, label: "Total Quantity", val: tender.quantity || "N/A" },
                   { icon: Layers, label: "Item Category", val: tender.title ? tender.title.substring(0, 100) + (tender.title.length > 100 ? '...' : '') : "N/A" },
@@ -329,7 +390,7 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
                     <div className={`rounded-2xl p-4 border ${isClosingSoon ? 'bg-red-50/50 border-red-100' : 'bg-slate-50 border-slate-100'}`}>
                       <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Ends On</span>
                       <span className={`text-base font-bold ${isClosingSoon ? 'text-red-600' : 'text-slate-800'} block wrap-break-word`}>
-                        {new Date(tender.end_date).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'UTC' })}
+                        {new Date(tender.end_date).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' })}
                       </span>
                       {isClosingSoon && (
                         <span className="text-[10px] uppercase font-bold text-red-500 tracking-wide mt-1 block">Act Fast</span>
@@ -342,15 +403,24 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
                   {/* Actions */}
                   <div className="space-y-3">
                     {tender.pdf_url ? (
-                      <a
-                        href={tender.pdf_url}
-                        target="_blank"
-                        className="w-full relative group overflow-hidden py-3.5 bg-slate-900 text-white text-sm rounded-2xl font-semibold flex items-center justify-center space-x-2.5 hover:bg-black transition-all shadow-[0_4px_15px_-3px_rgba(0,0,0,0.2)] hover:shadow-[0_6px_20px_-3px_rgba(0,0,0,0.3)]"
-                      >
-                        <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
-                        <Download className="w-4 h-4 relative z-10" />
-                        <span className="relative z-10">Download Document</span>
-                      </a>
+                      isPremium ? (
+                        <a
+                          href={tender.pdf_url}
+                          target="_blank"
+                          className="w-full relative group overflow-hidden py-3.5 bg-slate-900 text-white text-sm rounded-2xl font-semibold flex items-center justify-center space-x-2.5 hover:bg-black transition-all shadow-[0_4px_15px_-3px_rgba(0,0,0,0.2)] hover:shadow-[0_6px_20px_-3px_rgba(0,0,0,0.3)]"
+                        >
+                          <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
+                          <Download className="w-5 h-5 relative z-10" />
+                        </a>
+                      ) : (
+                        <Link
+                          href={user ? "/dashboard/subscriptions" : `/login?callback=/tenders/${slug}`}
+                          className="w-full relative py-3.5 bg-linear-to-r from-amber-500 to-amber-600 text-white text-sm rounded-2xl font-semibold flex items-center justify-center space-x-2.5 hover:from-amber-600 hover:to-amber-700 transition-all shadow-[0_4px_15px_-3px_rgba(245,158,11,0.3)] hover:shadow-[0_6px_20px_-3px_rgba(245,158,11,0.4)]"
+                        >
+                          <Zap className="w-4 h-4 fill-white relative z-10" />
+                          <span className="relative z-10">Unlock PDF Download</span>
+                        </Link>
+                      )
                     ) : (
                       <div className="w-full py-3.5 bg-slate-100 text-slate-400 text-sm rounded-2xl font-semibold flex items-center justify-center space-x-2.5 cursor-not-allowed border border-slate-200/60">
                         <Download className="w-4 h-4" />
@@ -388,14 +458,23 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-xl border-t border-slate-200/60 lg:hidden z-50 shadow-[0_-10px_20px_-5px_rgba(0,0,0,0.05)] flex gap-3 pb-[calc(1rem+env(safe-area-inset-bottom))]">
         {tender.pdf_url ? (
           <>
-            <a
-              href={tender.pdf_url}
-              target="_blank"
-              className="flex-1 py-3.5 bg-slate-900 text-white text-sm rounded-xl font-semibold flex items-center justify-center space-x-2 hover:bg-black transition-all shadow-md"
-            >
-              <Download className="w-4 h-4" />
-              <span>Download</span>
-            </a>
+            {isPremium ? (
+              <a
+                href={tender.pdf_url}
+                target="_blank"
+                className="flex-1 py-3.5 bg-slate-900 text-white text-sm rounded-xl font-semibold flex items-center justify-center space-x-2 hover:bg-black transition-all shadow-md"
+              >
+                <Download className="w-5 h-5" />
+              </a>
+            ) : (
+              <Link
+                href={user ? "/dashboard/subscriptions" : `/login?callback=/tenders/${slug}`}
+                className="flex-1 py-3.5 bg-linear-to-r from-amber-500 to-amber-600 text-white text-sm rounded-xl font-semibold flex items-center justify-center space-x-2 hover:from-amber-600 hover:to-amber-700 transition-all shadow-md shadow-amber-500/20"
+              >
+                <Zap className="w-4 h-4 fill-white" />
+                <span>Unlock PDF</span>
+              </Link>
+            )}
             <a
               href={tender.details_url}
               target="_blank"
