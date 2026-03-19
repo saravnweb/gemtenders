@@ -38,7 +38,7 @@ export const NEARBY_CITIES: Record<string, string[]> = {
   "noida": ["delhi", "greater noida", "ghaziabad", "faridabad"],
   "gurgaon": ["delhi", "faridabad", "manesar", "gurugram"],
   "gurugram": ["delhi", "faridabad", "gurgaon", "manesar"],
-  "faridabad": ["delhi", "gurgaon", "noida", "ballabhgarh"],
+  "faridabad": ["delhi", "gurgaon", "noida", "ballabhgarh", "palwal"],
   "ghaziabad": ["delhi", "noida", "hapur", "meerut"],
 
   // Uttar Pradesh
@@ -93,12 +93,10 @@ export const NEARBY_CITIES: Record<string, string[]> = {
   "chandigarh": ["mohali", "panchkula", "ambala", "ludhiana", "ropar"],
 
   // Haryana
-  "chandigarh": ["mohali", "panchkula", "ambala", "ludhiana"],
   "panchkula": ["chandigarh", "mohali", "ambala", "yamunanagar"],
   "ambala": ["panchkula", "yamunanagar", "kurukshetra", "chandigarh"],
   "rohtak": ["jhajjar", "sonipat", "hisar", "bhiwani", "delhi"],
   "hisar": ["rohtak", "bhiwani", "fatehabad", "sirsa"],
-  "faridabad": ["delhi", "gurgaon", "ballabhgarh", "palwal"],
 
   // Madhya Pradesh
   "bhopal": ["indore", "raisen", "sehore", "vidisha", "hoshangabad"],
