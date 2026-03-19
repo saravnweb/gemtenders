@@ -1,12 +1,14 @@
-import { supabase } from '../supabase';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 import { extractTenderData } from '../gemini';
 import { chromium } from 'playwright';
 import path from 'path';
 import fs from 'fs';
-import { createRequire } from 'module';
 
-const require = createRequire(import.meta.url);
-const pdf = require('pdf-parse');
 
 export async function runEnrichment(limit: number = 20) {
   console.log(`\n>>> [ENRICHER] Starting enrichment run. Processing up to ${limit} tenders...\n`);
@@ -47,8 +49,11 @@ export async function runEnrichment(limit: number = 20) {
       const downloadPage = await context.newPage();
 
       try {
-        const downloadPromise = downloadPage.waitForEvent('download', { timeout: 15000 });
-        const gotoPromise = downloadPage.goto(pdfLink, { waitUntil: 'load', timeout: 15000 });
+        let downloadPromise = downloadPage.waitForEvent('download', { timeout: 15000 });
+        let gotoPromise = downloadPage.goto(pdfLink, { waitUntil: 'load', timeout: 15000 }).catch(e => {
+          // Playwright intentionally aborts navigation if it results in a download
+          return null;
+        });
         
         const result = await Promise.race([
           downloadPromise.then(d => ({ type: 'download', data: d })),
@@ -69,8 +74,14 @@ export async function runEnrichment(limit: number = 20) {
             if (contentType.includes('pdf')) buffer = Buffer.from(body);
           }
         }
-      } catch (e) {
+      } catch (e: any) {
         // Fallback
+        const response = await context.request.get(pdfLink).catch(() => null);
+        if (response) {
+          const contentType = response.headers()['content-type'] || '';
+          const body = await response.body();
+          if (contentType.includes('pdf')) buffer = Buffer.from(body);
+        }
       } finally {
         await downloadPage.close();
       }
@@ -86,9 +97,21 @@ export async function runEnrichment(limit: number = 20) {
           pdfPublicUrl = urlData.publicUrl;
         }
 
-        const parserFunc = typeof pdf === 'function' ? pdf : (pdf as any).default;
-        const textData = await parserFunc(buffer);
-        const extractedText = textData.text || '';
+        const _lib: any = await import('pdf-parse');
+        const pdfLib = _lib.default || _lib;
+        const ParserClass = pdfLib.PDFParse || pdfLib;
+        
+        let extractedText = '';
+        if (typeof ParserClass === 'function' && ParserClass.toString().includes('class')) {
+          const instance = new ParserClass({ data: buffer, max: 5 });
+          const result = await instance.getText();
+          extractedText = result.text || '';
+          await instance.destroy?.();
+        } else {
+          const fn = typeof pdfLib === 'function' ? pdfLib : pdfLib.default;
+          const textData = await fn(buffer, { max: 5 });
+          extractedText = textData.text || '';
+        }
 
         if (extractedText.length > 50) {
           aiData = await extractTenderData(extractedText);

@@ -89,3 +89,50 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
     FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+-- ==========================================
+-- ROW LEVEL SECURITY (RLS) POLICIES
+-- ==========================================
+
+-- Enable RLS on core tables
+ALTER TABLE public.tenders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.saved_searches ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.saved_tenders ENABLE ROW LEVEL SECURITY;
+
+-- 1. Tenders Policy: Anyone can read, but only service role key (scraper) can modify.
+CREATE POLICY "Allow public read access to tenders"
+ON public.tenders 
+FOR SELECT 
+TO public 
+USING (true);
+-- (No INSERT/UPDATE/DELETE policies means these actions are completely restricted to bypassers like the Service Role key)
+
+-- 2. Profiles Policy: Users can only read and update their own profiles
+CREATE POLICY "Users can view their own profile"
+ON public.profiles
+FOR SELECT
+TO authenticated
+USING (auth.uid() = id);
+
+CREATE POLICY "Users can update their own profile"
+ON public.profiles
+FOR UPDATE
+TO authenticated
+USING (auth.uid() = id);
+
+-- 3. Saved Searches Policy: Only authenticated users can manage their own queries
+CREATE POLICY "Users can manage their own saved searches"
+ON public.saved_searches
+FOR ALL
+TO authenticated
+USING (auth.uid() = user_id)
+WITH CHECK (auth.uid() = user_id);
+
+-- 4. Bookmarks (Saved Tenders) Policy: Authenticated user CRUD
+CREATE POLICY "Users can manage their own bookmarked tenders"
+ON public.saved_tenders
+FOR ALL
+TO authenticated
+USING (auth.uid() = user_id)
+WITH CHECK (auth.uid() = user_id);

@@ -1,0 +1,191 @@
+﻿[32mÔ£ö[0m [33mConsole Ninja[0m extension is connected to [33mNext.js[0m, see [36mhttps://tinyurl.com/2vt8jxzw[0m
+ÔÜá Console Ninja Turbopack support is a PRO feature, [33mcurrently available to community users while in preview[0m
+Ôû▓ Next.js 16.1.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.1.4:3000
+- Environments: .env
+
+Ô£ô Starting...
+Ô£ô Ready in 662ms
+node.exe : 
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" 
+"C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified:  
+   (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandE 
+   rror
+ 
+-----
+[1m[31mFATAL[39m[0m: An unexpected 
+Turbopack error occurred. A panic log has 
+been written to C:\Users\sarav\AppData\Local\
+Temp\next-panic-bf4a3e0cb7d5afc6309bae15b0747
+83b.log.
+
+To help make Turbopack better, report this 
+error by ]8;;https://github.com/vercel/next.
+js/discussions/new?category=turbopack-error-r
+eport&title=Turbopack%20Error%3A%20Failed%20t
+o%20write%20app%20endpoint%20%2Fpage&body=Tur
+bopack%20version%3A%20%6023c46498%60%0ANext.j
+s%20version%3A%20%600.0.0%60%0A%0AError%20mes
+sage%3A%0A%60%60%60%0AFailed%20to%20write%20a
+pp%20endpoint%20%2Fpage%0A%0ACaused%20by%3A%0
+A-%20%5Bproject%5D%2Fapp%2Fglobals.css%20%5Ba
+pp-client%5D%20%28css%29%0A-%20failed%20to%20
+receive%20message%0A-%20unable%20to%20handle%
+20stdout%20from%20the%20Node.js%20process%20i
+n%20a%20structured%20way%0A-%20stream%20close
+d%20unexpectedly%0A%0ADebug%20info%3A%0A-%20E
+xecution%20of%20get_written_endpoint_with_iss
+ues_operation%20failed%0A-%20Execution%20of%2
+0endpoint_write_to_disk%20failed%0A-%20Execut
+ion%20of%20%3CAppEndpoint%20as%20Endpoint%3E%
+3A%3Aoutput%20failed%0A-%20Failed%20to%20writ
+e%20app%20endpoint%20%2Fpage%0A-%20Execution%
+20of%20AppEndpoint%3A%3Aoutput%20failed%0A-%2
+0Execution%20of%20AppProject%3A%3Aapp_module_
+graphs%20failed%0A-%20Execution%20of%20%2A%3C
+AppEndpoint%20as%20Endpoint%3E%3A%3Aadditiona
+l_entries%20failed%0A-%20Execution%20of%20%2A
+ModuleGraph%3A%3Afrom_graphs%20failed%0A-%20E
+xecution%20of%20SingleModuleGraph%3A%3Anew_wi
+th_entries_visited_intern%20failed%0A-%20%5Bp
+roject%5D%2Fapp%2Fglobals.css%20%5Bapp-client
+%5D%20%28css%29%0A-%20Execution%20of%20primar
+y_chunkable_referenced_modules%20failed%0A-%2
+0Execution%20of%20%3CCssModuleAsset%20as%20Mo
+dule%3E%3A%3Areferences%20failed%0A-%20Execut
+ion%20of%20parse_css%20failed%0A-%20Execution
+%20of%20%3CPostCssTransformedAsset%20as%20Ass
+et%3E%3A%3Acontent%20failed%0A-%20Execution%2
+0of%20PostCssTransformedAsset%3A%3Aprocess%20
+failed%0A-%20Execution%20of%20evaluate_webpac
+k_loader%20failed%0A-%20failed%20to%20receive
+%20message%0A-%20unable%20to%20handle%20stdou
+t%20from%20the%20Node.js%20process%20in%20a%2
+0structured%20way%0A-%20stream%20closed%20une
+xpectedly%0A%60%60%60&labels=Turbopack,Turbop
+ack%20Panic%20Backtrace\clicking 
+here.]8;;\
+-----
+
+ GET / 500 in 336ms (compile: 204ms, render: 132ms)
+
+-----
+[1m[31mFATAL[39m[0m: An unexpected 
+Turbopack error occurred. A panic log has 
+been written to C:\Users\sarav\AppData\Local\
+Temp\next-panic-bf4a3e0cb7d5afc6309bae15b0747
+83b.log.
+
+To help make Turbopack better, report this 
+error by ]8;;https://github.com/vercel/next.
+js/discussions/new?category=turbopack-error-r
+eport&title=Turbopack%20Error%3A%20Failed%20t
+o%20write%20app%20endpoint%20%2Fpage&body=Tur
+bopack%20version%3A%20%6023c46498%60%0ANext.j
+s%20version%3A%20%600.0.0%60%0A%0AError%20mes
+sage%3A%0A%60%60%60%0AFailed%20to%20write%20a
+pp%20endpoint%20%2Fpage%0A%0ACaused%20by%3A%0
+A-%20%5Bproject%5D%2Fapp%2Fglobals.css%20%5Ba
+pp-client%5D%20%28css%29%0A-%20failed%20to%20
+receive%20message%0A-%20unable%20to%20handle%
+20stdout%20from%20the%20Node.js%20process%20i
+n%20a%20structured%20way%0A-%20stream%20close
+d%20unexpectedly%0A%0ADebug%20info%3A%0A-%20E
+xecution%20of%20get_written_endpoint_with_iss
+ues_operation%20failed%0A-%20Execution%20of%2
+0endpoint_write_to_disk%20failed%0A-%20Execut
+ion%20of%20%3CAppEndpoint%20as%20Endpoint%3E%
+3A%3Aoutput%20failed%0A-%20Failed%20to%20writ
+e%20app%20endpoint%20%2Fpage%0A-%20Execution%
+20of%20AppEndpoint%3A%3Aoutput%20failed%0A-%2
+0Execution%20of%20AppProject%3A%3Aapp_module_
+graphs%20failed%0A-%20Execution%20of%20%2A%3C
+AppEndpoint%20as%20Endpoint%3E%3A%3Aadditiona
+l_entries%20failed%0A-%20Execution%20of%20%2A
+ModuleGraph%3A%3Afrom_graphs%20failed%0A-%20E
+xecution%20of%20SingleModuleGraph%3A%3Anew_wi
+th_entries_visited_intern%20failed%0A-%20%5Bp
+roject%5D%2Fapp%2Fglobals.css%20%5Bapp-client
+%5D%20%28css%29%0A-%20Execution%20of%20primar
+y_chunkable_referenced_modules%20failed%0A-%2
+0Execution%20of%20%3CCssModuleAsset%20as%20Mo
+dule%3E%3A%3Areferences%20failed%0A-%20Execut
+ion%20of%20parse_css%20failed%0A-%20Execution
+%20of%20%3CPostCssTransformedAsset%20as%20Ass
+et%3E%3A%3Acontent%20failed%0A-%20Execution%2
+0of%20PostCssTransformedAsset%3A%3Aprocess%20
+failed%0A-%20Execution%20of%20evaluate_webpac
+k_loader%20failed%0A-%20failed%20to%20receive
+%20message%0A-%20unable%20to%20handle%20stdou
+t%20from%20the%20Node.js%20process%20in%20a%2
+0structured%20way%0A-%20stream%20closed%20une
+xpectedly%0A%60%60%60&labels=Turbopack,Turbop
+ack%20Panic%20Backtrace\clicking 
+here.]8;;\
+-----
+
+ GET / 500 in 12ms (compile: 6ms, render: 6ms)
+
+-----
+[1m[31mFATAL[39m[0m: An unexpected 
+Turbopack error occurred. A panic log has 
+been written to C:\Users\sarav\AppData\Local\
+Temp\next-panic-bf4a3e0cb7d5afc6309bae15b0747
+83b.log.
+
+To help make Turbopack better, report this 
+error by ]8;;https://github.com/vercel/next.
+js/discussions/new?category=turbopack-error-r
+eport&title=Turbopack%20Error%3A%20Failed%20t
+o%20write%20app%20endpoint%20%2Fpage&body=Tur
+bopack%20version%3A%20%6023c46498%60%0ANext.j
+s%20version%3A%20%600.0.0%60%0A%0AError%20mes
+sage%3A%0A%60%60%60%0AFailed%20to%20write%20a
+pp%20endpoint%20%2Fpage%0A%0ACaused%20by%3A%0
+A-%20%5Bproject%5D%2Fapp%2Fglobals.css%20%5Ba
+pp-client%5D%20%28css%29%0A-%20failed%20to%20
+receive%20message%0A-%20unable%20to%20handle%
+20stdout%20from%20the%20Node.js%20process%20i
+n%20a%20structured%20way%0A-%20stream%20close
+d%20unexpectedly%0A%0ADebug%20info%3A%0A-%20E
+xecution%20of%20get_written_endpoint_with_iss
+ues_operation%20failed%0A-%20Execution%20of%2
+0endpoint_write_to_disk%20failed%0A-%20Execut
+ion%20of%20%3CAppEndpoint%20as%20Endpoint%3E%
+3A%3Aoutput%20failed%0A-%20Failed%20to%20writ
+e%20app%20endpoint%20%2Fpage%0A-%20Execution%
+20of%20AppEndpoint%3A%3Aoutput%20failed%0A-%2
+0Execution%20of%20AppProject%3A%3Aapp_module_
+graphs%20failed%0A-%20Execution%20of%20%2A%3C
+AppEndpoint%20as%20Endpoint%3E%3A%3Aadditiona
+l_entries%20failed%0A-%20Execution%20of%20%2A
+ModuleGraph%3A%3Afrom_graphs%20failed%0A-%20E
+xecution%20of%20SingleModuleGraph%3A%3Anew_wi
+th_entries_visited_intern%20failed%0A-%20%5Bp
+roject%5D%2Fapp%2Fglobals.css%20%5Bapp-client
+%5D%20%28css%29%0A-%20Execution%20of%20primar
+y_chunkable_referenced_modules%20failed%0A-%2
+0Execution%20of%20%3CCssModuleAsset%20as%20Mo
+dule%3E%3A%3Areferences%20failed%0A-%20Execut
+ion%20of%20parse_css%20failed%0A-%20Execution
+%20of%20%3CPostCssTransformedAsset%20as%20Ass
+et%3E%3A%3Acontent%20failed%0A-%20Execution%2
+0of%20PostCssTransformedAsset%3A%3Aprocess%20
+failed%0A-%20Execution%20of%20evaluate_webpac
+k_loader%20failed%0A-%20failed%20to%20receive
+%20message%0A-%20unable%20to%20handle%20stdou
+t%20from%20the%20Node.js%20process%20in%20a%2
+0structured%20way%0A-%20stream%20closed%20une
+xpectedly%0A%60%60%60&labels=Turbopack,Turbop
+ack%20Panic%20Backtrace\clicking 
+here.]8;;\
+-----
+
+ HEAD / 500 in 11ms (compile: 5ms, render: 6ms)
+ GET / 500 in 8ms (compile: 4ms, render: 4ms)

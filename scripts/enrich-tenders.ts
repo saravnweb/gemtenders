@@ -35,13 +35,13 @@ async function parsePdfFromUrl(url: string): Promise<string | null> {
     const ParserClass = pdfLib.PDFParse || pdfLib;
     let text = '';
     if (typeof ParserClass === 'function' && ParserClass.toString().includes('class')) {
-      const instance = new ParserClass({ data: buf });
+      const instance = new ParserClass({ data: buf, max: 5 });
       const result = await instance.getText();
       text = result.text || '';
       await instance.destroy?.();
     } else {
       const fn = typeof pdfLib === 'function' ? pdfLib : pdfLib.default;
-      const parsed = await fn(buf);
+      const parsed = await fn(buf, { max: 5 });
       text = parsed.text || '';
     }
     return text.trim() || null;
@@ -107,6 +107,10 @@ async function enrichTenders() {
   if (!pending.length) {
     console.log('>>> [ENRICHER] No unenriched tenders found matching stored PDFs.');
     console.log('    All tenders with PDFs are already enriched, or none match.');
+    console.log(`\n>>> [ENRICHER] Transitioning to download missing PDFs for unenriched tenders...`);
+    const { runEnrichment } = await import('../lib/scraper/enricher');
+    const result = await runEnrichment(LIMIT);
+    console.log(`\n>>> [ENRICHER] Run complete. Downloaded & Enriched: ${result.processed}`);
     return;
   }
 
@@ -216,10 +220,19 @@ async function enrichTenders() {
       await new Promise(r => setTimeout(r, BATCH_DELAY));
   }
 
-  console.log(`\n>>> [ENRICHER] Run complete.`);
+  console.log(`\n>>> [ENRICHER] Local storage PDF Run complete.`);
   console.log(`    ✓ Enriched: ${successCount}`);
   console.log(`    ✗ Failed:   ${failCount}`);
-  console.log(`    Remaining:  Run again to process the next batch.\n`);
+
+  const remainingLimit = LIMIT - pending.length;
+  if (remainingLimit > 0) {
+    console.log(`\n>>> [ENRICHER] Processing ${remainingLimit} more unenriched tenders by downloading missing PDFs...`);
+    const { runEnrichment } = await import('../lib/scraper/enricher');
+    const result = await runEnrichment(remainingLimit);
+    console.log(`    ✓ Downloaded & Enriched: ${result.processed}`);
+  } else {
+    console.log(`    Remaining:  Run again to process the next batch.\n`);
+  }
 }
 
 enrichTenders().catch(console.error);

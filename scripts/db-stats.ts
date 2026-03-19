@@ -1,5 +1,8 @@
 import dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
+if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+  dotenv.config({ path: '.env' });
+}
 
 const { supabase } = await import('../lib/supabase');
 

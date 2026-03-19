@@ -58,7 +58,10 @@
 }
 
 body {
-  @apply antialiased bg-background text-foreground;
+  background-color: var(--background);
+  color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .dark body {

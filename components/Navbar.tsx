@@ -107,21 +107,21 @@ export default function Navbar() {
               <nav className="hidden md:flex items-center space-x-6">
                 {!loading && user ? (
                   <>
-                    <Link href="/dashboard/saved" className="flex items-center space-x-1.5 text-xs font-black uppercase tracking-widest text-fresh-sky-700 hover:text-atomic-tangerine-600 transition-colors">
+                    <Link href="/dashboard/saved" className="flex items-center space-x-1.5 text-xs font-black uppercase tracking-widest text-fresh-sky-700 dark:text-fresh-sky-300 hover:text-atomic-tangerine-600 transition-colors">
                       <Bookmark className="w-4 h-4" />
                       <span>Saved Bids</span>
                     </Link>
-                    <Link href="/dashboard/keywords" className="flex items-center space-x-1.5 text-xs font-black uppercase tracking-widest text-fresh-sky-700 hover:text-atomic-tangerine-600 transition-colors">
+                    <Link href="/dashboard/keywords" className="flex items-center space-x-1.5 text-xs font-black uppercase tracking-widest text-fresh-sky-700 dark:text-fresh-sky-300 hover:text-atomic-tangerine-600 transition-colors">
                       <Zap className="w-4 h-4" />
                       <span>Saved Keywords</span>
                     </Link>
-                    <Link href="/dashboard/subscriptions" className="flex items-center space-x-1.5 text-xs font-black uppercase tracking-widest text-fresh-sky-700 hover:text-atomic-tangerine-600 transition-colors">
+                    <Link href="/dashboard/subscriptions" className="flex items-center space-x-1.5 text-xs font-black uppercase tracking-widest text-fresh-sky-700 dark:text-fresh-sky-300 hover:text-atomic-tangerine-600 transition-colors">
                       <CreditCard className="w-4 h-4" />
                       <span>Plans</span>
                     </Link>
                   </>
                 ) : (
-                    <Link href="/" className="text-xs font-black uppercase tracking-widest text-fresh-sky-700 hover:text-atomic-tangerine-600 transition-colors">
+                    <Link href="/" className="text-xs font-black uppercase tracking-widest text-fresh-sky-700 dark:text-fresh-sky-300 hover:text-atomic-tangerine-600 transition-colors">
                       Explore Bids
                     </Link>
                 )}
@@ -137,7 +137,7 @@ export default function Navbar() {
                             <User className="w-4 h-4 text-white" />
                           </div>
                           <div className="flex flex-col min-w-0">
-                            <span className="text-[10px] font-black text-fresh-sky-900 truncate leading-tight">{user.email?.split('@')[0]}</span>
+                            <span className="text-[10px] font-black text-fresh-sky-900 dark:text-fresh-sky-100 truncate leading-tight">{user.email?.split('@')[0]}</span>
                             <span className="text-[8px] font-bold text-atomic-tangerine-500 uppercase tracking-tighter">Enterprise</span>
                           </div>
                           <button 
@@ -154,7 +154,7 @@ export default function Navbar() {
                         <button 
                           onClick={signInWithGoogle}
                           disabled={isSigningIn}
-                          className="text-sm font-bold text-fresh-sky-700 hover:text-atomic-tangerine-600 transition-colors disabled:opacity-50"
+                          className="text-sm font-bold text-fresh-sky-700 dark:text-fresh-sky-300 hover:text-atomic-tangerine-600 transition-colors disabled:opacity-50"
                         >
                           {isSigningIn ? "..." : "Sign In"}
                         </button>

@@ -15,9 +15,50 @@ export default function GoogleOneTap() {
   const router = useRouter();
   const [isScriptLoaded, setIsScriptLoaded] = useState(false);
   const initialized = useRef(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Suppress benign Google Identity Services FedCM logs that clutter the console and Next.js error overlay
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    
+    const originalConsoleError = console.error;
+    const originalConsoleLog = console.log;
+    const originalConsoleWarn = console.warn;
+
+    const filterLog = (originalMethod: any, ...args: any[]) => {
+      if (typeof args[0] === 'string' && args[0].includes('[GSI_LOGGER]:')) {
+        // Suppress AbortError, NetworkError, and the deprecation warning
+        if (
+          args[0].includes('AbortError') || 
+          args[0].includes('NetworkError') || 
+          args[0].includes('stop functioning when FedCM becomes mandatory')
+        ) {
+          return;
+        }
+      }
+      originalMethod(...args);
+    };
+
+    console.error = (...args) => filterLog(originalConsoleError, ...args);
+    console.log = (...args) => filterLog(originalConsoleLog, ...args);
+    console.warn = (...args) => filterLog(originalConsoleWarn, ...args);
+
+    return () => {
+      console.error = originalConsoleError;
+      console.log = originalConsoleLog;
+      console.warn = originalConsoleWarn;
+    };
+  }, []);
 
   useEffect(() => {
     if (!isScriptLoaded || typeof window === "undefined" || !window.google) return;
+    
+    // Clear the timeout if component remounts quickly (React Strict Mode)
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+
     if (initialized.current) return;
     
     let isCancelled = false;
@@ -83,25 +124,20 @@ export default function GoogleOneTap() {
       });
 
       // 4. Show the One Tap prompt
-      window.google.accounts.id.prompt((notification: any) => {
-        if (notification.isNotDisplayed()) {
-          console.log(">>> [GOOGLE ONE TAP] Not displayed:", notification.getNotDisplayedReason());
-        } else if (notification.isSkippedMoment()) {
-           console.log(">>> [GOOGLE ONE TAP] Skipped:", notification.getSkippedReason());
-        } else if (notification.isDismissedMoment()) {
-           console.log(">>> [GOOGLE ONE TAP] Dismissed:", notification.getDismissedReason());
-        }
-      });
+      window.google.accounts.id.prompt();
     };
 
     initializeOneTap();
 
     return () => {
       isCancelled = true;
-      if (initialized.current && typeof window !== 'undefined' && window.google) {
-        window.google.accounts.id.cancel();
-        initialized.current = false;
-      }
+      // Debounce the cancel action to prevent AbortError in React Strict Mode
+      timeoutRef.current = setTimeout(() => {
+        if (initialized.current && typeof window !== 'undefined' && window.google) {
+          window.google.accounts.id.cancel();
+          initialized.current = false;
+        }
+      }, 500);
     };
   }, [isScriptLoaded, router]);
 

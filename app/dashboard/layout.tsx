@@ -22,7 +22,7 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="flex bg-slate-50 min-h-[calc(100vh-64px)]">
+    <div className="flex bg-slate-50 dark:bg-slate-950 min-h-[calc(100vh-64px)]">
       {/* Side Menu Bar */}
       <aside className="hidden md:block sticky top-16 h-[calc(100vh-16)] overflow-y-auto">
         <ProfileSidebar user={user} />
