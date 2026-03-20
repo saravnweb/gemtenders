@@ -1,14 +1,23 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import dotenv from "dotenv";
-dotenv.config({ path: ".env.local" });
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 async function test() {
+  const bigText = "A".repeat(25000);
+  console.log("Testing Ollama with strict CPU-only execution to bypass VRAM crash...");
   try {
-    const res = await model.generateContent("hello");
-    console.log("Success:", res.response.text());
+    const res = await fetch("http://localhost:11434/api/generate", {
+      method: "POST",
+      body: JSON.stringify({ 
+        model: "llama3.2", 
+        prompt: bigText, 
+        stream: false,
+        options: { 
+          num_ctx: 4096,
+          num_gpu: 0 
+        }
+      })
+    });
+    console.log("Status:", res.status);
+    console.log("Body:", await res.text());
   } catch (e: any) {
-    console.log("Error details:", JSON.stringify(e, null, 2), e.message);
+    console.log("Fetch Error:", e.message);
   }
 }
 test();
