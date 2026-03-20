@@ -92,12 +92,12 @@ export async function extractTenderData(pdfText: string) {
 
   while (retries > 0) {
     try {
-      console.log(\`>>> [AI] Calling Gemini (Model: gemini-2.0-flash)...\`);
+      console.log(`>>> [AI] Calling Gemini (Model: gemini-2.0-flash)...`);
       const result = await model.generateContent(prompt);
       const response = await result.response;
       const text = response.text();
       
-      const cleanJson = text.replace(/\`\`\`json|\`\`\`/g, "").trim();
+      const cleanJson = text.replace(/```json|```/g, "").trim();
       const parsedData = JSON.parse(cleanJson);
       
       if (parsedData?.authority) {
@@ -114,12 +114,12 @@ export async function extractTenderData(pdfText: string) {
       const isRateLimit = error.status === 429 || msg.includes('429') || msg.includes('quota') || msg.includes('limit');
       
       if (isRateLimit && retries > 1) {
-        console.warn(\`>>> [AI] Rate limited (429). Retrying in \${delay / 1000}s...\`);
+        console.warn(`>>> [AI] Rate limited (429). Retrying in ${delay / 1000}s...`);
         await sleep(delay);
         retries--;
         delay *= 2; 
       } else {
-        console.warn(\`>>> [AI] Gemini Error: \${msg} - \${error.status || ''}\`);
+        console.warn(`>>> [AI] Gemini Error: ${msg} - ${error.status || ''}`);
         return null;
       }
     }
@@ -130,12 +130,12 @@ export async function extractTenderData(pdfText: string) {
 export function generateSlug(bidNumber: string, title: string): string {
   const cleanTitle = title
     .toLowerCase()
-    .replace(/[^\\w\\s-]/g, "") // remove special chars
-    .replace(/\\s+/g, "-") // replace spaces with -
+    .replace(/[^\w\s-]/g, "") // remove special chars
+    .replace(/\s+/g, "-") // replace spaces with -
     .replace(/-+/g, "-") // collapse --
     .trim();
 
-  const cleanBid = bidNumber.replace(/\\//g, "-").toLowerCase();
+  const cleanBid = bidNumber.replace(/\//g, "-").toLowerCase();
   
-  return \`\${cleanBid}-\${cleanTitle}\`.substring(0, 200);
+  return `${cleanBid}-${cleanTitle}`.substring(0, 200);
 }
