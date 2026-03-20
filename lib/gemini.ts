@@ -8,7 +8,7 @@ const genAI = new GoogleGenerativeAI(apiKey);
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
 export async function extractTenderData(pdfText: string) {
-  // Use Google's free-tier supported default model
+  // Use gemini-2.0-flash as it is the valid supported endpoint in the installed SDK
   const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
   const cleanedText = pdfText

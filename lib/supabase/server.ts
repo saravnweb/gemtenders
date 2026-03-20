@@ -17,6 +17,16 @@ export async function createClient() {
           } catch {}
         },
       },
+      global: {
+        fetch: (url, options) => {
+          return fetch(url, {
+            ...options,
+            next: {
+              revalidate: 60 // globally cache identical Supabase queries for 60 seconds
+            }
+          })
+        }
+      }
     }
   );
 }

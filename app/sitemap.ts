@@ -18,21 +18,26 @@ export async function generateSitemaps() {
   return Array.from({ length: numSitemaps }, (_, i) => ({ id: i }));
 }
 
-export default async function sitemap({
-  id = 0,
-}: {
-  id?: number;
-}): Promise<MetadataRoute.Sitemap> {
+export default async function sitemap(props: {
+  id?: number | Promise<number> | string | Promise<string>;
+} = {}): Promise<MetadataRoute.Sitemap> {
+  // Next 15+ passes params as promises sometimes, and `id` could be a Promise or string
+  const rawId = await (props.id ?? 0);
+  const resolvedId = Number(rawId);
   const limit = 50000;
-  const start = id * limit;
+  const start = resolvedId * limit;
   const end = start + limit - 1;
 
-  const { data: tenders } = await supabase
+  const { data: tenders, error } = await supabase
     .from("tenders")
     .select("slug, created_at")
     .not("slug", "is", null)
     .order("created_at", { ascending: false })
     .range(start, end);
+
+  if (error) {
+    console.error("Supabase error in sitemap:", error);
+  }
 
   const tenderUrls: MetadataRoute.Sitemap = (tenders ?? []).map((t) => ({
     url: `${siteUrl}/bids/${t.slug}`,
@@ -41,7 +46,8 @@ export default async function sitemap({
     priority: 0.7,
   }));
 
-  if (id === 0) {
+  if (resolvedId === 0) { // Check id as number
+    console.log("Returning top level sitemap with categories...");
     const categoryUrls: MetadataRoute.Sitemap = KEYWORD_CATEGORIES.map((cat) => ({
       url: `${siteUrl}/categories/${cat.slug}`,
       lastModified: new Date(),
