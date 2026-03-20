@@ -35,3 +35,35 @@ next-env.d.ts
 
 # temp folders
 /tmp/
+
+# Logs & debug artifacts
+*.log
+*.txt
+tmp*
+temp*
+out.txt
+diff.txt
+db-output.txt
+err.html
+err.txt
+allbids.html
+runs.json
+models.txt
+all-bids-pg1.json
+lighthouse-report*.json
+lighthouse-summary*
+
+# Test files
+test*.pdf
+test_*.pdf
+test*.ts
+test*.js
+check-db.ts
+query.ts
+script.js
+
+# Temp json/html
+tmp*.json
+tmp*.html
+temp*.json
+temp*.html

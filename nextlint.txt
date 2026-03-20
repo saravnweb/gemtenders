@@ -1,2 +1,0 @@
-
-Invalid project directory provided, no such directory: D:\websites\Tenders\lint
