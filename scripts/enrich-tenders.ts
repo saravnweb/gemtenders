@@ -11,9 +11,11 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+import { normalizeState, normalizeCity } from '../lib/locations';
+
 // ─── CONFIG ────────────────────────────────────────────────────────────────
 const args = process.argv.slice(2);
-const LIMIT       = parseInt(args.find(a => a.startsWith('--limit='))?.split('=')[1]       || '2000', 10);
+const LIMIT       = parseInt(args.find(a => a.startsWith('--limit='))?.split('=')[1]       || '100', 10);
 const CONCURRENCY = parseInt(args.find(a => a.startsWith('--concurrency='))?.split('=')[1] || '10',   10);
 const BATCH_DELAY = parseInt(args.find(a => a.startsWith('--delay='))?.split('=')[1]       || '0',10);
 const BUCKET      = 'tender-documents';
@@ -97,6 +99,7 @@ async function enrichTenders() {
       .select('id, bid_number, pdf_url')
       .in('bid_number', chunk)
       .is('ai_summary', null)
+      .gte('end_date', new Date().toISOString())
       .limit(LIMIT - pending.length);
 
     if (error) { console.error('DB fetch error:', error.message); continue; }
@@ -155,7 +158,7 @@ async function enrichTenders() {
       // ── AI extraction ─────────────────────────────────────────────────
       let aiData: any = null;
       try {
-        aiData = await extractTenderData(pdfText.substring(0, 10000));
+        aiData = await extractTenderData(pdfText.substring(0, 6000));
       } catch (e: any) {
         if (e.message?.includes('429') || e.message?.includes('quota')) {
           console.warn(`    ✗ AI rate limit hit. Stopping.`);
@@ -180,8 +183,8 @@ async function enrichTenders() {
         department_name:             auth?.department           || null,
         organisation_name:           auth?.organisation         || null,
         office_name:                 auth?.office               || null,
-        state:                       auth?.state                || null,
-        city:                        auth?.city                 || null,
+        state:                       normalizeState(auth?.state),
+        city:                        normalizeCity(auth?.city),
         emd_amount:                  aiData?.emd_amount         ?? null,
         quantity:                    aiData?.quantity           || null,
         ai_summary:                  aiData?.technical_summary  || null,

@@ -28,10 +28,24 @@ const nextConfig = {
             },
         ];
     },
+    experimental: {
+        cpus: 2,
+        workerThreads: false,
+    },
     async redirects() {
         return [
             {
                 source: '/tenders',
+                destination: '/',
+                permanent: true,
+            },
+            {
+                source: '/tenders/:slug',
+                destination: '/bids/:slug',
+                permanent: true,
+            },
+            {
+                source: '/bids',
                 destination: '/',
                 permanent: true,
             },

@@ -32,7 +32,7 @@ export default function SignupPage() {
         
         <div className="text-center mb-10">
           <div className="mb-8">
-            <Image src="/logo.png" alt="GeMTenders.org Logo" width={200} height={64} priority className="h-16 w-auto mx-auto object-contain brightness-110" />
+            <Image src="/logo.png" alt="GeMTenders.org" width={200} height={64} priority className="h-16 w-auto mx-auto object-contain brightness-110" />
           </div>
           <h1 className="text-3xl font-black text-fresh-sky-950 tracking-tight mb-2">Create Account</h1>
           <p className="text-fresh-sky-600 font-medium">Join GeMTenders.org with your Google account</p>
@@ -62,12 +62,12 @@ export default function SignupPage() {
           </button>
         </div>
 
-        <p className="mt-8 text-center text-[11px] text-fresh-sky-400 leading-relaxed px-4">
-          Already have an account? <span onClick={() => window.location.href='/login'} className="text-atomic-tangerine-500 font-bold cursor-pointer hover:underline underline-offset-4 decoration-2">Sign in here</span>
+        <p className="mt-8 text-center text-[11px] text-fresh-sky-600 leading-relaxed px-4">
+          Already have an account? <span onClick={() => window.location.href='/login'} className="text-atomic-tangerine-700 font-bold cursor-pointer hover:underline underline-offset-4 decoration-2">Sign in here</span>
         </p>
 
-        <p className="mt-8 text-center text-[10px] text-fresh-sky-300 leading-relaxed px-4">
-          By signing up, you agree to our <span className="text-fresh-sky-400 underline cursor-pointer hover:text-fresh-sky-500 transition-colors">Terms of Service</span> and <span className="text-fresh-sky-400 underline cursor-pointer hover:text-fresh-sky-500 transition-colors">Privacy Policy</span>.
+        <p className="mt-8 text-center text-[10px] text-fresh-sky-500 leading-relaxed px-4">
+          By signing up, you agree to our <span className="text-fresh-sky-700 underline cursor-pointer hover:text-fresh-sky-800 transition-colors">Terms of Service</span> and <span className="text-fresh-sky-700 underline cursor-pointer hover:text-fresh-sky-800 transition-colors">Privacy Policy</span>.
         </p>
       </div>
     </div>

@@ -133,7 +133,10 @@ export async function runFastScrape(maxPages: number, concurrency: number = 10) 
         end_date: endDate,
         details_url: pdfLink,
       };
-    }).filter(b => b.bid_number !== "UNKNOWN");
+    }).filter(b => b.bid_number !== "UNKNOWN").filter(b => {
+      if (!b.end_date) return true;
+      return new Date(b.end_date) > new Date();
+    });
     
     const uniqueBatchMap = new Map();
     for (const b of upsertBatch) {

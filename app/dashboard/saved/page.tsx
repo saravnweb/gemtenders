@@ -39,16 +39,24 @@ export default async function SavedBidsPage() {
           </Link>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4">
-          {savedTenders.map((item: any) => {
+        <table role="table" className="w-full block" aria-label="Saved Bids List">
+          <thead className="sr-only block">
+            <tr className="block">
+              <th scope="col" className="block">Closing Date</th>
+              <th scope="col" className="block">Tender Details</th>
+              <th scope="col" className="block">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="grid grid-cols-1 gap-4 w-full">
+            {savedTenders.map((item: any) => {
             const tender = item.tenders;
             const isClosingSoon = new Date(tender.end_date).getTime() - Date.now() < 86400000;
             const formattedEMD = tender.emd_amount === 0 ? "No EMD" : new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(tender.emd_amount);
 
             return (
-              <div key={item.id} className="group bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-xl p-5 hover:border-slate-300 hover:shadow-md transition-all flex flex-col md:flex-row gap-6 relative overflow-hidden shadow-sm">
+              <tr role="row" key={item.id} className="group bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-xl p-5 hover:border-slate-300 hover:shadow-md transition-all flex flex-col md:flex-row gap-6 relative overflow-hidden shadow-sm">
                  {/* Date Badge Left */}
-                 <div className="flex-none md:w-24 flex flex-col items-center justify-center bg-slate-50 dark:bg-zinc-950 rounded-xl border border-slate-100 dark:border-zinc-800 p-4">
+                 <td role="cell" className="flex-none md:w-24 flex flex-col items-center justify-center bg-slate-50 dark:bg-zinc-950 rounded-xl border border-slate-100 dark:border-zinc-800 p-4 w-full">
                     <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Closes</span>
                     <span className={`text-lg font-bold ${isClosingSoon ? 'text-red-600' : 'text-slate-900 dark:text-slate-100'}`}>
                        {new Date(tender.end_date).getDate()}
@@ -56,10 +64,10 @@ export default async function SavedBidsPage() {
                     <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
                        {new Date(tender.end_date).toLocaleDateString('en-GB', { month: 'short', year: 'numeric', timeZone: 'UTC' })}
                     </span>
-                 </div>
+                 </td>
 
                  {/* Main Content */}
-                 <div className="flex-1 space-y-3">
+                 <td role="cell" className="flex-1 space-y-3 w-full">
                     <div>
                       <div className="flex items-center space-x-1.5 mb-2">
                         <span className="text-[10px] font-medium bg-slate-50 dark:bg-zinc-950 text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded border border-slate-100 dark:border-zinc-800 font-mono tracking-tighter">
@@ -100,12 +108,12 @@ export default async function SavedBidsPage() {
                         </span>
                       </div>
                     </div>
-                 </div>
+                 </td>
 
                  {/* Actions Right */}
-                 <div className="flex md:flex-col md:w-36 gap-2">
+                 <td role="cell" className="flex md:flex-col md:w-36 gap-2 w-full">
                     <Link
-                      href={`/tenders/${tender.slug}`}
+                      href={`/bids/${tender.slug}`}
                       className="flex-1 md:flex-none py-2 bg-blue-600 text-white rounded-lg text-xs font-bold text-center hover:bg-blue-700 transition-all flex items-center justify-center space-x-2"
                     >
                        <ExternalLink className="w-3.5 h-3.5" />
@@ -121,11 +129,12 @@ export default async function SavedBidsPage() {
                         <span>PDF</span>
                       </a>
                     )}
-                 </div>
-              </div>
+                 </td>
+              </tr>
             );
           })}
-        </div>
+          </tbody>
+        </table>
       )}
     </div>
   );

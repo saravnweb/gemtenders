@@ -2,24 +2,41 @@ import {
   ArrowLeft, Search, Calendar, MapPin, Building2, Package,
   FileText, ShieldCheck, AlertCircle, Clock, 
   Download, FileDigit, Landmark, FileSpreadsheet, Shield, Zap, Info,
-  CheckCircle2, Building, Layers, Activity, FileCheck, ExternalLink as LinkIcon
+  CheckCircle2, Building, Layers, Activity, FileCheck, ExternalLink as LinkIcon,
+  ChevronRight, Home
 } from "lucide-react";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase-server";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import DownloadButtons from "./DownloadButtons";
+
+export const revalidate = 3600; // Cache for 1 hour
+
+export async function generateStaticParams() {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/tenders?select=slug&order=start_date.desc&limit=50`, {
+    headers: {
+      apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string,
+      Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`
+    }
+  });
+  if (!res.ok) return [];
+  const tenders = await res.json();
+  return tenders.map((t: any) => ({ slug: t.slug }));
+}
 
 const siteUrl = "https://gemtenders.org";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  const supabaseServer = await createClient();
-  const { data: tender } = await supabaseServer
-    .from("tenders")
-    .select("title, ai_summary, ministry_name, department_name, end_date, slug")
-    .eq("slug", slug)
-    .single();
+  const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/tenders?slug=eq.${slug}&select=title,ai_summary,ministry_name,department_name,end_date,slug&limit=1`, {
+    headers: {
+      apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string,
+      Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`
+    },
+    next: { revalidate: 3600 }
+  });
+  const data = await res.json();
+  const tender = data && data.length > 0 ? data[0] : null;
 
   if (!tender) {
     return {
@@ -35,7 +52,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     ? tender.ai_summary.substring(0, 155) + (tender.ai_summary.length > 155 ? "..." : "")
     : `View details for GeM tender: ${tender.title}. Check eligibility, EMD, and bid dates on GeMTenders.org.`;
   const dept = tender.ministry_name || tender.department_name || "Government of India";
-  const canonicalUrl = `${siteUrl}/tenders/${slug}`;
+  const canonicalUrl = `${siteUrl}/bids/${slug}`;
 
   return {
     title,
@@ -47,13 +64,15 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       title: `${title} | GeMTenders.org`,
       description,
       siteName: "GeMTenders.org",
-      images: [{ url: "/logo.png", width: 1200, height: 630, alt: title }],
+      images: [{ url: `${siteUrl}/logo.png`, width: 1200, height: 630, alt: title }],
     },
     twitter: {
       card: "summary_large_image",
       title: `${title} | GeMTenders.org`,
       description,
-      images: ["/logo.png"],
+      images: [`${siteUrl}/logo.png`],
+      site: "@GeMTenders",
+      creator: "@GeMTenders",
     },
     keywords: ["GeM tender", dept, "government bid", "GeM portal", "tender India"],
   };
@@ -128,25 +147,18 @@ function formatDepartmentInfo(ministry?: string, dept?: string, org?: string): s
 
 export default async function TenderDetailsPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const supabaseServer = await createClient();
+  
+  const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/tenders?slug=eq.${slug}&select=*&limit=1`, {
+    headers: {
+      apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string,
+      Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`
+    },
+    next: { revalidate: 3600 }
+  });
+  const data = await res.json();
+  const tender = data && data.length > 0 ? data[0] : null;
 
-  const { data: tender, error } = await supabaseServer
-    .from("tenders")
-    .select("*")
-    .eq("slug", slug)
-    .single();
-
-  const { data: { user } } = await supabaseServer.auth.getUser();
-
-  let isPremium = false;
-  if (user) {
-    const { data: profile } = await supabaseServer.from("profiles").select("membership_plan").eq("id", user.id).single();
-    if (profile && (profile.membership_plan === 'starter' || profile.membership_plan === 'pro')) {
-      isPremium = true;
-    }
-  }
-
-  if (error || !tender) {
+  if (!tender) {
     notFound();
   }
 
@@ -193,8 +205,63 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
     );
   };
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "GovernmentService",
+    "name": tender.title,
+    "description": tender.ai_summary || tender.title,
+    "provider": {
+      "@type": "GovernmentOrganization",
+      "name": combinedDisplay || "Government of India"
+    },
+    "serviceType": "Public Procurement / Tender",
+    "areaServed": {
+      "@type": "Country",
+      "name": "India"
+    },
+    "url": `https://gemtenders.org/bids/${slug}`,
+    "identifier": tender.bid_number,
+    "termsOfService": tender.pdf_url || undefined,
+  };
+
+  const breadcrumbItems = [
+    { name: "Home", url: "https://gemtenders.org/" },
+    { name: "Tenders", url: "https://gemtenders.org/" }
+  ];
+
+  if (departments.length > 0) {
+    breadcrumbItems.push({
+      name: departments[0],
+      url: `https://gemtenders.org/?q=${encodeURIComponent(departments[0])}`
+    });
+  }
+
+  breadcrumbItems.push({
+    name: tender.bid_number,
+    url: `https://gemtenders.org/bids/${slug}`
+  });
+
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": breadcrumbItems.map((item, index) => ({
+      "@type": "ListItem",
+      "position": index + 1,
+      "name": item.name,
+      "item": item.url
+    }))
+  };
+
   return (
     <div className="min-h-screen bg-[#f8fafc] dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-sans pb-28 lg:pb-12 selection:bg-indigo-100 selection:text-indigo-900">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
 
       {/* Dynamic Header Gradient Background */}
       <div className="absolute top-0 left-0 right-0 h-96 bg-linear-to-b from-slate-200/50 via-slate-100/30 to-transparent -z-10 pointer-events-none" />
@@ -202,15 +269,38 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
       <main className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-12">
 
         {/* Navigation */}
-        <Link
-          href="/"
-          className="inline-flex items-center space-x-2 group mb-8 w-fit bg-white/60 dark:bg-slate-900/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-slate-200/60 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 hover:border-slate-300 hover:shadow-sm transition-all duration-300"
-        >
-          <div className="w-6 h-6 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center group-hover:bg-slate-200 dark:group-hover:bg-slate-700 transition-colors">
-            <ArrowLeft className="w-3.5 h-3.5 text-slate-600 dark:text-slate-400" />
-          </div>
-          <span className="text-sm font-medium text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-100 transition-colors">Back to Tenders</span>
-        </Link>
+        <nav aria-label="Breadcrumb" className="mb-6 lg:mb-8">
+          <ol className="flex flex-wrap items-center text-sm text-slate-500 dark:text-slate-400 font-medium">
+            <li className="flex items-center">
+              <Link href="/" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex items-center group">
+                <div className="p-1.5 bg-white/60 dark:bg-slate-800/60 rounded-md border border-slate-200/60 dark:border-slate-700 shadow-sm group-hover:bg-white dark:group-hover:bg-slate-700 transition-all mr-1.5">
+                  <Home className="w-3.5 h-3.5" />
+                </div>
+                <span className="sr-only">Home</span>
+              </Link>
+            </li>
+            <li className="flex items-center">
+              <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600 mx-1 shrink-0" />
+              <Link href="/" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors px-1">
+                Tenders
+              </Link>
+            </li>
+            {departments.length > 0 && (
+              <li className="flex items-center">
+                <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600 mx-1 shrink-0" />
+                <Link href={`/?q=${encodeURIComponent(departments[0])}`} className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors px-1 truncate max-w-[150px] sm:max-w-[200px]">
+                  {departments[0]}
+                </Link>
+              </li>
+            )}
+            <li className="flex items-center">
+              <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600 mx-1 shrink-0" />
+              <span className="text-slate-700 dark:text-slate-200 font-semibold px-1" aria-current="page">
+                {tender.bid_number}
+              </span>
+            </li>
+          </ol>
+        </nav>
 
         {/* Hero Section */}
         <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 md:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-200/60 dark:border-slate-700 relative overflow-hidden mb-8 lg:mb-10 group">
@@ -407,7 +497,6 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
                      <DownloadButtons 
                         pdfUrl={tender.pdf_url} 
                         detailsUrl={tender.details_url} 
-                        isPremium={isPremium} 
                         slug={slug} 
                         isMobile={false} 
                      />
@@ -434,7 +523,6 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
          <DownloadButtons 
             pdfUrl={tender.pdf_url} 
             detailsUrl={tender.details_url} 
-            isPremium={isPremium} 
             slug={slug} 
             isMobile={true} 
          />

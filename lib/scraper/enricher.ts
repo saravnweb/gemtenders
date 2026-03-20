@@ -9,6 +9,7 @@ import { triggerKeywordNotifications } from '../notifications';
 import { chromium } from 'playwright';
 import path from 'path';
 import fs from 'fs';
+import { normalizeState, normalizeCity } from '../locations';
 
 
 export async function runEnrichment(limit: number = 20) {
@@ -18,6 +19,7 @@ export async function runEnrichment(limit: number = 20) {
     .from('tenders')
     .select('id, bid_number, details_url')
     .is('pdf_url', null)
+    .gte('end_date', new Date().toISOString())
     .order('created_at', { ascending: true })
     .limit(limit);
 
@@ -121,7 +123,7 @@ export async function runEnrichment(limit: number = 20) {
         }
 
         if (extractedText.length > 50) {
-          aiData = await extractTenderData(extractedText);
+          aiData = await extractTenderData(extractedText.substring(0, 6000));
         }
 
         const auth = aiData?.authority;
@@ -133,8 +135,8 @@ export async function runEnrichment(limit: number = 20) {
           updatePayload.department_name = auth?.department;
           updatePayload.organisation_name = auth?.organisation;
           updatePayload.office_name = auth?.office;
-          updatePayload.state = auth?.state;
-          updatePayload.city = auth?.city;
+          updatePayload.state = normalizeState(auth?.state);
+          updatePayload.city = normalizeCity(auth?.city);
           updatePayload.emd_amount = aiData.emd_amount;
           updatePayload.quantity = aiData.quantity;
           updatePayload.ai_summary = aiData.technical_summary;

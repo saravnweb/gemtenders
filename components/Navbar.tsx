@@ -64,6 +64,8 @@ export default function Navbar() {
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 className="text-fresh-sky-700 p-2 hover:bg-fresh-sky-50 rounded-lg transition-colors"
                 aria-label="Toggle Menu"
+                aria-expanded={isMenuOpen}
+                aria-controls="mobile-menu"
               >
                 {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </button>
@@ -71,11 +73,11 @@ export default function Navbar() {
 
             {/* Logo - Centered on Mobile, Left on Desktop */}
             <div className="absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0 md:flex-1 flex items-center justify-center md:justify-start">
-              <Link href="/" className="flex items-center space-x-2 sm:space-x-3 group scale-100 sm:scale-110 transition-transform origin-left">
+              <Link href="/" aria-label="Home" className="flex items-center space-x-2 sm:space-x-3 group scale-100 sm:scale-110 transition-transform origin-left">
                 <div className="relative h-12 w-12 sm:h-14 sm:w-14 shrink-0 flex items-center justify-center">
                   <Image 
                     src="/favicon.png" 
-                    alt="GeMTenders Logo" 
+                    alt="GeMTenders.org Home" 
                     width={64}
                     height={64}
                     priority
@@ -104,11 +106,15 @@ export default function Navbar() {
               {/* Notification Icon - Right Aligned (Always Visible) */}
               <button className="p-2 text-fresh-sky-700 dark:text-fresh-sky-300 hover:bg-fresh-sky-50 dark:hover:bg-fresh-sky-900/30 rounded-full transition-colors relative group" aria-label="Notifications">
                 <Bell className="w-5 h-5 sm:w-6 sm:h-6 transition-transform group-hover:rotate-12" />
-                <span className="absolute top-2 right-2 w-2 h-2 bg-atomic-tangerine-500 rounded-full border border-white dark:border-zinc-950"></span>
+                <span className="absolute top-2 right-2 w-2 h-2 bg-atomic-tangerine-600 rounded-full border border-white dark:border-zinc-950"></span>
               </button>
 
               {/* Desktop Nav */}
               <nav className="hidden md:flex items-center space-x-6">
+                <Link href="/categories" className="flex items-center space-x-1.5 text-xs font-black uppercase tracking-widest text-fresh-sky-700 dark:text-fresh-sky-300 hover:text-atomic-tangerine-600 transition-colors">
+                  <LayoutDashboard className="w-4 h-4" />
+                  <span>Categories</span>
+                </Link>
                 {!loading && user ? (
                   <>
                     <Link href="/dashboard/saved" className="flex items-center space-x-1.5 text-xs font-black uppercase tracking-widest text-fresh-sky-700 dark:text-fresh-sky-300 hover:text-atomic-tangerine-600 transition-colors">
@@ -142,12 +148,13 @@ export default function Navbar() {
                           </div>
                           <div className="flex flex-col min-w-0">
                             <span className="text-[10px] font-black text-fresh-sky-900 dark:text-fresh-sky-100 truncate leading-tight">{user.email?.split('@')[0]}</span>
-                            <span className="text-[8px] font-bold text-atomic-tangerine-500 uppercase tracking-tighter">Enterprise</span>
+                            <span className="text-[8px] font-bold text-atomic-tangerine-600 uppercase tracking-tighter">Enterprise</span>
                           </div>
                           <button 
                             onClick={handleSignOut}
                             className="p-1 text-fresh-sky-300 hover:text-red-500 transition-colors ml-1"
                             title="Sign Out"
+                            aria-label="Sign Out"
                           >
                             <LogOut className="w-4 h-4" />
                           </button>
@@ -182,20 +189,21 @@ export default function Navbar() {
       {/* Mobile Menu Overlay - OUTSIDE Header */}
       {isMenuOpen && (
         <div className="fixed inset-0 z-100 md:hidden">
-          {/* Backdrop */}
           <div 
             className="fixed inset-0 bg-slate-900/60 transition-opacity cursor-pointer" 
             onClick={() => setIsMenuOpen(false)}
+            aria-hidden="true"
           />
           
           {/* Drawer */}
-          <div className="fixed inset-y-0 left-0 w-[240px] h-dvh bg-white dark:bg-zinc-950 shadow-2xl flex flex-col border-r border-slate-100 dark:border-zinc-800 animate-in slide-in-from-left duration-300 ease-out">
+          <div id="mobile-menu" className="fixed inset-y-0 left-0 w-[240px] h-dvh bg-white dark:bg-zinc-950 shadow-2xl flex flex-col border-r border-slate-100 dark:border-zinc-800 animate-in slide-in-from-left duration-300 ease-out" role="dialog" aria-modal="true" aria-label="Mobile Navigation">
             {/* Drawer Header */}
             <div className="p-4 border-b border-slate-50 dark:border-zinc-800 flex items-center justify-between h-16 shrink-0 bg-white dark:bg-zinc-950">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] ml-2">Navigation</span>
               <button 
                 onClick={() => setIsMenuOpen(false)}
                 className="p-2 text-slate-400 hover:text-slate-900 transition-colors rounded-lg bg-slate-50 border border-slate-100"
+                aria-label="Close Navigation Menu"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -230,6 +238,12 @@ export default function Navbar() {
 
                     {/* Navigation Links - Always Visible */}
                     <div className="flex flex-col space-y-1">
+                      <MenuListItem 
+                        href="/categories" 
+                        icon={<LayoutDashboard className="w-4 h-4 text-slate-400" />} 
+                        label="Categories" 
+                        onClick={() => setIsMenuOpen(false)} 
+                      />
                       <MenuListItem 
                         href="/dashboard/saved" 
                         icon={<Bookmark className="w-4 h-4 text-slate-400" />} 

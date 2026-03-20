@@ -8,33 +8,14 @@ import {
   Share2, Archive
 } from "lucide-react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const PAGE_SIZE = 21;
 const COLUMNS =
   "id,title,bid_number,state,city,department,ministry_name,department_name,organisation_name,office_name,emd_amount,start_date,end_date,ai_summary,eligibility_msme,eligibility_mii,created_at,slug";
 
-const KEYWORD_CATEGORIES = [
-  { id: "it",       name: "IT & Tech",        icon: "💻",  keywords: ["software","hardware","computer","laptop","server","networking","cctv","tablet","printer","scanner","desktop","data center","cybersecurity","firewall","switch","router","erp","website"] },
-  { id: "civil",    name: "Civil Works",       icon: "🏗️", keywords: ["civil","construction","concrete","building","repair","road","flooring","painting","plumbing","renovation","fabrication","infrastructure","bridge","canal","drain","compound wall","tile","earthwork"] },
-  { id: "electric", name: "Electrical",        icon: "⚡",  keywords: ["electrical","wiring","transformer","cable","ups","battery","led","solar","switchgear","mccb","generator","substation","inverter","mcb","dg set","streetlight","luminar","panel board"] },
-  { id: "medical",  name: "Medical",           icon: "🏥",  keywords: ["medical","hospital","medicine","surgical","health","lab","pharmaceutical","ambulance","ppe","sanitizer","oxygen","gloves","syringe","diagnostic","x-ray","ventilator","stretcher","wheelchair"] },
-  { id: "furn",     name: "Furniture",         icon: "🪑",  keywords: ["furniture","chair","table","almirah","cupboard","modular","workstation","shelving","rack","sofa","bench","locker","partition","cabin","pedestal"] },
-  { id: "auto",     name: "Vehicles",          icon: "🚗",  keywords: ["vehicle","car","truck","bus","tractor","jeep","cab","fleet","motorbike","ambulance","mini bus","pickup","tempo","chassis","motor cycle"] },
-  { id: "manpower", name: "Manpower",          icon: "👷",  keywords: ["manpower","staffing","outsourcing","labour","labor","worker","operator","helper","housekeeping","sweeper","attendant","peon","sanitation staff","data entry","contractual"] },
-  { id: "security", name: "Security",          icon: "🔒",  keywords: ["security","guard","surveillance","access control","watch","patrol","armed","gunman","security agency","fire safety","fire fighting"] },
-  { id: "transport",name: "Transport & Logistics",icon: "🚚",keywords: ["transport","logistics","goods","freight","cargo","courier","shifting","relocation","packers","movers","taxi hiring","cab hiring","vehicle hiring","bus hiring"] },
-  { id: "print",    name: "Printing",          icon: "🖨️", keywords: ["printing","printed","flex","banner","hoarding","signage","letterhead","brochure","booklet","publication","offset","digital printing","screen printing"] },
-  { id: "catering", name: "Catering & Food",   icon: "🍽️", keywords: ["catering","canteen","food","meal","snack","vending","tea","coffee","tiffin","mess","kitchen","lunch","refreshment"] },
-  { id: "textile",  name: "Textile & Uniform", icon: "👕",  keywords: ["textile","uniform","cloth","fabric","handloom","garment","linen","towel","bedsheet","curtain","mat","blanket","apparel","stitching","hosiery","woolen"] },
-  { id: "maint",    name: "Maintenance / AMC", icon: "🔧",  keywords: ["maintenance","amc","annual maintenance","overhauling","servicing","breakdown","preventive","corrective","facility management","calibration","repair of"] },
-  { id: "pipes",    name: "Pipes & Hardware",  icon: "🔩",  keywords: ["pipe","fitting","valve","pump","hose","hardware","bolt","nut","screw","steel structure","iron","ms fabrication","galvanized","pvc","cpvc","gi pipe","hdpe"] },
-  { id: "clean",    name: "Cleaning",          icon: "🧹",  keywords: ["cleaning","housekeeping","sanitation","disinfection","pest control","fumigation","garbage","waste management","sweeping","mopping","horticulture","gardening"] },
-  { id: "event",    name: "Events & Training", icon: "🎪",  keywords: ["event","seminar","workshop","exhibition","conference","training","expo","meeting","inauguration","ceremony","awareness programme","coaching"] },
-  { id: "supply",   name: "Supplies",          icon: "📦",  keywords: ["supply","stationery","paper","consumables","toner","cartridge","pen","diary","register","item","material","stock","kit","tool kit","spare"] },
-  { id: "survey",   name: "Survey & Consulting",icon: "📋", keywords: ["survey","consultancy","consulting","advisory","audit","inspection","testing","assessment","feasibility","detailed project report","dpr","gis","mapping","valuation"] },
-];
+import { KEYWORD_CATEGORIES } from "@/lib/categories";
+
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 function toTitleCase(str: string): string {
@@ -117,10 +98,14 @@ interface Filters {
 async function queryTendersCount(filters: Filters): Promise<number> {
   let q = (supabase.from("tenders") as any).select("*", { count: "exact", head: true });
 
-  if (filters.tab === "archived") {
-    q = q.lt("end_date", new Date().toISOString());
-  } else {
-    q = q.gte("end_date", new Date().toISOString());
+  const isDirectBidSearch = filters.q.trim().toUpperCase().includes("GEM/");
+  
+  if (!isDirectBidSearch) {
+    if (filters.tab === "archived") {
+      q = q.lt("end_date", new Date().toISOString());
+    } else {
+      q = q.gte("end_date", new Date().toISOString());
+    }
   }
 
   if (filters.q.trim()) {
@@ -185,7 +170,8 @@ async function queryForYouTenders(searches: any[]): Promise<any[]> {
     .from("tenders")
     .select(COLUMNS)
     .gte("end_date", new Date().toISOString())
-    .order("start_date", { ascending: false });
+    .order("start_date", { ascending: false })
+    .order("id", { ascending: true });
 
   if (orParts.length > 0) {
     const unique = [...new Set(orParts)];
@@ -202,18 +188,22 @@ async function queryTenders(filters: Filters, page: number): Promise<any[]> {
     .select(COLUMNS)
     .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
+  const isDirectBidSearch = filters.q.trim().toUpperCase().includes("GEM/");
+
   // Tab / archive
-  if (filters.tab === "archived") {
-    q = q.lt("end_date", new Date().toISOString());
-  } else {
-    q = q.gte("end_date", new Date().toISOString());
+  if (!isDirectBidSearch) {
+    if (filters.tab === "archived") {
+      q = q.lt("end_date", new Date().toISOString());
+    } else {
+      q = q.gte("end_date", new Date().toISOString());
+    }
   }
 
   // Sort
   if (filters.sortOrder === "newest") {
-    q = q.order("start_date", { ascending: false });
+    q = q.order("start_date", { ascending: false }).order("id", { ascending: true });
   } else {
-    q = q.order("end_date", { ascending: true });
+    q = q.order("end_date", { ascending: true }).order("id", { ascending: true });
   }
 
   // Text search
@@ -266,17 +256,14 @@ async function queryTenders(filters: Filters, page: number): Promise<any[]> {
   return data || [];
 }
 
-// ─── Main export (wrapped in Suspense for useSearchParams) ────────────────────
+// ─── Main export ─────────────────────────────────────────────────────────────
 export default function TendersClientWrapper(props: {
   initialTenders: any[];
   initialQ: string;
   initialStates: string[];
+  initialCategory?: string;
 }) {
-  return (
-    <Suspense fallback={<TendersSkeleton />}>
-      <TendersClient {...props} />
-    </Suspense>
-  );
+  return <TendersClient {...props} />;
 }
 
 function TendersSkeleton() {
@@ -303,12 +290,14 @@ function TendersClient({
   initialTenders,
   initialQ,
   initialStates,
+  initialCategory,
 }: {
   initialTenders: any[];
   initialQ: string;
   initialStates: string[];
+  initialCategory?: string;
 }) {
-  const searchParams = useSearchParams();
+  const searchParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : new URLSearchParams();
 
   // ── Tender data state ──
   const [tenders, setTenders]                   = useState<any[]>(initialTenders);
@@ -326,7 +315,7 @@ function TendersClient({
   const [selectedCities, setSelectedCities]     = useState<string[]>([]);
   const [emdFilter, setEmdFilter]               = useState("all");
   const [dateFilter, setDateFilter]             = useState("all");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(initialCategory || null);
   const [descriptionQuery, setDescriptionQuery] = useState("");
   const [msmeOnly, setMsmeOnly]                 = useState(false);
   const [miiOnly, setMiiOnly]                   = useState(false);
@@ -503,7 +492,11 @@ function TendersClient({
     setLoadingMore(true);
     const nextPage = page + 1;
     const results = await queryTenders(currentFilters(), nextPage);
-    setTenders((prev) => [...prev, ...results]);
+    setTenders((prev) => {
+      const existingIds = new Set(prev.map((t: any) => t.id));
+      const uniqueResults = results.filter((t: any) => !existingIds.has(t.id));
+      return [...prev, ...uniqueResults];
+    });
     setPage(nextPage);
     setHasMore(results.length === PAGE_SIZE);
     setLoadingMore(false);
@@ -644,6 +637,8 @@ function TendersClient({
                 </div>
                 <button
                   aria-label="Toggle Filters"
+                  aria-expanded={showFilters}
+                  aria-controls="filters-drawer"
                   onClick={() => { setShowFilters(!showFilters); if (!showFilters) loadStates(); }}
                   className={`shrink-0 px-3 sm:px-5 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl border transition-all flex items-center justify-center space-x-1.5 sm:space-x-2 font-bold text-xs sm:text-sm ${showFilters ? "bg-slate-800 text-white border-slate-800 shadow-md" : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 shadow-sm"}`}
                 >
@@ -674,11 +669,13 @@ function TendersClient({
 
         {/* ── Tabs ── */}
         <div className="flex items-start sm:items-center justify-between mb-4 border-b border-slate-200 dark:border-slate-700 w-full overflow-x-auto no-scrollbar">
-          <div className="flex flex-nowrap items-center gap-x-4 sm:gap-x-6 flex-1 pt-1 pr-2 shrink-0">
+          <div className="flex flex-nowrap items-center gap-x-4 sm:gap-x-6 flex-1 pt-1 pr-2 shrink-0" role="tablist" aria-label="Tender Views">
             <TabButton label="All Active Bids" active={activeTab === "all"} onClick={() => setActiveTab("all")} />
 
             {user && savedSearches.length > 0 ? (
               <button
+                role="tab"
+                aria-selected={activeTab === "foryou"}
                 onClick={() => setActiveTab("foryou")}
                 className={`pb-2 sm:pb-3 text-sm font-bold flex items-center space-x-1.5 sm:space-x-2 transition-all relative whitespace-nowrap ${activeTab === "foryou" ? "text-blue-600 dark:text-blue-400" : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"}`}
               >
@@ -691,6 +688,8 @@ function TendersClient({
               </button>
             ) : (
               <button
+                role="tab"
+                aria-selected={activeTab === "foryou"}
                 onClick={() => { if (!user) window.location.href = "/login"; else window.location.href = "/dashboard/keywords"; }}
                 className="group pb-2 sm:pb-3 text-sm font-bold flex items-center space-x-1.5 sm:space-x-2 transition-all relative text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 whitespace-nowrap"
               >
@@ -757,8 +756,8 @@ function TendersClient({
         {/* ── Filter Drawer ── */}
         {showFilters && (
           <div className="fixed inset-0 z-100 flex justify-end">
-            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm cursor-pointer" onClick={() => setShowFilters(false)} />
-            <div className="relative w-full max-w-md bg-white dark:bg-slate-900 h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-300 ease-out">
+            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm cursor-pointer" onClick={() => setShowFilters(false)} aria-hidden="true" />
+            <div id="filters-drawer" role="dialog" aria-modal="true" aria-label="Filters" className="relative w-full max-w-md bg-white dark:bg-slate-900 h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-300 ease-out">
               <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-white dark:bg-slate-900 shrink-0">
                 <div>
                   <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Filters</h3>
@@ -807,12 +806,13 @@ function TendersClient({
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 gap-2">
-                      <button onClick={() => { setSelectedStates([]); setSelectedCities([]); }} className={`px-3 py-2.5 rounded-xl text-xs font-bold transition-all border ${selectedStates.length === 0 ? "bg-blue-600 border-blue-600 text-white shadow-md" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-blue-200"}`}>
+                      <button aria-pressed={selectedStates.length === 0} onClick={() => { setSelectedStates([]); setSelectedCities([]); }} className={`px-3 py-2.5 rounded-xl text-xs font-bold transition-all border ${selectedStates.length === 0 ? "bg-blue-600 border-blue-600 text-white shadow-md" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-blue-200"}`}>
                         All States
                       </button>
                       {states.map((state) => (
                         <button
                           key={state}
+                          aria-pressed={selectedStates.includes(state)}
                           onClick={() => setSelectedStates((p) => p.includes(state) ? p.filter((s) => s !== state) : [...p, state])}
                           className={`px-3 py-2.5 rounded-xl text-xs font-bold border transition-all truncate text-left ${selectedStates.includes(state) ? "bg-blue-600 border-blue-600 text-white shadow-md" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-blue-200"}`}
                         >
@@ -830,11 +830,11 @@ function TendersClient({
                       <MapPin className="w-3.5 h-3.5 mr-2" /> City
                     </label>
                     <div className="grid grid-cols-2 gap-2 max-h-[200px] overflow-y-auto no-scrollbar">
-                      <button onClick={() => setSelectedCities([])} className={`px-3 py-2.5 rounded-xl text-xs font-bold transition-all border ${selectedCities.length === 0 ? "bg-blue-600 border-blue-600 text-white shadow-md" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 hover:border-blue-200"}`}>
+                      <button aria-pressed={selectedCities.length === 0} onClick={() => setSelectedCities([])} className={`px-3 py-2.5 rounded-xl text-xs font-bold transition-all border ${selectedCities.length === 0 ? "bg-blue-600 border-blue-600 text-white shadow-md" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 hover:border-blue-200"}`}>
                         All Cities
                       </button>
                       {cities.map((city) => (
-                        <button key={city} onClick={() => setSelectedCities((p) => p.includes(city) ? p.filter((c) => c !== city) : [...p, city])} className={`px-3 py-2.5 rounded-xl text-xs font-bold border transition-all truncate text-left ${selectedCities.includes(city) ? "bg-blue-600 border-blue-600 text-white shadow-md" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 hover:border-blue-200"}`}>
+                        <button key={city} aria-pressed={selectedCities.includes(city)} onClick={() => setSelectedCities((p) => p.includes(city) ? p.filter((c) => c !== city) : [...p, city])} className={`px-3 py-2.5 rounded-xl text-xs font-bold border transition-all truncate text-left ${selectedCities.includes(city) ? "bg-blue-600 border-blue-600 text-white shadow-md" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 hover:border-blue-200"}`}>
                           {city}
                         </button>
                       ))}
@@ -853,7 +853,7 @@ function TendersClient({
                       { label: "Below ₹1 Lakh", value: "<1L" }, { label: "₹1 Lakh – ₹5 Lakh", value: "1-5L" },
                       { label: "Above ₹5 Lakh", value: ">5L" },
                     ].map((o) => (
-                      <button key={o.value} onClick={() => setEmdFilter(o.value)} className={`px-4 py-3 rounded-xl text-sm font-bold text-left transition-all border ${emdFilter === o.value ? "bg-blue-600 border-blue-600 text-white shadow-md" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 hover:border-blue-200"}`}>
+                      <button key={o.value} aria-pressed={emdFilter === o.value} onClick={() => setEmdFilter(o.value)} className={`px-4 py-3 rounded-xl text-sm font-bold text-left transition-all border ${emdFilter === o.value ? "bg-blue-600 border-blue-600 text-white shadow-md" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 hover:border-blue-200"}`}>
                         {o.label}
                       </button>
                     ))}
@@ -870,7 +870,7 @@ function TendersClient({
                       { label: "Anytime", value: "all" }, { label: "Ending Today", value: "today" },
                       { label: "Ending This Week", value: "week" },
                     ].map((o) => (
-                      <button key={o.value} onClick={() => setDateFilter(o.value)} className={`px-4 py-3 rounded-xl text-sm font-bold text-left transition-all border ${dateFilter === o.value ? "bg-blue-600 border-blue-600 text-white shadow-md" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 hover:border-blue-200"}`}>
+                      <button key={o.value} aria-pressed={dateFilter === o.value} onClick={() => setDateFilter(o.value)} className={`px-4 py-3 rounded-xl text-sm font-bold text-left transition-all border ${dateFilter === o.value ? "bg-blue-600 border-blue-600 text-white shadow-md" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 hover:border-blue-200"}`}>
                         {o.label}
                       </button>
                     ))}
@@ -923,10 +923,14 @@ function TendersClient({
 
         {/* ── Tender Grid ── */}
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="h-72 bg-white dark:bg-slate-800 rounded-xl animate-pulse border border-slate-100 dark:border-slate-700" />
-            ))}
+          <div role="table" aria-label="Loading Tenders" className="w-full">
+            <div role="rowgroup" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div role="row" aria-busy="true" key={i} className="h-72 bg-white dark:bg-slate-800 rounded-xl animate-pulse border border-slate-100 dark:border-slate-700">
+                  <div role="cell" className="sr-only">Loading...</div>
+                </div>
+              ))}
+            </div>
           </div>
         ) : displayTenders.length === 0 ? (
           <div className="text-center py-20 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl flex flex-col items-center">
@@ -938,19 +942,30 @@ function TendersClient({
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {displayTenders.map((tender) => (
-                <TenderCard
-                  key={tender.id}
-                  tender={tender}
-                  setSearchQuery={setSearchQuery}
-                  setSelectedStates={setSelectedStates}
-                  isSaved={savedTenderIds.has(tender.id)}
-                  onToggleSave={() => handleToggleSaveTender(tender.id)}
-                  highlightTerms={activeKeywords}
-                />
-              ))}
-            </div>
+            <table role="table" className="w-full block" aria-label="Tenders List">
+              <thead className="sr-only block">
+                <tr className="block">
+                  <th scope="col" className="block">Title & Summary</th>
+                  <th scope="col" className="block">Department</th>
+                  <th scope="col" className="block">Location & ID</th>
+                  <th scope="col" className="block">Dates & EMD</th>
+                  <th scope="col" className="block">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
+                {displayTenders.map((tender) => (
+                  <TenderCard
+                    key={tender.id}
+                    tender={tender}
+                    setSearchQuery={setSearchQuery}
+                    setSelectedStates={setSelectedStates}
+                    isSaved={savedTenderIds.has(tender.id)}
+                    onToggleSave={() => handleToggleSaveTender(tender.id)}
+                    highlightTerms={activeKeywords}
+                  />
+                ))}
+              </tbody>
+            </table>
 
             {hasMore && activeTab !== "foryou" && (
               <div className="mt-8 mb-4 flex justify-center">
@@ -974,7 +989,7 @@ function TendersClient({
 // ─── Small reusable components ────────────────────────────────────────────────
 function TabButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
-    <button onClick={onClick} className={`pb-2 sm:pb-3 text-sm font-bold transition-all relative whitespace-nowrap ${active ? "text-blue-600 dark:text-blue-400" : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"}`}>
+    <button role="tab" aria-selected={active} onClick={onClick} className={`pb-2 sm:pb-3 text-sm font-bold transition-all relative whitespace-nowrap ${active ? "text-blue-600 dark:text-blue-400" : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"}`}>
       {label}
       {active && <div className="absolute bottom-[-8px] sm:bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-t-full" />}
     </button>
@@ -986,7 +1001,7 @@ function FilterTag({ label, onRemove, color = "blue" }: { label: string; onRemov
     ? "bg-indigo-50 text-indigo-600 border-indigo-100"
     : "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-800";
   return (
-    <button onClick={onRemove} className={`flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs border whitespace-nowrap ${cls}`}>
+    <button aria-label={`Remove filter ${label}`} onClick={onRemove} className={`flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs border whitespace-nowrap ${cls}`}>
       <span>{label}</span>
       <X className="w-3 h-3" />
     </button>
@@ -997,8 +1012,8 @@ function ToggleButton({ label, checked, onChange, color }: { label: string; chec
   const trackOn = color === "amber" ? "bg-amber-500" : "bg-blue-600";
   const bgOn    = color === "amber" ? "bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800" : "bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700";
   return (
-    <button onClick={() => onChange(!checked)} className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${checked ? bgOn : "bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 hover:border-slate-200"}`}>
-      <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{label}</span>
+    <button role="switch" aria-checked={checked} onClick={() => onChange(!checked)} className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${checked ? bgOn : "bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 hover:border-slate-200"}`}>
+      <span id={`toggle-label-${label.replace(/\s+/g, '-').toLowerCase()}`} className="text-sm font-bold text-slate-700 dark:text-slate-300">{label}</span>
       <div className={`w-10 h-6 rounded-full p-1 transition-all ${checked ? trackOn : "bg-slate-200 dark:bg-slate-700"}`}>
         <div className={`w-4 h-4 bg-white rounded-full transition-transform ${checked ? "translate-x-4" : "translate-x-0"}`} />
       </div>
@@ -1066,18 +1081,18 @@ function TenderCard({
   };
 
   return (
-    <div className="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-4 transition-all duration-200 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-md flex flex-col h-full relative overflow-hidden">
+    <tr role="row" className="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-4 transition-all duration-200 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-md flex flex-col h-full relative overflow-hidden">
 
       {/* Title */}
-      <div className="mb-2">
-        <Link href={`/tenders/${encodeURIComponent(tender.slug || "")}`} className="hover:no-underline group/title focus:outline-none">
+      <td role="cell" className="mb-2 w-full">
+        <Link href={`/bids/${encodeURIComponent(tender.slug || "")}`} className="hover:no-underline group/title focus:outline-none">
           <h3 className={`text-sm sm:text-[15px] font-medium text-slate-800 dark:text-slate-200 leading-snug transition-colors group-hover/title:text-blue-700 dark:group-hover/title:text-blue-300 after:absolute after:inset-0 after:z-0 ${isExpanded ? "" : "line-clamp-2"}`}>
             <HighlightedText text={tender.title} highlightTerms={highlightTerms} />
           </h3>
         </Link>
         {tender.title && tender.title.length > 60 && (
           <div className="flex items-center space-x-2 mt-1 relative z-10">
-            <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsExpanded(!isExpanded); }} className="text-[11px] text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">
+            <button aria-expanded={isExpanded} aria-label={isExpanded ? "Show less title" : "Show more title"} onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsExpanded(!isExpanded); }} className="text-[11px] text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">
               {isExpanded ? "Show less" : "Show more"}
             </button>
             {category && (
@@ -1094,10 +1109,10 @@ function TenderCard({
             </span>
           </div>
         )}
-      </div>
+      </td>
 
       {/* Department */}
-      <div className="mb-3 relative z-20">
+      <td role="cell" className="mb-3 relative z-20 w-full">
         <div className="flex flex-wrap gap-x-1.5 gap-y-1 text-xs text-slate-500 dark:text-slate-400 leading-tight">
           {departmentDisplay.split(", ").filter(Boolean).map((part, idx, arr) => (
             <span key={idx} className="flex items-center">
@@ -1108,11 +1123,11 @@ function TenderCard({
             </span>
           ))}
         </div>
-      </div>
+      </td>
 
       {/* AI Insight */}
       {tender.ai_summary && (
-        <div className="mb-3 p-2.5 bg-blue-50/50 dark:bg-blue-900/20 rounded-lg border border-blue-50 dark:border-blue-900 relative z-10">
+        <td role="cell" className="mb-3 p-2.5 bg-blue-50/50 dark:bg-blue-900/20 rounded-lg border border-blue-50 dark:border-blue-900 relative z-10 w-full">
           <div className="flex items-center space-x-1 mb-1 opacity-60">
             <Zap className="w-2.5 h-2.5 text-blue-500" />
             <span className="text-[9px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-tighter">Insight</span>
@@ -1120,24 +1135,24 @@ function TenderCard({
           <p className="text-[11px] text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed italic">
             "<HighlightedText text={tender.ai_summary} highlightTerms={highlightTerms} />"
           </p>
-        </div>
+        </td>
       )}
 
       {/* Location & Bid ID */}
-      <div className="flex items-center justify-between mb-3 relative z-20">
+      <td role="cell" className="flex items-center justify-between mb-3 relative z-20 w-full">
         <div className="flex items-center text-xs text-slate-400 dark:text-slate-500 space-x-1.5 min-w-0">
           <MapPin className="w-3 h-3 text-slate-300 dark:text-slate-600 shrink-0" />
           <div className="flex items-center truncate">
             {tender.city && (
               <>
-                <button onClick={(e) => { e.stopPropagation(); setSearchQuery(tender.city); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="hover:text-blue-600 hover:underline transition-colors truncate">
+                <button aria-label={`Search for city ${tender.city}`} onClick={(e) => { e.stopPropagation(); setSearchQuery(tender.city); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="hover:text-blue-600 hover:underline transition-colors truncate">
                   {tender.city}
                 </button>
                 {tender.state && <span className="mx-1">,</span>}
               </>
             )}
             {tender.state && (
-              <button onClick={(e) => { e.stopPropagation(); setSelectedStates([tender.state]); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="hover:text-blue-600 hover:underline transition-colors truncate">
+              <button aria-label={`Filter by state ${tender.state}`} onClick={(e) => { e.stopPropagation(); setSelectedStates([tender.state]); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="hover:text-blue-600 hover:underline transition-colors truncate">
                 {tender.state}
               </button>
             )}
@@ -1151,10 +1166,10 @@ function TenderCard({
           {tender.eligibility_mii  && <span className="text-[10px] font-bold px-1.5 py-0.5 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded border border-amber-100 dark:border-amber-800" title="MII Preferred">MII</span>}
           <span className="text-[10px] font-medium px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded">GeM</span>
         </div>
-      </div>
+      </td>
 
       {/* 4: EMD & Dates */}
-      <div className="grid grid-cols-3 gap-2 py-2.5 border-y border-slate-100 dark:border-slate-700 mb-4 bg-slate-50 dark:bg-slate-800 -mx-4 px-4 relative z-10 pointer-events-none mt-auto">
+      <td role="cell" className="grid grid-cols-3 gap-2 py-2.5 border-y border-slate-100 dark:border-slate-700 mb-4 bg-slate-50 dark:bg-slate-800 -mx-4 px-4 relative z-10 pointer-events-none mt-auto w-full">
         <div className="flex flex-col">
           <span className="text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">EMD Amount</span>
           <span className="text-[13px] font-medium text-slate-700 dark:text-slate-300 truncate">{formattedEMD}</span>
@@ -1174,12 +1189,12 @@ function TenderCard({
             {isFallbackDate ? "Pending" : formatDate(tender.end_date)}
           </span>
         </div>
-      </div>
+      </td>
 
       {/* 5: Actions */}
-      <div className="flex gap-2 sm:gap-2.5 items-center relative z-20 mt-auto">
+      <td role="cell" className="flex gap-2 sm:gap-2.5 items-center relative z-20 mt-auto w-full">
         <Link
-          href={`/tenders/${encodeURIComponent(tender.slug || '')}`}
+          href={`/bids/${encodeURIComponent(tender.slug || '')}`}
           className="flex-1 h-9 sm:h-10 rounded-xl border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs sm:text-sm font-bold flex items-center justify-center transition-all hover:bg-blue-100 dark:hover:bg-blue-800/30 active:scale-[0.98]"
         >
           View Full Details
@@ -1190,15 +1205,16 @@ function TenderCard({
             if (navigator.share) {
               navigator.share({
                 title: tender.title,
-                url: `${window.location.origin}/tenders/${encodeURIComponent(tender.slug || '')}`
+                url: `${window.location.origin}/bids/${encodeURIComponent(tender.slug || '')}`
               }).catch(console.error);
             } else {
-              navigator.clipboard.writeText(`${window.location.origin}/tenders/${encodeURIComponent(tender.slug || '')}`);
+              navigator.clipboard.writeText(`${window.location.origin}/bids/${encodeURIComponent(tender.slug || '')}`);
               alert("Link copied to clipboard!");
             }
           }}
           className="w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center justify-center transition-all active:scale-[0.98]"
           title="Share"
+          aria-label={`Share ${tender.title}`}
         >
           <Share2 className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
         </button>
@@ -1209,10 +1225,12 @@ function TenderCard({
           }}
           className={`w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-xl border flex items-center justify-center transition-all active:scale-[0.98] ${isSaved ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-300'}`}
           title={isSaved ? "Saved" : "Save tender"}
+          aria-label={isSaved ? `Unsave ${tender.title}` : `Save ${tender.title}`}
+          aria-pressed={isSaved}
         >
           <Bookmark className={`w-4 h-4 sm:w-4.5 sm:h-4.5 ${isSaved ? "fill-current text-blue-600 dark:text-blue-400" : ""}`} />
         </button>
-      </div>
-    </div>
+      </td>
+    </tr>
   );
 }

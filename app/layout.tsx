@@ -44,7 +44,7 @@ export const metadata: Metadata = {
     description: "Track Government e-Marketplace (GeM) tenders with AI-powered summaries, real-time alerts, and smart keyword filtering.",
     images: [
       {
-        url: "/logo.png",
+        url: `${siteUrl}/logo.png`,
         width: 1200,
         height: 630,
         alt: "GeMTenders.org - AI-Powered GeM Tender Tracking",
@@ -55,7 +55,9 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "GeMTenders.org | AI-Powered GeM Tender Tracking",
     description: "Track GeM tenders with AI-powered summaries and real-time alerts.",
-    images: ["/logo.png"],
+    images: [`${siteUrl}/logo.png`],
+    site: "@GeMTenders",
+    creator: "@GeMTenders",
   },
   icons: {
     icon: "/favicon.png",

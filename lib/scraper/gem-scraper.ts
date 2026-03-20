@@ -254,8 +254,17 @@ export async function scrapeGeMBids(options?: { lightMode?: boolean; maxPages?: 
   }
 
   // Filter out duplicates (though GeM pagination should handle it)
-  const uniqueBids = Array.from(new Map(allBids.map(b => [b.bidNo, b])).values());
-  console.log(`>>> [SCRAPER] Total unique bids found: ${uniqueBids.length}. Bid Nos: ${uniqueBids.map(b => b.bidNo).join(', ')}`);
+  let uniqueBids = Array.from(new Map(allBids.map(b => [b.bidNo, b])).values());
+  const now = new Date();
+  
+  // Filter for active tenders only (end date > current time)
+  uniqueBids = uniqueBids.filter(bid => {
+    const parsedEnd = parseGeMDate(bid.endDate);
+    if (!parsedEnd) return true; // Keep if we can't parse date, to be safe
+    return new Date(parsedEnd) > now;
+  });
+
+  console.log(`>>> [SCRAPER] Total active unique bids found: ${uniqueBids.length}. Bid Nos: ${uniqueBids.map(b => b.bidNo).join(', ')}`);
 
   for (const bid of uniqueBids) {
     console.log(`\n>>> [SCRAPER] Processing: ${bid.bidNo}`);

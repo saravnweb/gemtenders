@@ -12,7 +12,7 @@ export default function PricingPage() {
       {/* Header section */}
       <div className="text-center max-w-3xl mx-auto mb-16">
         <h1 className="text-4xl md:text-5xl font-black text-fresh-sky-950 tracking-tight mb-6">
-          Simple pricing for <span className="text-atomic-tangerine-500">smart decisions</span>
+          Simple pricing for <span className="text-atomic-tangerine-700">smart decisions</span>
         </h1>
         <p className="text-lg text-fresh-sky-600 font-medium leading-relaxed mb-10">
           Get notified instantly when relevant GeM tenders are published. 
@@ -28,7 +28,7 @@ export default function PricingPage() {
             className="w-16 h-8 bg-fresh-sky-200 rounded-full flex items-center p-1 cursor-pointer transition-colors relative focus:outline-none"
             title="Toggle billing cycle"
           >
-            <div className={`w-6 h-6 bg-white rounded-full shadow-md transform transition-transform duration-300 flex items-center justify-center ${isAnnual ? 'translate-x-8 bg-atomic-tangerine-500' : 'translate-x-0'}`}>
+            <div className={`w-6 h-6 bg-white rounded-full shadow-md transform transition-transform duration-300 flex items-center justify-center ${isAnnual ? 'translate-x-8 bg-atomic-tangerine-600' : 'translate-x-0'}`}>
                {isAnnual && <Star className="w-3.5 h-3.5 text-white" />}
             </div>
           </button>
@@ -45,11 +45,11 @@ export default function PricingPage() {
         <div className="bg-white rounded-4xl p-8 border border-fresh-sky-100 shadow-sm shadow-fresh-sky-200/20 hover:shadow-xl hover:shadow-fresh-sky-200/40 transition-shadow">
           <div className="mb-8">
             <h3 className="text-xl font-bold text-fresh-sky-900 mb-2">Basic</h3>
-            <p className="text-sm text-fresh-sky-500 font-medium h-10">Perfect for getting started and exploring active tenders.</p>
+            <p className="text-sm text-fresh-sky-700 font-medium h-10">Perfect for getting started and exploring active tenders.</p>
           </div>
           <div className="mb-8 flex items-baseline outline-none focus:outline-none">
             <span className="text-5xl font-black text-fresh-sky-950">₹0</span>
-            <span className="text-sm text-fresh-sky-400 ml-2 font-bold uppercase tracking-wider">/forever</span>
+            <span className="text-sm text-fresh-sky-600 ml-2 font-bold uppercase tracking-wider">/forever</span>
           </div>
           <Link 
             href="/signup?plan=free"
@@ -69,28 +69,28 @@ export default function PricingPage() {
 
         {/* Starter Tier (Popular) */}
         <div className="bg-white rounded-4xl p-8 border-2 border-atomic-tangerine-500 shadow-2xl shadow-atomic-tangerine-200/50 relative transform md:-translate-y-4">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-atomic-tangerine-500 text-white px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest flex items-center space-x-1 drop-shadow-md">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-atomic-tangerine-600 text-white px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest flex items-center space-x-1 drop-shadow-md">
              <Zap className="w-3.5 h-3.5 fill-current" />
              <span>Most Popular</span>
           </div>
           
           <div className="mb-8 mt-2">
             <h3 className="text-xl font-bold text-atomic-tangerine-600 mb-2">Starter</h3>
-            <p className="text-sm text-fresh-sky-500 font-medium h-10">Automation and alerts to help your business win faster.</p>
+            <p className="text-sm text-fresh-sky-700 font-medium h-10">Automation and alerts to help your business win faster.</p>
           </div>
           <div className="mb-8 flex items-baseline">
             <span className="text-5xl font-black text-fresh-sky-950 outline-none focus:outline-none">{isAnnual ? '₹79' : '₹99'}</span>
-            <span className="text-sm text-fresh-sky-400 ml-2 font-bold uppercase tracking-wider">/month</span>
+            <span className="text-sm text-fresh-sky-600 ml-2 font-bold uppercase tracking-wider">/month</span>
           </div>
           <div className="flex flex-col mb-8">
             <Link 
               href={`/signup?plan=starter&billing=${isAnnual ? 'annual' : 'monthly'}`}
-              className="w-full flex items-center justify-center py-4 bg-linear-to-r from-atomic-tangerine-500 to-atomic-tangerine-600 hover:from-atomic-tangerine-600 hover:to-atomic-tangerine-700 text-white font-bold rounded-2xl shadow-xl shadow-atomic-tangerine-200 transition-all active:scale-95 focus:outline-none"
+              className="w-full flex items-center justify-center py-4 bg-linear-to-r from-atomic-tangerine-600 to-atomic-tangerine-700 hover:from-atomic-tangerine-700 hover:to-atomic-tangerine-800 text-white font-bold rounded-2xl shadow-xl shadow-atomic-tangerine-200 transition-all active:scale-95 focus:outline-none"
             >
               Start Free Trial
             </Link>
             {isAnnual && (
-              <span className="text-center text-xs text-fresh-sky-500 mt-2 font-medium">Billed ₹948 once per year</span>
+              <span className="text-center text-xs text-fresh-sky-700 mt-2 font-medium">Billed ₹948 once per year</span>
             )}
           </div>
           <ul className="space-y-4">

@@ -120,7 +120,7 @@ export default function MonitorCard({ search, membershipPlan, totalKeywords }: {
         <div className={`group bg-white border border-slate-200 rounded-xl p-6 hover:border-slate-300 hover:shadow-md transition-all relative overflow-hidden shadow-sm ${isUpdating ? 'opacity-70 pointer-events-none' : ''}`}>
             <div className="flex items-start justify-between mb-4">
                 <div className="w-10 h-10 bg-slate-50 rounded-lg flex items-center justify-center border border-slate-100">
-                    <Bell className="w-4 h-4 text-atomic-tangerine-500" />
+                    <Bell className="w-4 h-4 text-atomic-tangerine-600" />
                 </div>
                 <div className="flex items-center space-x-1.5 bg-green-50 px-2.5 py-1 rounded-full border border-green-100">
                     <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>

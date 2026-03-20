@@ -204,7 +204,42 @@ async function main() {
       console.warn(`\n  [WARN] end_date parse FAILED for ${parseFailed.length} bid(s) on page ${p}:`);
       parseFailed.forEach(b => console.warn(`    ${b.bidNo}: endDate="${b.endDate}"`));
     }
-    const rows = pageBids.map(bid => ({
+
+    const now = new Date();
+    const activeBids = pageBids.filter(b => {
+      const parsedEnd = parseGeMDate(b.endDate);
+      if (!parsedEnd) return true;
+      return new Date(parsedEnd) > now;
+    });
+
+    // Determine which bids already exist in the database
+    const bidNumbers = activeBids.map(b => b.bidNo);
+    const { data: existingRecords, error: fetchErr } = await supabase
+      .from('tenders')
+      .select('bid_number')
+      .in('bid_number', bidNumbers);
+
+    if (fetchErr) {
+      console.error(`  [DB] Fetch existing error: ${fetchErr.message}`);
+    }
+
+    const existingSet = new Set((existingRecords || []).map(r => r.bid_number));
+    const newBids = activeBids.filter(b => !existingSet.has(b.bidNo));
+
+    const DEEP_SCAN = args.includes('--deep');
+
+    if (newBids.length === 0 && activeBids.length > 0) {
+      console.log(`\n>>> [CRAWL] All active bids on page ${p} are already crawled.`);
+      if (DEEP_SCAN) {
+        console.log(`>>> [CRAWL] Deep scan enabled. Skipping insert and moving to next page...`);
+      } else {
+        console.log(`>>> [CRAWL] Stopping crawl to maintain clean and simple execution.`);
+        console.log(`>>> [CRAWL] (Run with --deep to check all historical pages anyway)`);
+        break;
+      }
+    }
+
+    const rows = newBids.map(bid => ({
       bid_number:  bid.bidNo,
       slug:        makeSlug(bid.bidNo),
       title:       bid.description || `Tender ${bid.bidNo}`,
@@ -216,7 +251,7 @@ async function main() {
                      : `https://bidplus.gem.gov.in${bid.detailsUrl}`,
     }));
 
-    // Batch upsert
+    // Batch upsert only new rows
     for (let i = 0; i < rows.length; i += BATCH_SIZE) {
       await upsertBatch(rows.slice(i, i + BATCH_SIZE));
     }

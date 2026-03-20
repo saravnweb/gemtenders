@@ -32,7 +32,7 @@ export default function LoginPage() {
         
         <div className="text-center mb-10">
           <div className="mb-8 flex justify-center">
-            <Image src="/logo.png" alt="GeMTenders.org Logo" width={400} height={128} priority className="w-64 sm:w-80 h-auto object-contain brightness-110" />
+            <Image src="/logo.png" alt="GeMTenders.org" width={400} height={128} priority className="w-64 sm:w-80 h-auto object-contain brightness-110" />
           </div>
           <h1 className="text-3xl font-black text-fresh-sky-950 tracking-tight mb-2">Welcome</h1>
           <p className="text-fresh-sky-600 font-medium">Sign in to your GeMTenders.org account</p>
@@ -62,8 +62,8 @@ export default function LoginPage() {
           </button>
         </div>
 
-        <p className="mt-8 text-center text-[11px] text-fresh-sky-400 leading-relaxed px-4">
-          By continuing, you agree to our <span className="text-fresh-sky-500 underline cursor-pointer hover:text-fresh-sky-600 transition-colors">Terms of Service</span> and <span className="text-fresh-sky-500 underline cursor-pointer hover:text-fresh-sky-600 transition-colors">Privacy Policy</span>.
+        <p className="mt-8 text-center text-[11px] text-fresh-sky-600 leading-relaxed px-4">
+          By continuing, you agree to our <span className="text-fresh-sky-700 underline cursor-pointer hover:text-fresh-sky-800 transition-colors">Terms of Service</span> and <span className="text-fresh-sky-700 underline cursor-pointer hover:text-fresh-sky-800 transition-colors">Privacy Policy</span>.
         </p>
       </div>
     </div>

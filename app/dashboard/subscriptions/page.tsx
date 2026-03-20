@@ -101,7 +101,7 @@ export default function SubscriptionsPage() {
 
   if (!profile) return (
     <div className="min-h-[60vh] flex flex-col items-center justify-center p-8 space-y-4">
-       <div className="w-10 h-10 border-4 border-slate-200 dark:border-zinc-700 border-t-atomic-tangerine-500 rounded-full animate-spin"></div>
+       <div className="w-10 h-10 border-4 border-slate-200 dark:border-zinc-700 border-t-atomic-tangerine-600 rounded-full animate-spin"></div>
        <p className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest animate-pulse">Loading secure checkout...</p>
     </div>
   );
@@ -130,7 +130,7 @@ export default function SubscriptionsPage() {
                 onClick={() => setIsAnnual(!isAnnual)}
                 className="w-12 h-6 bg-slate-200 dark:bg-zinc-800 rounded-full flex items-center p-1 cursor-pointer transition-colors relative"
              >
-                <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-300 ${isAnnual ? 'translate-x-6 bg-atomic-tangerine-500' : 'translate-x-0'}`}>
+                <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-300 ${isAnnual ? 'translate-x-6 bg-atomic-tangerine-600' : 'translate-x-0'}`}>
                 </div>
              </button>
              <span className={`text-sm font-bold flex items-center ${isAnnual ? 'text-slate-900 dark:text-slate-100' : 'text-slate-400 dark:text-slate-500'}`}>
@@ -181,7 +181,7 @@ export default function SubscriptionsPage() {
         </div>
 
         {/* Starter Plan */}
-        <div className={`bg-white dark:bg-zinc-900 rounded-2xl p-6 border-2 transition-all ${profile.membership_plan === 'starter' ? 'border-atomic-tangerine-500 shadow-md ring-4 ring-atomic-tangerine-100' : 'border-slate-200 dark:border-zinc-700 hover:border-slate-300'}`}>
+        <div className={`bg-white dark:bg-zinc-900 rounded-2xl p-6 border-2 transition-all ${profile.membership_plan === 'starter' ? 'border-atomic-tangerine-600 shadow-md ring-4 ring-atomic-tangerine-100' : 'border-slate-200 dark:border-zinc-700 hover:border-slate-300'}`}>
            <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2 flex items-center justify-between">
               Starter
               {profile.membership_plan === 'starter' && <span className="text-xs bg-atomic-tangerine-100 text-atomic-tangerine-700 px-2 py-1 rounded-full uppercase tracking-wider">Active</span>}

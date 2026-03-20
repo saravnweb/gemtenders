@@ -34,7 +34,7 @@ export default async function ProfilePage() {
           <div className="lg:col-span-2 space-y-6">
             <div className="bg-white dark:bg-zinc-900 rounded-xl p-6 border border-slate-200 dark:border-zinc-700 shadow-sm">
                <div className="flex flex-col sm:flex-row items-center gap-6">
-                  <div className="w-16 h-16 bg-linear-to-br from-atomic-tangerine-500 to-atomic-tangerine-600 rounded-xl flex items-center justify-center shadow-lg shrink-0">
+                  <div className="w-16 h-16 bg-linear-to-br from-atomic-tangerine-600 to-atomic-tangerine-700 rounded-xl flex items-center justify-center shadow-lg shrink-0">
                      <User className="w-8 h-8 text-white" />
                   </div>
                   <div className="flex-1 text-center sm:text-left">
@@ -66,7 +66,7 @@ export default async function ProfilePage() {
                 color="blue"
              />
              <MetricCard
-                icon={<Zap className="w-5 h-5 text-atomic-tangerine-500" />}
+                icon={<Zap className="w-5 h-5 text-atomic-tangerine-600" />}
                 label="Active Keywords"
                 value={savedSearches?.length || 0}
                 href="/dashboard/keywords"

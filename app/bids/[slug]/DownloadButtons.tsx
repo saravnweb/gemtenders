@@ -4,21 +4,34 @@ import { useState, useEffect } from "react";
 import { Download, Zap, ExternalLink as LinkIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 export default function DownloadButtons({
     pdfUrl,
     detailsUrl,
-    isPremium,
     slug,
     isMobile
 }: {
     pdfUrl: string | null;
     detailsUrl: string;
-    isPremium: boolean;
     slug: string;
     isMobile: boolean;
 }) {
     const router = useRouter();
+    const [isPremium, setIsPremium] = useState(false);
+
+    useEffect(() => {
+        supabase.auth.getUser().then(({ data: { user } }) => {
+            if (user) {
+                supabase.from("profiles").select("membership_plan").eq("id", user.id).single()
+                    .then(({ data }) => {
+                        if (data && (data.membership_plan === "starter" || data.membership_plan === "pro")) {
+                            setIsPremium(true);
+                        }
+                    });
+            }
+        });
+    }, []);
 
     const handleDownload = (e: React.MouseEvent<HTMLAnchorElement>) => {
         if (!pdfUrl) return;
