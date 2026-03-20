@@ -42,6 +42,28 @@ const nextConfig = {
     async redirects() {
         return [
             {
+                source: '/:path*',
+                has: [
+                    {
+                        type: 'host',
+                        value: '(?<host>.*\\.vercel\\.app)',
+                    },
+                ],
+                destination: 'https://gemtenders.org/:path*',
+                permanent: true,
+            },
+            {
+                source: '/:path*',
+                has: [
+                    {
+                        type: 'host',
+                        value: 'www.gemtenders.org',
+                    },
+                ],
+                destination: 'https://gemtenders.org/:path*',
+                permanent: true,
+            },
+            {
                 source: '/tenders',
                 destination: '/',
                 permanent: true,

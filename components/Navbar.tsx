@@ -23,7 +23,7 @@ export default function Navbar() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`
+          redirectTo: `https://gemtenders.org/auth/callback`
         }
       });
       if (error) throw error;

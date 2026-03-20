@@ -207,9 +207,16 @@ export async function scrapeGeMBids(options?: { lightMode?: boolean; maxPages?: 
         if (itemsCol) {
           const popoverEl = itemsCol.querySelector('a[data-toggle="popover"]');
           if (popoverEl) {
-            description = popoverEl.getAttribute('data-content') || popoverEl.textContent?.trim() || "";
+            const htmlContent = popoverEl.getAttribute('data-content') || popoverEl.getAttribute('data-original-title') || "";
+            if (htmlContent) {
+              const tempDiv = document.createElement('div');
+              tempDiv.innerHTML = htmlContent;
+              description = tempDiv.textContent?.trim() || "";
+            } else {
+              description = popoverEl.textContent?.trim() || "";
+            }
           } else {
-            description = itemsCol.textContent?.replace('Items:', '')?.replace('Quantity:', '')?.split('\n')[0]?.trim() || "";
+            description = itemsCol.textContent?.replace('Items:', '')?.replace('Quantity:', '')?.split('\\n')[0]?.trim() || "";
           }
         }
         
@@ -430,7 +437,11 @@ export async function scrapeGeMBids(options?: { lightMode?: boolean; maxPages?: 
     const auth = aiData?.authority;
     
     // Improve title with GeMARPTS info if possible
-    let finalTitle = aiData?.tender_title || bid.description || `Tender ${bid.bidNo}`;
+    let finalTitle = bid.description || `Tender ${bid.bidNo}`;
+    if (aiData?.tender_title && (!aiData.tender_title.trim().endsWith("...") || !bid.description || bid.description.length <= aiData.tender_title.length)) {
+       finalTitle = aiData.tender_title;
+    }
+
     if (aiData?.gemarp?.searched_strings && !finalTitle.includes(aiData.gemarp.searched_strings)) {
        // Only append if it's not repetitive
        // console.log("Refining title with keywords...");

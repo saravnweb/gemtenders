@@ -33,7 +33,7 @@ export async function extractTenderData(pdfText: string) {
        - consignee_city: Extract the exact CITY perfectly from the "Consignees/Reporting Officer" or delivery location.
        DO NOT leave these null if they are present in the text.
     2. ITEM DETAILS:
-       - tender_title: Extract the FULL value of "Item Category" or "BOQ Title". If it's a long list of items, extract EVERYTHING.
+       - tender_title: Extract the FULL, UNTRUNCATED value of the Item Category or BOQ Title. Search the entire document to find the complete name without trailing '...'. NEVER return a title ending in '...'. If the document only has a truncated title, remove '...' from the end.
        - quantity: Extract the "Total Quantity" or "कुल मात्रा". It must be a NUMBER (e.g., 1346).
     3. GeMARPTS & CATEGORIES:
        - gemarpts_strings: Value of "Searched Strings used in GeMARPTS".

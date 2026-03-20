@@ -90,13 +90,13 @@ async function enrichTenders() {
   const storageBidNumbers = allFiles.map(fileNameToBidNumber);
 
   // Fetch unenriched tenders that match storage PDFs (in batches of 500)
-  const pending: { id: string; bid_number: string; pdf_url: string | null }[] = [];
+  const pending: { id: string; bid_number: string; pdf_url: string | null; title: string | null; }[] = [];
 
   for (let i = 0; i < storageBidNumbers.length; i += 500) {
     const chunk = storageBidNumbers.slice(i, i + 500);
     const { data, error } = await supabase
       .from('tenders')
-      .select('id, bid_number, pdf_url')
+      .select('id, bid_number, pdf_url, title')
       .in('bid_number', chunk)
       .is('ai_summary', null)
       .gte('end_date', new Date().toISOString())
@@ -205,7 +205,11 @@ async function enrichTenders() {
         update.department = deptStr;
       }
 
-      if (aiData?.tender_title)             update.title        = aiData.tender_title;
+      if (aiData?.tender_title && !aiData.tender_title.trim().endsWith("...")) {
+        update.title = aiData.tender_title;
+      } else if (aiData?.tender_title && tender.title === "N/A") {
+        update.title = aiData.tender_title;
+      }
       if (aiData?.dates?.bid_opening_date)  update.opening_date = aiData.dates.bid_opening_date;
       if (aiData?.dates?.bid_start_date)    update.start_date   = aiData.dates.bid_start_date;
       if (aiData?.dates?.bid_end_date)      update.end_date     = aiData.dates.bid_end_date;
