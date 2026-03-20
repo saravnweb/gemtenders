@@ -15,46 +15,55 @@ async function purgeOldTenders() {
   console.log("Looking for old closed tenders to purge...");
   const now = new Date().toISOString();
 
-  // Find tenders where end_date is in the past
-  const { data, error } = await supabase
-    .from('tenders')
-    .select('id, bid_number, end_date')
-    .lt('end_date', now)
-    .limit(5000);
+  let totalDeletedGlobally = 0;
 
-  if (error) {
-      console.error("Error fetching old tenders:", error);
-      return;
-  }
-  
-  if (!data || data.length === 0) {
-      console.log("No closed tenders found to purge. Your database is clean!");
-      return;
-  }
+  while (true) {
+    // Find tenders where end_date is in the past
+    const { data, error } = await supabase
+      .from('tenders')
+      .select('id, bid_number, end_date')
+      .lt('end_date', now)
+      .limit(1000);
 
-  console.log(`Found ${data.length} closed tenders. Purging them from the database now...`);
-  
-  // Delete them in chunks
-  const chunks = [];
-  let i = 0;
-  while (i < data.length) {
-      chunks.push(data.slice(i, i + 500));
-      i += 500;
-  }
+    if (error) {
+        console.error("Error fetching old tenders:", error);
+        break;
+    }
+    
+    if (!data || data.length === 0) {
+        if (totalDeletedGlobally === 0) {
+            console.log("No closed tenders found to purge. Your database is clean!");
+        } else {
+            console.log(`\nPurge complete! Successfully removed ${totalDeletedGlobally} old bids to avoid confusion.`);
+        }
+        break;
+    }
 
-  let totalDeleted = 0;
-  for (const chunk of chunks) {
-      const ids = chunk.map((c: any) => c.id);
-      const { error: deleteErr } = await supabase.from('tenders').delete().in('id', ids);
-      if (deleteErr) {
-          console.error("Error deleting a chunk:", deleteErr.message);
-      } else {
-          totalDeleted += ids.length;
-          console.log(`Deleted chunk of ${ids.length} records. Total deleted: ${totalDeleted}`);
-      }
+    if (totalDeletedGlobally === 0) {
+        console.log(`Found an initial batch of ${data.length} closed tenders. Purging them from the database now...`);
+    }
+    
+    // Delete them in chunks
+    const chunks = [];
+    let i = 0;
+    while (i < data.length) {
+        chunks.push(data.slice(i, i + 500));
+        i += 500;
+    }
+
+    let totalDeleted = 0;
+    for (const chunk of chunks) {
+        const ids = chunk.map((c: any) => c.id);
+        const { error: deleteErr } = await supabase.from('tenders').delete().in('id', ids);
+        if (deleteErr) {
+            console.error("Error deleting a chunk:", deleteErr.message);
+        } else {
+            totalDeleted += ids.length;
+            totalDeletedGlobally += ids.length;
+            console.log(`Deleted chunk of ${ids.length} records. Total deleted iteratively: ${totalDeletedGlobally}`);
+        }
+    }
   }
-  
-  console.log(`\nPurge complete! Successfully removed ${totalDeleted} old bids to avoid confusion.`);
 }
 
 purgeOldTenders();

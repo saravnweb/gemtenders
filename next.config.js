@@ -1,12 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    serverExternalPackages: ["playwright", "playwright-core", "playwright-extra", "puppeteer-extra-plugin-stealth", "pdf-parse", "@google/generative-ai"],
+    serverExternalPackages: ["@google/generative-ai"],
     images: {
         remotePatterns: [
             {
                 protocol: "https",
-                hostname: "tlregrteeeqwvptgpiib.supabase.co",
-                pathname: "/storage/v1/object/public/**",
+                hostname: "*.supabase.co",
             },
             {
                 protocol: "https",
@@ -20,10 +19,12 @@ const nextConfig = {
             {
                 source: "/(.*)",
                 headers: [
+                    { key: "Content-Security-Policy", value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self' https://*.supabase.co;" },
                     { key: "X-Content-Type-Options", value: "nosniff" },
                     { key: "X-Frame-Options", value: "DENY" },
                     { key: "X-XSS-Protection", value: "1; mode=block" },
                     { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+                    { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
                 ],
             },
         ];
@@ -31,6 +32,7 @@ const nextConfig = {
     experimental: {
         cpus: 2,
         workerThreads: false,
+        optimizePackageImports: ["lucide-react"],
     },
     async redirects() {
         return [

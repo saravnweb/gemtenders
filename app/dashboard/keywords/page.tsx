@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase-server';
+import { createClient } from "@/lib/supabase/server";
 import { Zap, Search } from 'lucide-react';
 import Link from 'next/link';
 import MonitorCard from './MonitorCard';

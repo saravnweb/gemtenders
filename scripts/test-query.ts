@@ -1,13 +1,14 @@
-import { createClient } from '@supabase/supabase-js';
-import dotenv from 'dotenv';
-dotenv.config({ path: '.env.local' });
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-  dotenv.config({ path: '.env' });
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import dotenv from "dotenv";
+dotenv.config({ path: ".env.local" });
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+async function test() {
+  try {
+    const res = await model.generateContent("hello");
+    console.log("Success:", res.response.text());
+  } catch (e: any) {
+    console.log("Error details:", JSON.stringify(e, null, 2), e.message);
+  }
 }
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
-
-async function run() {
-  const { data, error } = await supabase.from('tenders').select('*').eq('bid_number', 'GEM/2025/B/7036855');
-  console.log("DB DATA:", JSON.stringify(data, null, 2));
-}
-run();
+test();

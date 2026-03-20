@@ -1,0 +1,27 @@
+{
+  "name": "gemtenders-scraper",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "scrape": "tsx scripts/run-scraper.ts",
+    "enrich": "tsx scripts/enrich-tenders.ts",
+    "clean": "tsx scripts/clean-supabase.ts",
+    "fast-scrape": "tsx scripts/fast-api-scraper.ts",
+    "crawl": "tsx scripts/crawl-stubs.ts"
+  },
+  "dependencies": {
+    "@types/pdf-parse": "^1.1.5",
+    "axios": "^1.13.6",
+    "cheerio": "^1.2.0",
+    "dotenv": "^17.3.1",
+    "pdf-parse": "^2.4.5",
+    "playwright": "^1.58.2",
+    "playwright-core": "^1.58.2",
+    "playwright-extra": "^4.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
+  },
+  "devDependencies": {
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}

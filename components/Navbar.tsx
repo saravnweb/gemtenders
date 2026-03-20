@@ -147,7 +147,7 @@ export default function Navbar() {
                             <User className="w-4 h-4 text-white" />
                           </div>
                           <div className="flex flex-col min-w-0">
-                            <span className="text-[10px] font-black text-fresh-sky-900 dark:text-fresh-sky-100 truncate leading-tight">{user.email?.split('@')[0]}</span>
+                            <span className="text-xs font-black text-fresh-sky-900 dark:text-fresh-sky-100 truncate leading-tight">{user.email?.split('@')[0]}</span>
                             <span className="text-[8px] font-bold text-atomic-tangerine-600 uppercase tracking-tighter">Enterprise</span>
                           </div>
                           <button 
@@ -199,10 +199,10 @@ export default function Navbar() {
           <div id="mobile-menu" className="fixed inset-y-0 left-0 w-[240px] h-dvh bg-white dark:bg-zinc-950 shadow-2xl flex flex-col border-r border-slate-100 dark:border-zinc-800 animate-in slide-in-from-left duration-300 ease-out" role="dialog" aria-modal="true" aria-label="Mobile Navigation">
             {/* Drawer Header */}
             <div className="p-4 border-b border-slate-50 dark:border-zinc-800 flex items-center justify-between h-16 shrink-0 bg-white dark:bg-zinc-950">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] ml-2">Navigation</span>
+              <span className="text-xs font-bold text-slate-600 uppercase tracking-[0.2em] ml-2">Navigation</span>
               <button 
                 onClick={() => setIsMenuOpen(false)}
-                className="p-2 text-slate-400 hover:text-slate-900 transition-colors rounded-lg bg-slate-50 border border-slate-100"
+                className="p-2 text-slate-600 hover:text-slate-900 transition-colors rounded-lg bg-slate-50 border border-slate-100"
                 aria-label="Close Navigation Menu"
               >
                 <X className="w-5 h-5" />
@@ -222,7 +222,7 @@ export default function Navbar() {
                         </div>
                         <div className="flex flex-col min-w-0">
                           <span className="text-xs font-bold text-slate-900 truncate tracking-tight">{user.email?.split('@')[0]}</span>
-                          <span className="text-[9px] font-medium text-slate-400 uppercase tracking-widest">Active Account</span>
+                          <span className="text-[9px] font-medium text-slate-600 uppercase tracking-widest">Active Account</span>
                         </div>
                       </div>
                     ) : (
@@ -240,25 +240,25 @@ export default function Navbar() {
                     <div className="flex flex-col space-y-1">
                       <MenuListItem 
                         href="/categories" 
-                        icon={<LayoutDashboard className="w-4 h-4 text-slate-400" />} 
+                        icon={<LayoutDashboard className="w-4 h-4 text-slate-600" />} 
                         label="Categories" 
                         onClick={() => setIsMenuOpen(false)} 
                       />
                       <MenuListItem 
                         href="/dashboard/saved" 
-                        icon={<Bookmark className="w-4 h-4 text-slate-400" />} 
+                        icon={<Bookmark className="w-4 h-4 text-slate-600" />} 
                         label="Saved Bids" 
                         onClick={() => setIsMenuOpen(false)} 
                       />
                       <MenuListItem 
                         href="/dashboard/keywords" 
-                        icon={<Zap className="w-4 h-4 text-slate-400" />} 
+                        icon={<Zap className="w-4 h-4 text-slate-600" />} 
                         label="Saved Keywords" 
                         onClick={() => setIsMenuOpen(false)} 
                       />
                       <MenuListItem 
                         href="/dashboard/subscriptions" 
-                        icon={<CreditCard className="w-4 h-4 text-slate-400" />} 
+                        icon={<CreditCard className="w-4 h-4 text-slate-600" />} 
                         label="Plans" 
                         onClick={() => setIsMenuOpen(false)} 
                       />
@@ -269,7 +269,7 @@ export default function Navbar() {
                       {user ? (
                         <button 
                           onClick={() => { handleSignOut(); setIsMenuOpen(false); }} 
-                          className="w-full flex items-center justify-center space-x-2 py-3.5 text-red-500 font-bold text-[10px] uppercase tracking-widest border border-red-50 rounded-xl bg-red-50/50 hover:bg-red-50 transition-all"
+                          className="w-full flex items-center justify-center space-x-2 py-3.5 text-red-500 font-bold text-xs uppercase tracking-widest border border-red-50 rounded-xl bg-red-50/50 hover:bg-red-50 transition-all"
                         >
                             <LogOut className="w-4 h-4" />
                             <span>Sign Out Account</span>

@@ -1,7 +1,8 @@
 "use server";
+import 'server-only';
 
 import Razorpay from "razorpay";
-import { createClient } from "@/lib/supabase-server";
+import { createClient } from "@/lib/supabase/server";
 
 // Using dummy keys if not set in environment yet so it doesn't crash
 const instance = new Razorpay({

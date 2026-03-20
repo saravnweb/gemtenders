@@ -25,7 +25,7 @@ export default function ProfileSidebar({ user, onClose }: { user: any, onClose?:
       {/* Sidebar Header - Mobile Close */}
       <div className="p-4 border-b border-slate-100 dark:border-zinc-800 flex items-center justify-between md:hidden">
         <span className="font-bold text-fresh-sky-950 dark:text-white">Menu</span>
-        <button onClick={onClose} className="p-2 text-slate-400 dark:text-slate-500">
+        <button onClick={onClose} className="p-2 text-slate-600 dark:text-slate-400">
           <X className="w-6 h-6" />
         </button>
       </div>
@@ -38,7 +38,7 @@ export default function ProfileSidebar({ user, onClose }: { user: any, onClose?:
           </div>
           <div className="flex flex-col min-w-0">
             <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{user?.email?.split('@')[0]}</span>
-            <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wide">Member Account</span>
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">Member Account</span>
           </div>
         </div>
       </div>
@@ -59,7 +59,7 @@ export default function ProfileSidebar({ user, onClose }: { user: any, onClose?:
               }`}
             >
               <div className="flex items-center space-x-3">
-                <item.icon className={`w-4 h-4 ${isActive ? "text-blue-400" : "text-slate-400 dark:text-slate-500 group-hover:text-blue-500"}`} />
+                <item.icon className={`w-4 h-4 ${isActive ? "text-blue-400" : "text-slate-600 dark:text-slate-400 group-hover:text-blue-500"}`} />
                 <span className="text-xs font-medium">{item.label}</span>
               </div>
               <ChevronRight className={`w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity ${isActive ? "hidden" : ""}`} />

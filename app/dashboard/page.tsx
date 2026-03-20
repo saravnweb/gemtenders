@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase-server';
+import { createClient } from "@/lib/supabase/server";
 import { User, Mail, Shield, Zap, Bookmark, ChevronRight, Bell, CreditCard } from 'lucide-react';
 import Link from 'next/link';
 import MyLocations from './MyLocations';
@@ -24,8 +24,8 @@ export default async function ProfilePage() {
           </div>
           <div className="flex items-center space-x-2 bg-white dark:bg-zinc-900 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-zinc-700 shadow-sm">
              <div className={`w-2 h-2 rounded-full ${isPremium ? 'bg-amber-500 animate-pulse' : 'bg-slate-300'}`}></div>
-             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Plan:</span>
-             <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase">{membershipPlan}</span>
+             <span className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Plan:</span>
+             <span className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase">{membershipPlan}</span>
           </div>
         </div>
 
@@ -39,7 +39,7 @@ export default async function ProfilePage() {
                   </div>
                   <div className="flex-1 text-center sm:text-left">
                      <h2 className="text-xl font-bold text-fresh-sky-950 truncate mb-1">{user?.email?.split('@')[0]}</h2>
-                     <div className="flex flex-wrap justify-center sm:justify-start gap-x-4 gap-y-1 text-slate-400 dark:text-slate-500 font-medium text-xs">
+                     <div className="flex flex-wrap justify-center sm:justify-start gap-x-4 gap-y-1 text-slate-600 dark:text-slate-400 font-medium text-xs">
                         <div className="flex items-center gap-1">
                            <Mail className="w-3.5 h-3.5" />
                            <span>{user?.email}</span>
@@ -81,10 +81,10 @@ export default async function ProfilePage() {
                 <div className="relative z-10">
                   <div className="flex items-center gap-2 mb-3">
                      <CreditCard className="w-4 h-4 text-atomic-tangerine-400" />
-                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Subscription</span>
+                     <span className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Subscription</span>
                   </div>
                   <h3 className="text-lg font-bold mb-4 capitalize">{membershipPlan} Plan</h3>
-                  <p className="text-slate-400 dark:text-slate-500 text-xs font-medium mb-6 leading-relaxed">
+                  <p className="text-slate-600 dark:text-slate-400 text-xs font-medium mb-6 leading-relaxed">
                      Tracking {savedSearches?.length || 0} smart monitors. Get Platinum for instant WhatsApp alerts.
                   </p>
                   <Link href="/dashboard/subscriptions" className="flex items-center justify-between bg-white dark:bg-zinc-900 text-slate-900 dark:text-slate-100 px-4 py-3 rounded-lg transition-all hover:bg-slate-100 dark:hover:bg-zinc-800 group">
@@ -95,7 +95,7 @@ export default async function ProfilePage() {
              </div>
 
               <div className="bg-white dark:bg-zinc-900 rounded-xl p-6 border border-slate-200 dark:border-zinc-700 shadow-sm">
-                 <h4 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4">Safety Info</h4>
+                 <h4 className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-4">Safety Info</h4>
                  <div className="space-y-3">
                     <div className="flex items-center justify-between text-xs">
                        <span className="font-medium text-slate-500 dark:text-slate-400">Last Active</span>
@@ -126,7 +126,7 @@ function MetricCard({ icon, label, value, href, color }: { icon: any, label: str
                   {icon}
                </div>
                <div>
-                  <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">{label}</p>
+                  <p className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">{label}</p>
                   <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{value}</p>
                </div>
             </div>

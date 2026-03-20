@@ -1,21 +1,22 @@
-import Groq from "groq-sdk";
+
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { normalizeState, normalizeCity } from "./locations";
 
-const apiKey = process.env.GROQ_API_KEY?.trim() || "";
-const groq = new Groq({ apiKey });
+const apiKey = process.env.GEMINI_API_KEY?.trim() || "";
+const genAI = new GoogleGenerativeAI(apiKey);
+
+// Helper function for delay
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
 export async function extractTenderData(pdfText: string) {
+  // Use llama3.2 (3B parameters), guaranteed to run on an 8GB GPU with large context windows
+  const modelName = process.env.OLLAMA_MODEL || "llama3.2";
 
-  // PRE-PROCESS: Extract as much as possible. 
-  // DO NOT STRIP HINDI. Gemini handles Hindi-English tables best when labels are present.
   const cleanedText = pdfText
-    .replace(/[^\x20-\x7E\n\u0900-\u097F]/g, " ") // keep printable ASCII and Devanagari (Hindi)
+    .replace(/[^\x20-\x7E\n\u0900-\u097F]/g, " ")
     .replace(/\s+/g, " ")
     .trim()
     .substring(0, 35000);
-
-  // Helper function for delay
-  const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
   const prompt = `
     You are an expert Procurement Data Scientist. Extract RAW, UNTRUNCATED structured data from this GeM (Government e-Marketplace) Bid Document.
@@ -83,32 +84,34 @@ export async function extractTenderData(pdfText: string) {
     ${cleanedText}
   `;
 
-  let retries = 6;
-  let delay = 5000;
-  const models = [
-    "llama-3.3-70b-versatile",
-    "llama-3.1-8b-instant",
-    "gemma2-9b-it"
-  ];
-  let currentModelIndex = 0;
+  let retries = 3;
+  let delay = 3000;
 
   while (retries > 0) {
-    const currentModel = models[currentModelIndex];
     try {
-      console.log(`>>> [AI] Calling Groq (Model: ${currentModel})...`);
-      const completion = await groq.chat.completions.create({
-        messages: [{ role: "user", content: prompt }],
-        model: currentModel as any, // Cast as any to appease TS for dynamic model
-        temperature: 0.1,
-        response_format: { type: "json_object" }
+      console.log(`>>> [AI] Calling Local Ollama (Model: ${modelName})...`);
+      const response = await fetch("http://localhost:11434/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: modelName,
+          prompt: prompt,
+          format: "json",
+          stream: false,
+          options: { temperature: 0.1 }
+        })
       });
-      const text = completion.choices[0]?.message?.content || "{}";
+
+      if (!response.ok) {
+        throw new Error(`Ollama HTTP Error: ${response.status} - Ensure Ollama is running!`);
+      }
+
+      const data = await response.json();
+      const text = data.response || "{}";
       
-      // Clean JSON markdown if present
       const cleanJson = text.replace(/```json|```/g, "").trim();
       const parsedData = JSON.parse(cleanJson);
       
-      // Normalize state and city
       if (parsedData?.authority) {
         if (parsedData.authority.state) {
           parsedData.authority.state = normalizeState(parsedData.authority.state);
@@ -117,46 +120,12 @@ export async function extractTenderData(pdfText: string) {
           parsedData.authority.city = normalizeCity(parsedData.authority.city);
         }
       }
-      
       return parsedData;
     } catch (error: any) {
-      const msg = error.message || "";
-      const isRateLimit = error.status === 429 || msg.includes('429') || msg.includes('quota') || msg.includes('rate_limit_exceeded');
-      
-      if (isRateLimit && retries > 1) {
-        // If we still have models to fall back to, do so immediately to preserve time
-        if (currentModelIndex < models.length - 1) {
-           console.warn(`>>> [AI] Rate limited (429) on ${currentModel}. Switching to fallback model...`);
-           currentModelIndex++;
-           retries--;
-           continue;
-        }
-
-        // Otherwise, all models are exhausted, evaluate sleep delay
-        let waitTime = delay;
-        // Parse Groq's specific "Please try again in XmYY.YYs" or "X.YYs" message
-        // Example: "try again in 15m28.8s" or "try again in 27.5s"
-        const match = msg.match(/try again in (?:([0-9]+)m)?([0-9.]+)s/);
-        if (match) {
-           const mins = parseInt(match[1] || "0", 10);
-           const secs = parseFloat(match[2] || "0");
-           waitTime = ((mins * 60) + secs + 1) * 1000; // Exact wait time + 1s padding
-        } else {
-           // fallback with jitter
-           waitTime += Math.floor(Math.random() * 4000);
-        }
-
-        console.warn(`>>> [AI] Rate limited (429) across all models. Retrying in ${(waitTime / 1000 / 60).toFixed(2)} mins...`);
-        await sleep(waitTime);
-        retries--;
-        delay *= 1.5; 
-        
-        // After waiting, we can try to start over with the best model again
-        currentModelIndex = 0;
-      } else {
-        console.warn(`>>> [AI] Groq Error: ${msg} - ${error.status || ''}`);
-        return null;
-      }
+      console.warn(`>>> [AI] Ollama Error: ${error.message}. Retrying in ${delay/1000}s...`);
+      await sleep(delay);
+      retries--;
+      delay *= 2; 
     }
   }
   return null;

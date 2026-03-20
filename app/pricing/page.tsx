@@ -33,7 +33,7 @@ export default function PricingPage() {
             </div>
           </button>
           <span className={`text-sm font-bold flex items-center ${isAnnual ? 'text-fresh-sky-900' : 'text-fresh-sky-400'}`}>
-            Annually <span className="ml-2 text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded uppercase tracking-wider">Save 20%</span>
+            Annually <span className="ml-2 text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded uppercase tracking-wider">Save 20%</span>
           </span>
         </div>
       </div>

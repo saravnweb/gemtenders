@@ -117,7 +117,7 @@ export default function DownloadButtons({
                     <span className="relative z-10">Download PDF</span>
                 </a>
             ) : (
-                <div className="flex w-full py-3.5 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 text-sm rounded-2xl font-semibold items-center justify-center space-x-2.5 cursor-not-allowed border border-slate-200/60 dark:border-slate-700">
+                <div className="flex w-full py-3.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-sm rounded-2xl font-semibold items-center justify-center space-x-2.5 cursor-not-allowed border border-slate-200/60 dark:border-slate-700">
                     <Download className="w-4 h-4" />
                     <span>Document Unavailable</span>
                 </div>

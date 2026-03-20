@@ -117,14 +117,14 @@ export default function SubscriptionsPage() {
 
       <div className="bg-white dark:bg-zinc-900 rounded-xl p-6 border border-slate-200 dark:border-zinc-700 shadow-sm flex items-center justify-between">
          <div>
-            <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Current Plan</p>
+            <p className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">Current Plan</p>
             <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 capitalize flex items-center gap-2">
                {profile.membership_plan}
                {profile.membership_plan !== 'free' && <Shield className="w-5 h-5 text-emerald-500" />}
             </h2>
          </div>
          <div className="text-right flex items-center space-x-3">
-             <span className={`text-sm font-bold ${!isAnnual ? 'text-slate-900 dark:text-slate-100' : 'text-slate-400 dark:text-slate-500'}`}>Monthly</span>
+             <span className={`text-sm font-bold ${!isAnnual ? 'text-slate-900 dark:text-slate-100' : 'text-slate-600 dark:text-slate-400'}`}>Monthly</span>
              <button
                 type="button"
                 onClick={() => setIsAnnual(!isAnnual)}
@@ -133,7 +133,7 @@ export default function SubscriptionsPage() {
                 <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-300 ${isAnnual ? 'translate-x-6 bg-atomic-tangerine-600' : 'translate-x-0'}`}>
                 </div>
              </button>
-             <span className={`text-sm font-bold flex items-center ${isAnnual ? 'text-slate-900 dark:text-slate-100' : 'text-slate-400 dark:text-slate-500'}`}>
+             <span className={`text-sm font-bold flex items-center ${isAnnual ? 'text-slate-900 dark:text-slate-100' : 'text-slate-600 dark:text-slate-400'}`}>
                 Annually
              </span>
          </div>
@@ -156,12 +156,12 @@ export default function SubscriptionsPage() {
            <div className="flex flex-col mb-6">
              <button
                disabled={true}
-               className="w-full py-3 bg-slate-100 dark:bg-zinc-800 text-slate-400 dark:text-slate-500 font-bold rounded-xl"
+               className="w-full py-3 bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-slate-400 font-bold rounded-xl"
              >
                {profile.membership_plan === 'free' ? 'Current Plan' : 'Free Tier'}
              </button>
              {isAnnual && profile.membership_plan !== 'free' && profile.membership_plan !== 'starter' && profile.membership_plan !== 'pro' && (
-               <span className="text-center text-[10px] text-slate-400 font-medium mt-2 invisible">Placeholder</span>
+               <span className="text-center text-xs text-slate-600 font-medium mt-2 invisible">Placeholder</span>
              )}
            </div>
 
@@ -173,7 +173,7 @@ export default function SubscriptionsPage() {
              <FeatureItem text="Download up to 5 tender PDFs daily" />
              <li className="flex items-center space-x-3 opacity-50">
                <div className="w-5 h-5 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center shrink-0">
-                  <Check className="w-3 h-3 text-slate-400 stroke-3" />
+                  <Check className="w-3 h-3 text-slate-600 stroke-3" />
                </div>
                <span className="text-sm font-medium text-slate-500">No automated email or mobile alerts</span>
              </li>
@@ -201,7 +201,7 @@ export default function SubscriptionsPage() {
                {profile.membership_plan === 'starter' ? 'Current Plan' : 'Upgrade to Starter'}
              </button>
              {isAnnual && profile.membership_plan !== 'starter' && profile.membership_plan !== 'pro' && (
-               <span className="text-center text-[10px] text-slate-400 dark:text-slate-500 font-medium mt-2">Billed ₹948 once per year</span>
+               <span className="text-center text-xs text-slate-600 dark:text-slate-400 font-medium mt-2">Billed ₹948 once per year</span>
              )}
            </div>
 
@@ -240,7 +240,7 @@ export default function SubscriptionsPage() {
                {profile.membership_plan === 'pro' ? 'Current Plan' : 'Upgrade to Pro'}
              </button>
              {isAnnual && profile.membership_plan !== 'pro' && (
-               <span className="text-center text-[10px] text-amber-600/60 font-medium mt-2">Billed ₹2,868 once per year</span>
+               <span className="text-center text-xs text-amber-600/60 font-medium mt-2">Billed ₹2,868 once per year</span>
              )}
            </div>
 

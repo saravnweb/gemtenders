@@ -92,7 +92,7 @@ export default function AddMonitorForm({ userId, membershipPlan, totalKeywords }
 
                     <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2 no-scrollbar">
                        <div>
-                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Tender Keywords *</label>
+                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1 block">Tender Keywords *</label>
                          <input
                              type="text"
                              value={keyword}
@@ -104,7 +104,7 @@ export default function AddMonitorForm({ userId, membershipPlan, totalKeywords }
                        </div>
 
                        <div>
-                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-1">
+                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-1">
                             <MapPin className="w-3.5 h-3.5" /> Specific States (Optional)
                          </label>
                          <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-3 bg-slate-50 border border-slate-200 rounded-xl shadow-inner no-scrollbar">
@@ -113,7 +113,7 @@ export default function AddMonitorForm({ userId, membershipPlan, totalKeywords }
                                type="button"
                                key={state}
                                onClick={() => toggleState(state)}
-                               className={`px-2 py-1 text-[10px] font-bold rounded-lg border transition-all ${
+                               className={`px-2 py-1 text-xs font-bold rounded-lg border transition-all ${
                                  selectedStates.includes(state) 
                                    ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/20' 
                                    : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
@@ -126,7 +126,7 @@ export default function AddMonitorForm({ userId, membershipPlan, totalKeywords }
                        </div>
 
                        <div>
-                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 block">Specific Cities (Optional, comma-separated)</label>
+                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1 block">Specific Cities (Optional, comma-separated)</label>
                          <input
                              type="text"
                              value={citiesInput}

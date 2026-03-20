@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase-server';
+import { createClient } from "@/lib/supabase/server";
 import { Bookmark, MapPin, Download, ExternalLink, Search } from 'lucide-react';
 import Link from 'next/link';
 
@@ -57,7 +57,7 @@ export default async function SavedBidsPage() {
               <tr role="row" key={item.id} className="group bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-xl p-5 hover:border-slate-300 hover:shadow-md transition-all flex flex-col md:flex-row gap-6 relative overflow-hidden shadow-sm">
                  {/* Date Badge Left */}
                  <td role="cell" className="flex-none md:w-24 flex flex-col items-center justify-center bg-slate-50 dark:bg-zinc-950 rounded-xl border border-slate-100 dark:border-zinc-800 p-4 w-full">
-                    <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Closes</span>
+                    <span className="text-[9px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest mb-1">Closes</span>
                     <span className={`text-lg font-bold ${isClosingSoon ? 'text-red-600' : 'text-slate-900 dark:text-slate-100'}`}>
                        {new Date(tender.end_date).getDate()}
                     </span>
@@ -70,11 +70,11 @@ export default async function SavedBidsPage() {
                  <td role="cell" className="flex-1 space-y-3 w-full">
                     <div>
                       <div className="flex items-center space-x-1.5 mb-2">
-                        <span className="text-[10px] font-medium bg-slate-50 dark:bg-zinc-950 text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded border border-slate-100 dark:border-zinc-800 font-mono tracking-tighter">
+                        <span className="text-xs font-medium bg-slate-50 dark:bg-zinc-950 text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded border border-slate-100 dark:border-zinc-800 font-mono tracking-tighter">
                           {tender.bid_number}
                         </span>
                         {tender.eligibility_msme && (
-                          <span className="text-[10px] font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded border border-blue-100 dark:border-blue-800">MSE</span>
+                          <span className="text-xs font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded border border-blue-100 dark:border-blue-800">MSE</span>
                         )}
                       </div>
                       <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-snug">
@@ -88,21 +88,21 @@ export default async function SavedBidsPage() {
 
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 pt-3 border-t border-slate-50 dark:border-zinc-800">
                       <div>
-                        <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-0.5">Budget / EMD</span>
+                        <span className="text-[9px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest block mb-0.5">Budget / EMD</span>
                         <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{formattedEMD}</span>
                       </div>
                       <div>
-                        <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-0.5">Quantity</span>
+                        <span className="text-[9px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest block mb-0.5">Quantity</span>
                         <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{tender.quantity} Units</span>
                       </div>
                       <div>
-                        <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-0.5">Start Date</span>
+                        <span className="text-[9px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest block mb-0.5">Start Date</span>
                         <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
                           {tender.start_date ? new Date(tender.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' }) : "N/A"}
                         </span>
                       </div>
                       <div>
-                        <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-0.5">Opening Date</span>
+                        <span className="text-[9px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest block mb-0.5">Opening Date</span>
                         <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
                           {tender.opening_date ? new Date(tender.opening_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' }) : "N/A"}
                         </span>

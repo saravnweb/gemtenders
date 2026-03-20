@@ -62,7 +62,7 @@ export default function LoginPage() {
           </button>
         </div>
 
-        <p className="mt-8 text-center text-[11px] text-fresh-sky-600 leading-relaxed px-4">
+        <p className="mt-8 text-center text-xs text-fresh-sky-600 leading-relaxed px-4">
           By continuing, you agree to our <span className="text-fresh-sky-700 underline cursor-pointer hover:text-fresh-sky-800 transition-colors">Terms of Service</span> and <span className="text-fresh-sky-700 underline cursor-pointer hover:text-fresh-sky-800 transition-colors">Privacy Policy</span>.
         </p>
       </div>

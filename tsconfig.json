@@ -36,6 +36,14 @@
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "scraper",
+    "scripts",
+    "tmp",
+    "test*.ts",
+    "check-db.ts",
+    "query.ts",
+    "script.js",
+    "test*.js"
   ]
 }

@@ -8,12 +8,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "scrape": "tsx scripts/run-scraper.ts",
+    "crawl": "tsx scripts/scraper/crawler.ts",
+    "parse": "tsx scripts/scraper/parser.ts",
     "enrich": "tsx scripts/enrich-tenders.ts",
-    "stats": "tsx scripts/db-stats.ts",
-    "clean": "tsx scripts/clean-supabase.ts",
-    "fast-scrape": "tsx scripts/fast-api-scraper.ts",
-    "crawl": "tsx scripts/crawl-stubs.ts"
+    "stats": "tsx scripts/db-stats.ts"
   },
   "keywords": [],
   "author": "",
@@ -25,7 +23,6 @@
     "@supabase/supabase-js": "^2.98.0",
     "@tailwindcss/postcss": "^4.2.1",
     "@types/node": "^25.3.5",
-    "@types/pdf-parse": "^1.1.5",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "autoprefixer": "^10.4.27",

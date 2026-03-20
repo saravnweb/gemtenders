@@ -2,7 +2,7 @@ import TendersClient from '@/app/TendersClient';
 import { Metadata } from 'next';
 import { KEYWORD_CATEGORIES } from '@/lib/categories';
 import { notFound } from 'next/navigation';
-import { createClient } from '@/lib/supabase-server';
+import { createClient } from "@/lib/supabase/server";
 
 export const revalidate = 60; // Cache for 60s
 

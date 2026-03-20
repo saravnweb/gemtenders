@@ -59,13 +59,13 @@ export default function MyLocations({ user }: { user: any }) {
        
        <div className="space-y-5">
          <div>
-            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 block">States</label>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 block">States</label>
             <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-4 bg-slate-50 border border-slate-200 rounded-xl shadow-inner no-scrollbar">
               {STATES.map(state => (
                 <button
                   key={state}
                   onClick={() => toggleState(state)}
-                  className={`px-3 py-1.5 text-[11px] font-bold rounded-lg border transition-all ${
+                  className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-all ${
                     selectedStates.includes(state) 
                       ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/20' 
                       : 'bg-white text-slate-600 border-slate-300 hover:border-slate-400'
@@ -78,7 +78,7 @@ export default function MyLocations({ user }: { user: any }) {
          </div>
          
          <div>
-           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 block">Cities (Comma-separated)</label>
+           <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block">Cities (Comma-separated)</label>
            <input
              type="text"
              value={citiesInput}
@@ -93,9 +93,9 @@ export default function MyLocations({ user }: { user: any }) {
                  const nearby = getNearbyCities(city);
                  if (!nearby.length) return null;
                  return (
-                   <div key={city} className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-500">
+                   <div key={city} className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
                      <span className="font-semibold text-slate-600">{city}:</span>
-                     <span className="text-slate-400">also includes</span>
+                     <span className="text-slate-600">also includes</span>
                      {nearby.map(n => (
                        <span key={n} className="px-2 py-0.5 bg-blue-50 text-blue-600 border border-blue-100 rounded-md font-medium capitalize">
                          {n}

@@ -153,7 +153,7 @@ export default function MonitorCard({ search, membershipPlan, totalKeywords }: {
                                 setIsEditingName(false);
                                 setEditNameValue(name);
                             }}
-                            className="p-1.5 text-slate-400 hover:bg-slate-50 rounded-md transition-colors"
+                            className="p-1.5 text-slate-600 hover:bg-slate-50 rounded-md transition-colors"
                             title="Cancel"
                         >
                             <X className="w-4 h-4" />
@@ -167,7 +167,7 @@ export default function MonitorCard({ search, membershipPlan, totalKeywords }: {
                         <button
                             type="button"
                             onClick={() => setIsEditingName(true)}
-                            className="opacity-0 group-hover/title:opacity-100 p-1 text-slate-400 hover:text-blue-600 transition-all focus:outline-none"
+                            className="opacity-0 group-hover/title:opacity-100 p-1 text-slate-600 hover:text-blue-600 transition-all focus:outline-none"
                             title="Edit group name"
                         >
                             <Pencil className="w-3.5 h-3.5" />
@@ -179,7 +179,7 @@ export default function MonitorCard({ search, membershipPlan, totalKeywords }: {
             <div className="space-y-4">
                 <div className="flex flex-wrap gap-2">
                     {keywords.map((keyword: string, idx: number) => (
-                        <div key={idx} className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest bg-blue-50 px-2.5 py-1.5 rounded-full border border-blue-100 text-blue-700 group/pill">
+                        <div key={idx} className="flex items-center gap-1 text-xs font-bold uppercase tracking-widest bg-blue-50 px-2.5 py-1.5 rounded-full border border-blue-100 text-blue-700 group/pill">
                             <span>{keyword}</span>
                             <button
                                 type="button" 
@@ -192,7 +192,7 @@ export default function MonitorCard({ search, membershipPlan, totalKeywords }: {
                         </div>
                     ))}
                     {search.query_params.state && (
-                        <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest bg-indigo-50 px-2.5 py-1.5 rounded-full border border-indigo-100 text-indigo-700">
+                        <div className="flex items-center gap-1 text-xs font-bold uppercase tracking-widest bg-indigo-50 px-2.5 py-1.5 rounded-full border border-indigo-100 text-indigo-700">
                             <span>{search.query_params.state}</span>
                             <button 
                                 type="button" 
@@ -204,7 +204,7 @@ export default function MonitorCard({ search, membershipPlan, totalKeywords }: {
                         </div>
                     )}
                     {search.query_params.city && (
-                        <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest bg-indigo-50 px-2.5 py-1.5 rounded-full border border-indigo-100 text-indigo-700">
+                        <div className="flex items-center gap-1 text-xs font-bold uppercase tracking-widest bg-indigo-50 px-2.5 py-1.5 rounded-full border border-indigo-100 text-indigo-700">
                             <span>{search.query_params.city}</span>
                             <button 
                                 type="button" 
@@ -222,7 +222,7 @@ export default function MonitorCard({ search, membershipPlan, totalKeywords }: {
                                 value={newKeyword}
                                 onChange={(e) => setNewKeyword(e.target.value)}
                                 placeholder="New keyword"
-                                className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border border-blue-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 w-32"
+                                className="text-xs font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border border-blue-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 w-32"
                                 autoFocus
                                 onBlur={() => setIsAdding(false)}
                             />
@@ -231,7 +231,7 @@ export default function MonitorCard({ search, membershipPlan, totalKeywords }: {
                         <button 
                             type="button" 
                             onClick={() => setIsAdding(true)}
-                            className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest bg-slate-50 hover:bg-slate-100 px-2.5 py-1.5 rounded-full border border-dashed border-slate-300 text-slate-600 transition-colors"
+                            className="flex items-center gap-1 text-xs font-bold uppercase tracking-widest bg-slate-50 hover:bg-slate-100 px-2.5 py-1.5 rounded-full border border-dashed border-slate-300 text-slate-600 transition-colors"
                         >
                             <Plus className="w-3 h-3" />
                             <span>Add</span>
@@ -242,7 +242,7 @@ export default function MonitorCard({ search, membershipPlan, totalKeywords }: {
                 <div className="pt-4 border-t border-slate-50 flex items-center justify-between gap-3">
                     <Link 
                         href={`/?q=${encodeURIComponent(keywords.join(',') || '')}${search.query_params.state ? `&state=${search.query_params.state}` : ''}${search.query_params.city ? `&city=${search.query_params.city}` : ''}`} 
-                        className="flex-1 py-2.5 bg-slate-50 text-slate-700 rounded-lg text-[10px] font-bold tracking-widest uppercase text-center hover:bg-slate-100 transition-all flex items-center justify-center space-x-1 border border-slate-200"
+                        className="flex-1 py-2.5 bg-slate-50 text-slate-700 rounded-lg text-xs font-bold tracking-widest uppercase text-center hover:bg-slate-100 transition-all flex items-center justify-center space-x-1 border border-slate-200"
                     >
                         <span>Live Bids</span>
                         <ChevronRight className="w-3.5 h-3.5" />

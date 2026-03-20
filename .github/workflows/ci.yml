@@ -1,0 +1,34 @@
+name: CI Pipelines
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+
+jobs:
+  build_and_audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint Next.js
+        run: npm run lint
+
+      - name: Build Application
+        run: npm run build
+
+      - name: Lighthouse CI Audit
+        run: |
+          npm install -g @lhci/cli
+          npx lhci autorun --collect.startServerCommand="npm start" --collect.url="http://127.0.0.1:3000" --assert.assertions.performance="warn" --assert.assertions.accessibility="warn" --assert.assertions.seo="warn"
+

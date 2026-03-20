@@ -1,14 +1,18 @@
 import { Zap, Play, CheckCircle, Database, Shield, LayoutDashboard, Globe, Cpu, ArrowRight } from "lucide-react";
-import { supabase } from "@/lib/supabase";
-import { scrapeGeMBids } from "@/lib/scraper/gem-scraper";
-import { runEnrichment } from "@/lib/scraper/enricher";
+import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import { ScrapeButton, EnrichButton } from "./client-buttons";
+import { exec } from "child_process";
+import util from "util";
+
+const execAsync = util.promisify(exec);
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminPage() {
+  const supabase = await createClient();
+  
   // Fetch detailed stats on server
   const { count: totalCount } = await supabase
     .from("tenders")
@@ -24,7 +28,7 @@ export default async function AdminPage() {
   async function startScrapeAction() {
     "use server";
     try {
-      await scrapeGeMBids({ maxPages: 3 });
+      await execAsync("npm run scrape --prefix scraper");
       revalidatePath("/admin");
       revalidatePath("/");
     } catch (e) {
@@ -35,7 +39,7 @@ export default async function AdminPage() {
   async function startEnrichAction() {
     "use server";
     try {
-      await runEnrichment(15);
+      await execAsync("npm run enrich --prefix scraper");
       revalidatePath("/admin");
       revalidatePath("/");
     } catch (e) {
@@ -55,7 +59,7 @@ export default async function AdminPage() {
             </h1>
             <p className="text-slate-500 font-medium mt-1">Manage tender ingestion and AI enrichment</p>
           </div>
-          <Link href="/" className="flex items-center space-x-2 text-sm font-bold text-slate-400 hover:text-blue-600 transition-colors bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm">
+          <Link href="/" className="flex items-center space-x-2 text-sm font-bold text-slate-600 hover:text-blue-600 transition-colors bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm">
             <span>View Live Site</span>
             <ArrowRight className="w-4 h-4" />
           </Link>
@@ -66,7 +70,7 @@ export default async function AdminPage() {
             <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-4">
               <Database className="w-5 h-5" />
             </div>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Total Indexed</p>
+            <p className="text-xs font-bold text-slate-600 uppercase tracking-widest mb-1">Total Indexed</p>
             <p className="text-3xl font-black text-slate-800">{totalCount || 0}</p>
           </div>
           
@@ -74,7 +78,7 @@ export default async function AdminPage() {
             <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center mb-4">
               <Shield className="w-5 h-5" />
             </div>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">AI Enriched</p>
+            <p className="text-xs font-bold text-slate-600 uppercase tracking-widest mb-1">AI Enriched</p>
             <p className="text-3xl font-black text-slate-800">{enrichedCount || 0}</p>
           </div>
 
@@ -96,7 +100,7 @@ export default async function AdminPage() {
               <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-md shadow-blue-500/50">1</div>
               <h2 className="text-xl font-bold">Run Full Pipeline (Crawl + AI)</h2>
             </div>
-            <p className="text-slate-400 text-sm leading-relaxed mb-8 relative">
+            <p className="text-slate-600 text-sm leading-relaxed mb-8 relative">
               This completely unified process launches a stealth browser, scans GeM BidPlus, downloads latest PDFs, runs them through Gemini AI for deep extraction, and saves fully enriched tenders. No partial data is saved.
             </p>
             <form action={startScrapeAction} className="relative">
@@ -129,11 +133,11 @@ export default async function AdminPage() {
         <div className="mt-12 p-6 bg-slate-100 rounded-3xl flex items-center justify-center space-x-8">
            <div className="flex items-center space-x-2">
              <CheckCircle className="w-4 h-4 text-emerald-500" />
-             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Supabase Connected</span>
+             <span className="text-xs font-bold text-slate-600 uppercase tracking-widest">Supabase Connected</span>
            </div>
            <div className="flex items-center space-x-2">
              <CheckCircle className="w-4 h-4 text-emerald-500" />
-             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Gemini-2.0 Ready</span>
+             <span className="text-xs font-bold text-slate-600 uppercase tracking-widest">Gemini-2.0 Ready</span>
            </div>
         </div>
       </div>

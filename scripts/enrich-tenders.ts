@@ -16,7 +16,7 @@ import { normalizeState, normalizeCity } from '../lib/locations';
 // ─── CONFIG ────────────────────────────────────────────────────────────────
 const args = process.argv.slice(2);
 const LIMIT       = parseInt(args.find(a => a.startsWith('--limit='))?.split('=')[1]       || '100', 10);
-const CONCURRENCY = parseInt(args.find(a => a.startsWith('--concurrency='))?.split('=')[1] || '10',   10);
+const CONCURRENCY = parseInt(args.find(a => a.startsWith('--concurrency='))?.split('=')[1] || '1',   10);
 const BATCH_DELAY = parseInt(args.find(a => a.startsWith('--delay='))?.split('=')[1]       || '0',10);
 const BUCKET      = 'tender-documents';
 // ──────────────────────────────────────────────────────────────────────────

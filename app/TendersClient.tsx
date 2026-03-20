@@ -109,9 +109,11 @@ async function queryTendersCount(filters: Filters): Promise<number> {
   }
 
   if (filters.q.trim()) {
-    q = q.or(
-      `title.ilike.%${filters.q}%,bid_number.ilike.%${filters.q}%,department.ilike.%${filters.q}%,ministry_name.ilike.%${filters.q}%,organisation_name.ilike.%${filters.q}%,state.ilike.%${filters.q}%,city.ilike.%${filters.q}%,ai_summary.ilike.%${filters.q}%`
+    const searchTerms = filters.q.split(',').map(s => s.trim()).filter(Boolean);
+    const orClauses = searchTerms.map(term => 
+      `title.ilike.%${term}%,bid_number.ilike.%${term}%,department.ilike.%${term}%,ministry_name.ilike.%${term}%,organisation_name.ilike.%${term}%,state.ilike.%${term}%,city.ilike.%${term}%,ai_summary.ilike.%${term}%`
     );
+    q = q.or(orClauses.join(','));
   }
 
   if (filters.states.length > 0) q = q.in("state", filters.states);
@@ -208,9 +210,11 @@ async function queryTenders(filters: Filters, page: number): Promise<any[]> {
 
   // Text search
   if (filters.q.trim()) {
-    q = q.or(
-      `title.ilike.%${filters.q}%,bid_number.ilike.%${filters.q}%,department.ilike.%${filters.q}%,ministry_name.ilike.%${filters.q}%,organisation_name.ilike.%${filters.q}%,state.ilike.%${filters.q}%,city.ilike.%${filters.q}%,ai_summary.ilike.%${filters.q}%`
+    const searchTerms = filters.q.split(',').map(s => s.trim()).filter(Boolean);
+    const orClauses = searchTerms.map(term => 
+      `title.ilike.%${term}%,bid_number.ilike.%${term}%,department.ilike.%${term}%,ministry_name.ilike.%${term}%,organisation_name.ilike.%${term}%,state.ilike.%${term}%,city.ilike.%${term}%,ai_summary.ilike.%${term}%`
     );
+    q = q.or(orClauses.join(','));
   }
 
   // Location
@@ -607,7 +611,7 @@ function TendersClient({
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
                   <span className="relative inline-flex rounded-full h-1.5 w-1.5 sm:h-2 sm:w-2 bg-green-500" />
                 </span>
-                <span className="text-[10px] sm:text-xs text-blue-600 dark:text-blue-400 font-bold tracking-wide uppercase">Live Updates</span>
+                <span className="text-xs sm:text-xs text-blue-600 dark:text-blue-400 font-bold tracking-wide uppercase">Live Updates</span>
               </div>
               <h2 className="text-xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight mb-1 sm:mb-2">
                 Find Your Next Tender
@@ -615,17 +619,17 @@ function TendersClient({
 
               <div className="mt-3 sm:mt-4 flex flex-row gap-2 sm:gap-3 max-w-3xl w-full">
                 <div className="relative flex-1 min-w-0">
-                  <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-slate-400 dark:text-slate-500" />
+                  <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-slate-600 dark:text-slate-400" />
                   <input
                     type="text"
                     placeholder="Search by keywords, bid number..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl sm:rounded-2xl py-2.5 sm:py-3.5 pl-9 sm:pl-12 pr-[80px] sm:pr-[120px] text-xs sm:text-sm text-slate-700 dark:text-slate-300 placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none leading-normal"
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl sm:rounded-2xl py-2.5 sm:py-3.5 pl-9 sm:pl-12 pr-[80px] sm:pr-[120px] text-xs sm:text-sm text-slate-700 dark:text-slate-300 placeholder:text-slate-600 dark:placeholder:text-slate-600 focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none leading-normal"
                   />
                   <div className="absolute right-1 sm:right-1.5 top-1/2 -translate-y-1/2 flex items-center">
                     {searchQuery && (
-                      <button aria-label="Clear Search" onClick={() => setSearchQuery("")} className="text-slate-400 hover:text-slate-600 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 p-1 sm:p-1.5 rounded-full transition-colors mr-1 sm:mr-1.5">
+                      <button aria-label="Clear Search" onClick={() => setSearchQuery("")} className="text-slate-600 hover:text-slate-600 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 p-1 sm:p-1.5 rounded-full transition-colors mr-1 sm:mr-1.5">
                         <X className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                       </button>
                     )}
@@ -653,12 +657,12 @@ function TendersClient({
                   <button
                     onClick={handleSaveSearch}
                     disabled={isSavingSearch || saveSuccess}
-                    className={`flex items-center space-x-1.5 sm:space-x-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[10px] sm:text-[11px] font-black uppercase tracking-widest transition-all shadow-sm ${saveSuccess ? "bg-green-500 text-white shadow-green-100" : "bg-slate-900 text-white hover:bg-black active:scale-[0.98]"}`}
+                    className={`flex items-center space-x-1.5 sm:space-x-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-xs font-black uppercase tracking-widest transition-all shadow-sm ${saveSuccess ? "bg-green-500 text-white shadow-green-100" : "bg-slate-900 text-white hover:bg-black active:scale-[0.98]"}`}
                   >
                     {isSavingSearch ? <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-spin" /> : saveSuccess ? <CheckCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> : <Bell className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
                     <span>{saveSuccess ? "Saved!" : "Save Alert"}</span>
                   </button>
-                  <p className="text-[10px] sm:text-xs text-slate-400 dark:text-slate-500 hidden sm:block">
+                  <p className="text-xs sm:text-xs text-slate-600 dark:text-slate-400 hidden sm:block">
                     Get notified when new tenders match these filters.
                   </p>
                 </div>
@@ -681,7 +685,7 @@ function TendersClient({
               >
                 <Zap className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${activeTab === "foryou" ? "text-blue-600" : "text-slate-500 dark:text-slate-400"}`} />
                 <span>For You</span>
-                <span className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] font-black tracking-widest uppercase ${activeTab === "foryou" ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"}`}>
+                <span className={`px-1.5 sm:px-2 py-0.5 rounded-full text-xs font-black tracking-widest uppercase ${activeTab === "foryou" ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"}`}>
                   {forYouLoading ? "…" : forYouTenders.length}
                 </span>
                 {activeTab === "foryou" && <div className="absolute bottom-[-8px] sm:bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-t-full" />}
@@ -695,7 +699,7 @@ function TendersClient({
               >
                 <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-500 group-hover:text-blue-600 transition-colors" />
                 <span>For You</span>
-                <span className="px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] font-black tracking-widest uppercase bg-slate-100 dark:bg-slate-800 text-slate-600 group-hover:bg-blue-100 group-hover:text-blue-700 transition-colors hidden sm:inline-block">
+                <span className="px-1.5 sm:px-2 py-0.5 rounded-full text-xs font-black tracking-widest uppercase bg-slate-100 dark:bg-slate-800 text-slate-600 group-hover:bg-blue-100 group-hover:text-blue-700 transition-colors hidden sm:inline-block">
                   + Add Keywords
                 </span>
               </button>
@@ -711,7 +715,7 @@ function TendersClient({
                   : `${displayTenders.length}${hasMore ? "+" : ""} results`}
             </div>
             <div className="flex items-center bg-slate-50 dark:bg-slate-900 sm:bg-transparent px-2 sm:px-0 py-1 sm:py-0 rounded font-medium">
-              <span className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 mr-1 sm:mr-1.5 hidden sm:inline">Sort:</span>
+              <span className="text-xs sm:text-xs text-slate-600 dark:text-slate-400 mr-1 sm:mr-1.5 hidden sm:inline">Sort:</span>
               <select
                 aria-label="Sort order"
                 value={sortOrder}
@@ -745,7 +749,7 @@ function TendersClient({
               {dateFilter !== "all" && <FilterTag label={`Date: ${dateFilter}`} onRemove={() => setDateFilter("all")} />}
               <button
                 onClick={() => { setSelectedStates([]); setSelectedCities([]); setEmdFilter("all"); setDateFilter("all"); setMsmeOnly(false); setMiiOnly(false); setDescriptionQuery(""); setSelectedCategory(null); }}
-                className="text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 transition-colors ml-1 px-2 py-1"
+                className="text-xs text-slate-600 dark:text-slate-400 hover:text-slate-600 transition-colors ml-1 px-2 py-1"
               >
                 Clear all
               </button>
@@ -763,7 +767,7 @@ function TendersClient({
                   <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Filters</h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400">Refine your tender search</p>
                 </div>
-                <button aria-label="Close filters" onClick={() => setShowFilters(false)} className="p-2 text-slate-400 hover:text-slate-900 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-100 dark:border-slate-700 transition-all active:scale-95">
+                <button aria-label="Close filters" onClick={() => setShowFilters(false)} className="p-2 text-slate-600 hover:text-slate-900 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-100 dark:border-slate-700 transition-all active:scale-95">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -771,7 +775,7 @@ function TendersClient({
               <div className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar">
                 {/* Advanced Search */}
                 <div className="space-y-3 relative">
-                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center">
+                  <label className="text-xs font-black text-slate-600 uppercase tracking-widest flex items-center">
                     <Zap className="w-3.5 h-3.5 mr-2 text-blue-500" /> Advanced Search
                   </label>
                   <div className="relative">
@@ -782,20 +786,20 @@ function TendersClient({
                       placeholder={isPremium ? "Keywords in AI summary..." : "Premium feature..."}
                       value={descriptionQuery}
                       onChange={(e) => setDescriptionQuery(e.target.value)}
-                      className={`w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-3 pl-11 pr-4 text-sm text-slate-700 dark:text-slate-300 placeholder:text-slate-400 focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-blue-100 transition-all outline-none ${!isPremium ? "opacity-50 cursor-not-allowed" : ""}`}
+                      className={`w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-3 pl-11 pr-4 text-sm text-slate-700 dark:text-slate-300 placeholder:text-slate-600 focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-blue-100 transition-all outline-none ${!isPremium ? "opacity-50 cursor-not-allowed" : ""}`}
                     />
                     {!isPremium && (
-                      <Link href={user ? "/dashboard/subscriptions" : "/login"} className="absolute right-3 top-1/2 -translate-y-1/2 px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-[10px] font-bold rounded flex items-center hover:bg-amber-200 transition-colors">
+                      <Link href={user ? "/dashboard/subscriptions" : "/login"} className="absolute right-3 top-1/2 -translate-y-1/2 px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-bold rounded flex items-center hover:bg-amber-200 transition-colors">
                         <Zap className="w-3 h-3 mr-1" /> Unlock
                       </Link>
                     )}
                   </div>
-                  <p className="text-[10px] text-slate-400 leading-relaxed italic">Searches deep within technical specifications extracted from PDFs.</p>
+                  <p className="text-xs text-slate-600 leading-relaxed italic">Searches deep within technical specifications extracted from PDFs.</p>
                 </div>
 
                 {/* State Filter */}
                 <div className="space-y-4">
-                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center">
+                  <label className="text-xs font-black text-slate-600 uppercase tracking-widest flex items-center">
                     <MapPin className="w-3.5 h-3.5 mr-2" /> State / Location
                   </label>
                   {!statesLoaded ? (
@@ -826,7 +830,7 @@ function TendersClient({
                 {/* City Filter */}
                 {cities.length > 0 && (
                   <div className="space-y-4">
-                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center">
+                    <label className="text-xs font-black text-slate-600 uppercase tracking-widest flex items-center">
                       <MapPin className="w-3.5 h-3.5 mr-2" /> City
                     </label>
                     <div className="grid grid-cols-2 gap-2 max-h-[200px] overflow-y-auto no-scrollbar">
@@ -844,7 +848,7 @@ function TendersClient({
 
                 {/* EMD Filter */}
                 <div className="space-y-4">
-                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center">
+                  <label className="text-xs font-black text-slate-600 uppercase tracking-widest flex items-center">
                     <Zap className="w-3.5 h-3.5 mr-2 text-amber-500" /> EMD Amount
                   </label>
                   <div className="grid grid-cols-1 gap-2">
@@ -862,7 +866,7 @@ function TendersClient({
 
                 {/* Date Filter */}
                 <div className="space-y-4">
-                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center">
+                  <label className="text-xs font-black text-slate-600 uppercase tracking-widest flex items-center">
                     <Clock className="w-3.5 h-3.5 mr-2" /> Closing Date
                   </label>
                   <div className="grid grid-cols-1 gap-2">
@@ -879,7 +883,7 @@ function TendersClient({
 
                 {/* Preferences */}
                 <div className="space-y-4 pb-10">
-                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center justify-between">
+                  <label className="text-xs font-black text-slate-600 uppercase tracking-widest flex items-center justify-between">
                     <span className="flex items-center"><Shield className="w-3.5 h-3.5 mr-2" /> Preferences</span>
                     {!isPremium && <span className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 text-[9px] px-1.5 py-0.5 rounded font-bold">PREMIUM</span>}
                   </label>
@@ -938,7 +942,7 @@ function TendersClient({
               <Search className="w-7 h-7 text-slate-300 dark:text-slate-600" />
             </div>
             <h3 className="text-lg font-medium text-slate-500 dark:text-slate-400">No matching tenders found.</h3>
-            <p className="text-slate-400 dark:text-slate-500 mt-1 text-sm">Try adjusting your filters or search terms.</p>
+            <p className="text-slate-600 dark:text-slate-400 mt-1 text-sm">Try adjusting your filters or search terms.</p>
           </div>
         ) : (
           <>
@@ -974,7 +978,7 @@ function TendersClient({
                   disabled={loadingMore}
                   className="bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold py-3 px-8 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-all focus:ring-2 focus:ring-blue-500 focus:outline-none flex items-center space-x-2 disabled:opacity-60"
                 >
-                  {loadingMore ? <Loader2 className="w-4 h-4 animate-spin text-slate-400" /> : <RefreshCw className="w-4 h-4 text-slate-400" />}
+                  {loadingMore ? <Loader2 className="w-4 h-4 animate-spin text-slate-600" /> : <RefreshCw className="w-4 h-4 text-slate-600" />}
                   <span>{loadingMore ? "Loading…" : "Load More Tenders"}</span>
                 </button>
               </div>
@@ -1092,11 +1096,11 @@ function TenderCard({
         </Link>
         {tender.title && tender.title.length > 60 && (
           <div className="flex items-center space-x-2 mt-1 relative z-10">
-            <button aria-expanded={isExpanded} aria-label={isExpanded ? "Show less title" : "Show more title"} onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsExpanded(!isExpanded); }} className="text-[11px] text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">
+            <button aria-expanded={isExpanded} aria-label={isExpanded ? "Show less title" : "Show more title"} onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsExpanded(!isExpanded); }} className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">
               {isExpanded ? "Show less" : "Show more"}
             </button>
             {category && (
-              <span className="flex items-center space-x-1 px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-[10px] font-bold text-slate-500 dark:text-slate-400">
+              <span className="flex items-center space-x-1 px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-xs font-bold text-slate-500 dark:text-slate-400">
                 <span>{category.icon}</span><span>{category.name}</span>
               </span>
             )}
@@ -1104,7 +1108,7 @@ function TenderCard({
         )}
         {tender.title && tender.title.length <= 60 && category && (
           <div className="flex items-center space-x-2 mt-1 relative z-10">
-            <span className="flex items-center space-x-1 px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-[10px] font-bold text-slate-500 dark:text-slate-400">
+            <span className="flex items-center space-x-1 px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-xs font-bold text-slate-500 dark:text-slate-400">
               <span>{category.icon}</span><span>{category.name}</span>
             </span>
           </div>
@@ -1132,7 +1136,7 @@ function TenderCard({
             <Zap className="w-2.5 h-2.5 text-blue-500" />
             <span className="text-[9px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-tighter">Insight</span>
           </div>
-          <p className="text-[11px] text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed italic">
+          <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed italic">
             "<HighlightedText text={tender.ai_summary} highlightTerms={highlightTerms} />"
           </p>
         </td>
@@ -1140,7 +1144,7 @@ function TenderCard({
 
       {/* Location & Bid ID */}
       <td role="cell" className="flex items-center justify-between mb-3 relative z-20 w-full">
-        <div className="flex items-center text-xs text-slate-400 dark:text-slate-500 space-x-1.5 min-w-0">
+        <div className="flex items-center text-xs text-slate-600 dark:text-slate-400 space-x-1.5 min-w-0">
           <MapPin className="w-3 h-3 text-slate-300 dark:text-slate-600 shrink-0" />
           <div className="flex items-center truncate">
             {tender.city && (
@@ -1159,23 +1163,23 @@ function TenderCard({
             {!tender.city && !tender.state && <span className="truncate">{tender.location || "N/A"}</span>}
           </div>
           <span className="text-slate-200 dark:text-slate-700 shrink-0">|</span>
-          <span className="font-mono text-[11px] text-slate-500 dark:text-slate-400 truncate">{bidId}</span>
+          <span className="font-mono text-xs text-slate-500 dark:text-slate-400 truncate">{bidId}</span>
         </div>
         <div className="flex items-center space-x-1 shrink-0">
-          {tender.eligibility_msme && <span className="text-[10px] font-bold px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded border border-blue-100 dark:border-blue-800" title="MSE Preferred">MSE</span>}
-          {tender.eligibility_mii  && <span className="text-[10px] font-bold px-1.5 py-0.5 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded border border-amber-100 dark:border-amber-800" title="MII Preferred">MII</span>}
-          <span className="text-[10px] font-medium px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded">GeM</span>
+          {tender.eligibility_msme && <span className="text-xs font-bold px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded border border-blue-100 dark:border-blue-800" title="MSE Preferred">MSE</span>}
+          {tender.eligibility_mii  && <span className="text-xs font-bold px-1.5 py-0.5 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded border border-amber-100 dark:border-amber-800" title="MII Preferred">MII</span>}
+          <span className="text-xs font-medium px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded">GeM</span>
         </div>
       </td>
 
       {/* 4: EMD & Dates */}
       <td role="cell" className="grid grid-cols-3 gap-2 py-2.5 border-y border-slate-100 dark:border-slate-700 mb-4 bg-slate-50 dark:bg-slate-800 -mx-4 px-4 relative z-10 pointer-events-none mt-auto w-full">
         <div className="flex flex-col">
-          <span className="text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">EMD Amount</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400 mb-0.5">EMD Amount</span>
           <span className="text-[13px] font-medium text-slate-700 dark:text-slate-300 truncate">{formattedEMD}</span>
         </div>
         <div className="flex flex-col items-center border-l border-slate-200 dark:border-slate-700">
-          <span className="text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">Start Date</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400 mb-0.5">Start Date</span>
           <span className="text-[13px] font-medium text-slate-700 dark:text-slate-300">
             {isFallbackDate ? "Pending" : (tender.start_date ? formatDate(tender.start_date) : "N/A")}
           </span>
@@ -1183,7 +1187,7 @@ function TenderCard({
         <div className="flex flex-col items-end border-l border-slate-200 dark:border-slate-700 pl-1">
           <div className="flex items-center space-x-1 mb-0.5">
             <Clock className="w-2.5 h-2.5 text-slate-500 dark:text-slate-400" />
-            <span className="text-[10px] text-slate-500 dark:text-slate-400">Close Date</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400">Close Date</span>
           </div>
           <span className={`text-[13px] font-medium ${isClosingSoon ? 'text-red-500 dark:text-red-400' : 'text-slate-700 dark:text-slate-300'}`}>
             {isFallbackDate ? "Pending" : formatDate(tender.end_date)}
