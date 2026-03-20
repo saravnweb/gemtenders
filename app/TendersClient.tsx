@@ -1066,7 +1066,7 @@ function TenderCard({
     ? "No EMD"
     : tender.emd_amount
       ? new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(tender.emd_amount)
-      : "N/A";
+      : "Not Specified";
 
   const bidId = tender.bid_number?.replace(/\//g, "/");
   const departmentDisplay = formatDepartmentInfo(tender.ministry_name, tender.department_name || tender.department, tender.organisation_name);

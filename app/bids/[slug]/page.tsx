@@ -45,9 +45,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     };
   }
 
-  const title = tender.title
-    ? `${tender.title.substring(0, 60)}${tender.title.length > 60 ? "..." : ""}`
-    : "GeM Tender Details";
+  const title = tender.title || "GeM Tender Details";
   const description = tender.ai_summary
     ? tender.ai_summary.substring(0, 155) + (tender.ai_summary.length > 155 ? "..." : "")
     : `View details for GeM tender: ${tender.title}. Check eligibility, EMD, and bid dates on GeMTenders.org.`;

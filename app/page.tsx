@@ -6,7 +6,7 @@ export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: 'GeM Tender Tracker — Live Government Bids | GeMTenders.org',
-  description: 'Track 10,000+ live GeM portal tenders with AI-powered filtering. Find government bids by category, ministry, and state. Updated daily.',
+  description: 'Discover 10,000+ live GeM portal tenders with our advanced search tool. Find the best government bids by category, ministry, and state, updated daily.',
 };
 
 export default async function Page() {

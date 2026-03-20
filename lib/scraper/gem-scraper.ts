@@ -394,19 +394,19 @@ export async function scrapeGeMBids(options?: { lightMode?: boolean; maxPages?: 
               }
               
               const fallbackEmd = extractEmdFallback(extractedText);
-              if (fallbackEmd !== null && (!aiData || aiData.emd_amount === null)) {
+              if (fallbackEmd !== null && (!aiData || aiData.emd_amount == null)) {
                 console.log(`>>> [SCRAPER] Regex Fallback Found EMD: ${fallbackEmd}`);
                 if (!aiData) aiData = {};
                 aiData.emd_amount = fallbackEmd;
               }
 
               const locFallback = extractLocationFallback(extractedText);
-              if (locFallback.state && (!aiData || !aiData.authority?.state)) {
+              if (locFallback.state && (!aiData || (!aiData.authority?.state && !aiData.authority?.consignee_state))) {
                  console.log(`>>> [SCRAPER] Regex Fallback Found State: ${locFallback.state}`);
                  if (!aiData) aiData = { authority: {} };
                  if (!aiData.authority) aiData.authority = {};
                  aiData.authority.state = locFallback.state;
-                 if (locFallback.city && !aiData.authority.city) aiData.authority.city = locFallback.city;
+                 if (locFallback.city && !aiData.authority.city && !aiData.authority.consignee_city) aiData.authority.city = locFallback.city;
               }
 
               if (aiData) {
@@ -457,8 +457,8 @@ export async function scrapeGeMBids(options?: { lightMode?: boolean; maxPages?: 
       department_name: auth?.department || null,
       organisation_name: auth?.organisation || null,
       office_name: auth?.office || null,
-      state: normalizeState(auth?.state) || null,
-      city: normalizeCity(auth?.city) || null,
+      state: normalizeState(auth?.consignee_state || auth?.state) || null,
+      city: normalizeCity(auth?.consignee_city || auth?.city) || null,
       start_date: finalStartDate,
       end_date: finalEndDate,
       opening_date: finalOpeningDate,

@@ -51,7 +51,7 @@ export default async function SavedBidsPage() {
             {savedTenders.map((item: any) => {
             const tender = item.tenders;
             const isClosingSoon = new Date(tender.end_date).getTime() - Date.now() < 86400000;
-            const formattedEMD = tender.emd_amount === 0 ? "No EMD" : new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(tender.emd_amount);
+            const formattedEMD = tender.emd_amount === 0 ? "No EMD" : tender.emd_amount ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(tender.emd_amount) : "Not Specified";
 
             return (
               <tr role="row" key={item.id} className="group bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-xl p-5 hover:border-slate-300 hover:shadow-md transition-all flex flex-col md:flex-row gap-6 relative overflow-hidden shadow-sm">

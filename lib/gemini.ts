@@ -22,13 +22,15 @@ export async function extractTenderData(pdfText: string) {
     The document layout is a table with Hindi and English headers. The values are usually in English.
     
     CRITICAL EXTRACTION RULES:
-    1. AUTHORITY HIERARCHY & LOCATION:
+    1. AUTHORITY HIERARCHY & LOCATIONS:
        - ministry: "Ministry/State Name"
        - department: "Department Name"
        - organisation: "Organisation Name" (e.g., "Indian Army")
        - office: "Office Name"
-       - state: Extract the exact STATE perfectly from the buyer address or consignee location.
-       - city: Extract the exact CITY or DISTRICT from the buyer address, consignee details, or anywhere in the document. It is extremely critical to identify the city.
+       - state: Extract the exact STATE perfectly from the buyer address.
+       - city: Extract the exact CITY or DISTRICT from the buyer address.
+       - consignee_state: Extract the exact STATE perfectly from the "Consignees/Reporting Officer" or delivery location.
+       - consignee_city: Extract the exact CITY perfectly from the "Consignees/Reporting Officer" or delivery location.
        DO NOT leave these null if they are present in the text.
     2. ITEM DETAILS:
        - tender_title: Extract the FULL value of "Item Category" or "BOQ Title". If it's a long list of items, extract EVERYTHING.
@@ -53,7 +55,9 @@ export async function extractTenderData(pdfText: string) {
         "organisation": "string",
         "office": "string",
         "state": "string",
-        "city": "string"
+        "city": "string",
+        "consignee_state": "string",
+        "consignee_city": "string"
       },
       "dates": {
         "bid_start_date": "ISO-8601",
@@ -106,6 +110,12 @@ export async function extractTenderData(pdfText: string) {
         }
         if (parsedData.authority.city) {
           parsedData.authority.city = normalizeCity(parsedData.authority.city);
+        }
+        if (parsedData.authority.consignee_state) {
+          parsedData.authority.consignee_state = normalizeState(parsedData.authority.consignee_state);
+        }
+        if (parsedData.authority.consignee_city) {
+          parsedData.authority.consignee_city = normalizeCity(parsedData.authority.consignee_city);
         }
       }
       return parsedData;
