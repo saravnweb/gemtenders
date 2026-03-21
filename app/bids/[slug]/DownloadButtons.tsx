@@ -79,25 +79,10 @@ export default function DownloadButtons({
                         <span>Download PDF</span>
                     </a>
                 ) : (
-                    <a
-                        href={detailsUrl}
-                        target="_blank"
-                        className="flex-1 py-3.5 bg-indigo-600 text-white text-sm rounded-xl font-semibold flex items-center justify-center space-x-2 hover:bg-indigo-700 transition-all shadow-md"
-                    >
-                        <LinkIcon className="w-4 h-4" />
-                        <span>View on Portal</span>
-                    </a>
-                )}
-                
-                {pdfUrl && (
-                    <a
-                        href={detailsUrl}
-                        target="_blank"
-                        className="px-4 py-3.5 bg-indigo-50 text-indigo-600 text-sm rounded-xl font-semibold flex items-center justify-center border border-indigo-100 hover:bg-indigo-100 transition-all shadow-sm"
-                        title="View on GeM Portal"
-                    >
-                        <LinkIcon className="w-4 h-4" />
-                    </a>
+                    <div className="flex-1 py-3.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-sm rounded-xl font-semibold flex items-center justify-center space-x-2 cursor-not-allowed border border-slate-200/60 dark:border-slate-700 shadow-sm">
+                        <Download className="w-5 h-5" />
+                        <span>Document Unavailable</span>
+                    </div>
                 )}
             </div>
         );
@@ -117,20 +102,11 @@ export default function DownloadButtons({
                     <span className="relative z-10">Download PDF</span>
                 </a>
             ) : (
-                <div className="flex w-full py-3.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-sm rounded-2xl font-semibold items-center justify-center space-x-2.5 cursor-not-allowed border border-slate-200/60 dark:border-slate-700">
+                <div className="flex w-full py-3.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-sm rounded-2xl font-semibold items-center justify-center space-x-2.5 cursor-not-allowed border border-slate-200/60 dark:border-slate-700 shadow-sm">
                     <Download className="w-4 h-4" />
                     <span>Document Unavailable</span>
                 </div>
             )}
-
-            <a
-                href={detailsUrl}
-                target="_blank"
-                className="flex w-full py-3.5 bg-white dark:bg-slate-900 text-indigo-600 text-sm rounded-2xl font-semibold items-center justify-center space-x-2.5 hover:bg-indigo-50 dark:hover:bg-blue-900/30 transition-all border-2 border-indigo-100 dark:border-blue-800 hover:border-indigo-200 dark:hover:border-blue-700 hover:-translate-y-0.5 shadow-sm"
-            >
-                <LinkIcon className="w-4 h-4" />
-                <span>View on GeM Portal</span>
-            </a>
         </div>
     );
 }

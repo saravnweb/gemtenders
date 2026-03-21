@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 import { Zap, Search } from 'lucide-react';
 import Link from 'next/link';
 import MonitorCard from './MonitorCard';
@@ -7,6 +8,10 @@ import AddMonitorForm from './AddMonitorForm';
 export default async function KeywordsPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect('/login?callback=/dashboard/keywords');
+  }
 
   // Fetch saved searches (Monitors)
   const { data: savedSearches } = await supabase

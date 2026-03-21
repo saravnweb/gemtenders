@@ -1,5 +1,6 @@
-import { Zap, Play, CheckCircle, Database, Shield, LayoutDashboard, Globe, Cpu, ArrowRight } from "lucide-react";
+import { Zap, Play, CheckCircle, Database, Shield, LayoutDashboard, Globe, Cpu, ArrowRight, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import { ScrapeButton, EnrichButton } from "./client-buttons";
@@ -12,7 +13,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function AdminPage() {
   const supabase = await createClient();
-  
+
   // Fetch detailed stats on server
   const { count: totalCount } = await supabase
     .from("tenders")
@@ -23,7 +24,36 @@ export default async function AdminPage() {
     .select("*", { count: "exact", head: true })
     .not("pdf_url", "is", null);
 
-  const pendingEnrichment = (totalCount || 0) - (enrichedCount || 0);
+  const { count: pendingCount } = await supabase
+    .from("tenders")
+    .select("*", { count: "exact", head: true })
+    .is("pdf_url", null)
+    .gte("end_date", new Date().toISOString());
+
+  const pendingEnrichment = pendingCount || 0;
+
+  // Subscriptions & Users Stats (bypassing RLS)
+  const supabaseAdmin = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  const { data: profiles } = await supabaseAdmin
+    .from("profiles")
+    .select("membership_plan, subscription_status");
+
+  let starterCount = 0;
+  let proCount = 0;
+  let freeCount = 0;
+
+  if (profiles) {
+    profiles.forEach((p) => {
+      const plan = (p.membership_plan || "free").toLowerCase();
+      if (plan === "pro") proCount++;
+      else if (plan === "starter") starterCount++;
+      else freeCount++;
+    });
+  }
 
   async function startScrapeAction() {
     "use server";
@@ -89,6 +119,32 @@ export default async function AdminPage() {
             </div>
             <p className="text-xs font-bold text-white/80 uppercase tracking-widest mb-1">Queue Pending</p>
             <p className="text-3xl font-black">{pendingEnrichment}</p>
+          </div>
+        </div>
+
+        {/* Subscriptions Section */}
+        <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center">
+          <Users className="w-6 h-6 mr-2 text-slate-400" />
+          Users & Subscriptions
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Total Users</p>
+            <p className="text-3xl font-black text-slate-800">{freeCount + starterCount + proCount}</p>
+          </div>
+          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Free Tier</p>
+            <p className="text-3xl font-black text-slate-800">{freeCount}</p>
+          </div>
+          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm border-t-4 border-t-orange-500">
+            <p className="text-xs font-bold text-orange-600 uppercase tracking-widest mb-1">Starter Plans</p>
+            <p className="text-3xl font-black text-slate-800">{starterCount}</p>
+            <p className="text-sm text-slate-500 mt-2">Active Subscribers</p>
+          </div>
+          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm border-t-4 border-t-amber-500">
+            <p className="text-xs font-bold text-amber-600 uppercase tracking-widest mb-1">Pro Plans</p>
+            <p className="text-3xl font-black text-slate-800">{proCount}</p>
+            <p className="text-sm text-slate-500 mt-2">Active Subscribers</p>
           </div>
         </div>
 

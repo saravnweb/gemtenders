@@ -12,8 +12,10 @@ if (!supabaseUrl || !supabaseKey) {
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function purgeOldTenders() {
-  console.log("Looking for old closed tenders to purge...");
-  const now = new Date().toISOString();
+  const today = new Date();
+  today.setHours(23, 59, 59, 999);
+  const now = today.toISOString();
+  console.log(`Looking for old closed tenders to purge (expiring before: ${now})...`);
 
   let totalDeletedGlobally = 0;
 

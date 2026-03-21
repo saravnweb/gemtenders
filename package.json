@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "crawl": "tsx scripts/scraper/crawler.ts",
+    "crawl": "tsx scripts/run-scraper.ts",
     "parse": "tsx scripts/scraper/parser.ts",
     "enrich": "tsx scripts/enrich-tenders.ts",
     "stats": "tsx scripts/db-stats.ts"

@@ -37,8 +37,8 @@ export default function ProfileSidebar({ user, onClose }: { user: any, onClose?:
             <User className="w-5 h-5 text-white" />
           </div>
           <div className="flex flex-col min-w-0">
-            <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{user?.email?.split('@')[0]}</span>
-            <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">Member Account</span>
+            <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{user?.email?.split('@')[0] || "Guest User"}</span>
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">{user ? "Member Account" : "Free Plan"}</span>
           </div>
         </div>
       </div>
@@ -70,13 +70,23 @@ export default function ProfileSidebar({ user, onClose }: { user: any, onClose?:
 
       {/* Footer / Logout */}
       <div className="p-4 border-t border-slate-200 dark:border-zinc-800">
-        <button
-          onClick={handleSignOut}
-          className="flex items-center space-x-3 w-full px-4 py-3 text-red-500 font-bold text-xs uppercase tracking-widest hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl transition-all"
-        >
-          <LogOut className="w-4 h-4" />
-          <span>LOGOUT</span>
-        </button>
+        {user ? (
+          <button
+            onClick={handleSignOut}
+            className="flex items-center space-x-3 w-full px-4 py-3 text-red-500 font-bold text-xs uppercase tracking-widest hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl transition-all"
+          >
+            <LogOut className="w-4 h-4" />
+            <span>LOGOUT</span>
+          </button>
+        ) : (
+          <Link
+            href="/login?callback=/dashboard/subscriptions"
+            className="flex items-center justify-center space-x-3 w-full px-4 py-3 text-white bg-blue-600 font-bold text-xs uppercase tracking-widest hover:bg-blue-700 rounded-xl transition-all"
+          >
+            <User className="w-4 h-4" />
+            <span>LOGIN</span>
+          </Link>
+        )}
       </div>
     </div>
   );

@@ -613,7 +613,7 @@ function TendersClient({
                 </span>
                 <span className="text-xs sm:text-xs text-blue-600 dark:text-blue-400 font-bold tracking-wide uppercase">Live Updates</span>
               </div>
-              <h2 className="text-xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight mb-1 sm:mb-2">
+              <h2 className="font-bricolage text-xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight mb-1 sm:mb-2">
                 Find Your Next Tender
               </h2>
 
@@ -720,7 +720,7 @@ function TendersClient({
                 aria-label="Sort order"
                 value={sortOrder}
                 onChange={(e) => setSortOrder(e.target.value as "newest" | "ending_soon")}
-                className="text-xs sm:text-sm bg-transparent border-none outline-none cursor-pointer text-slate-900 dark:text-slate-100 font-bold min-w-max p-0 pr-1"
+                className="text-xs sm:text-sm bg-transparent border-none outline-none cursor-pointer text-slate-900 dark:text-slate-100 font-bold min-w-max p-0 pr-1 appearance-none"
               >
                 <option value="newest">Newest First</option>
                 <option value="ending_soon">Ending Soon</option>
@@ -1162,8 +1162,6 @@ function TenderCard({
             )}
             {!tender.city && !tender.state && <span className="truncate">{tender.location || "N/A"}</span>}
           </div>
-          <span className="text-slate-200 dark:text-slate-700 shrink-0">|</span>
-          <span className="font-mono text-xs text-slate-500 dark:text-slate-400 truncate">{bidId}</span>
         </div>
         <div className="flex items-center space-x-1 shrink-0">
           {tender.eligibility_msme && <span className="text-xs font-bold px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded border border-blue-100 dark:border-blue-800" title="MSE Preferred">MSE</span>}

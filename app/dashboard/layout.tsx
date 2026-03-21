@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
-import { redirect } from 'next/navigation';
 import ProfileSidebar from '@/components/ProfileSidebar';
 
 export const metadata: Metadata = {
@@ -16,10 +15,6 @@ export default async function DashboardLayout({
 }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect('/login?callback=/dashboard');
-  }
 
   return (
     <div className="flex bg-slate-50 dark:bg-slate-950 min-h-[calc(100vh-64px)]">

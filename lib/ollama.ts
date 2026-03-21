@@ -1,20 +1,11 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { normalizeState, normalizeCity } from "./locations";
 
-const apiKey = process.env.GEMINI_API_KEY?.trim() || "";
-const genAI = new GoogleGenerativeAI(apiKey);
-
-// Helper function for delay
-const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
-
-export async function extractTenderData(pdfText: string) {
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
+export async function extractTenderDataOllama(pdfText: string) {
   const cleanedText = pdfText
     .replace(/[^\x20-\x7E\n\u0900-\u097F]/g, " ")
     .replace(/\s+/g, " ")
     .trim()
-    .substring(0, 35000);
+    .substring(0, 35000); // Phi3 has a 4k/128k context window depending on exact model, usually we limit to what fits
 
   const prompt = `
     You are an expert Procurement Data Scientist. Extract RAW, UNTRUNCATED structured data from this GeM (Government e-Marketplace) Bid Document.
@@ -63,11 +54,11 @@ export async function extractTenderData(pdfText: string) {
         "bid_end_date": "ISO-8601",
         "bid_opening_date": "ISO-8601"
       },
-      "quantity": number,
+      "quantity": 0,
       "gemarpts_strings": "string",
       "gemarpts_result": "string",
       "relevant_categories": "string",
-      "emd_amount": number,
+      "emd_amount": 0,
       "relaxations": {
         "mse_experience": "string",
         "mse_turnover": "string",
@@ -76,8 +67,8 @@ export async function extractTenderData(pdfText: string) {
       },
       "documents_required": ["string list"],
       "eligibility": {
-        "msme": boolean,
-        "mii": boolean
+        "msme": false,
+        "mii": false
       },
       "technical_summary": "string"
     }
@@ -86,64 +77,57 @@ export async function extractTenderData(pdfText: string) {
     ${cleanedText}
   `;
 
-  let retries = 5;
-  let delay = 65000; // start at 65s so a full 1-minute rate-limit window resets
+  try {
+    console.log(">>> [AI] Calling local Ollama (Model: gemma2:2b)...");
+    
+    const response = await fetch("http://localhost:11434/api/generate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "gemma2:2b",
+        prompt: prompt,
+        format: "json",
+        stream: false,
+        options: {
+          temperature: 0.1,         // Lowest temp for strict extraction
+          num_predict: 2000,        // Max tokens to generate
+          num_ctx: 4096             // Lower context to prevent OOM
+        }
+      }),
+    });
 
-  // FREE TIER RATE LIMITER: 15 RPM = 1 req/4s. Use 6s (~10 RPM) for headroom.
-  await sleep(6000);
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error(">>> [AI] Ollama Error Response:", errText);
+      return null;
+    }
 
-  while (retries > 0) {
-    try {
-      console.log(`>>> [AI] Calling Gemini (Model: gemini-2.5-flash)...`);
-      const result = await model.generateContent(prompt);
-      const response = result.response;
-      const text = response.text();
-      
-      const cleanJson = text.replace(/```json|```/g, "").trim();
-      const parsedData = JSON.parse(cleanJson);
-      
-      if (parsedData?.authority) {
-        if (parsedData.authority.state) {
-          parsedData.authority.state = normalizeState(parsedData.authority.state);
-        }
-        if (parsedData.authority.city) {
-          parsedData.authority.city = normalizeCity(parsedData.authority.city);
-        }
-        if (parsedData.authority.consignee_state) {
-          parsedData.authority.consignee_state = normalizeState(parsedData.authority.consignee_state);
-        }
-        if (parsedData.authority.consignee_city) {
-          parsedData.authority.consignee_city = normalizeCity(parsedData.authority.consignee_city);
-        }
+    const jsonResp = await response.json();
+    const text = jsonResp.response;
+    
+    const cleanJson = text.replace(/\`\`\`json|\`\`\`/g, "").trim();
+    const parsedData = JSON.parse(cleanJson);
+    
+    // Normalize city/state
+    if (parsedData?.authority) {
+      if (parsedData.authority.state) {
+        parsedData.authority.state = normalizeState(parsedData.authority.state);
       }
-      return parsedData;
-    } catch (error: any) {
-      const msg = error.message || "";
-      const isRateLimit = error.status === 429 || msg.includes('429') || msg.includes('quota') || msg.includes('limit');
-      
-      if (isRateLimit && retries > 1) {
-        console.warn(`>>> [AI] Rate limited (429). Retrying in ${delay / 1000}s...`);
-        await sleep(delay);
-        retries--;
-        delay *= 2; 
-      } else {
-        console.warn(`>>> [AI] Gemini Error: ${msg} - ${error.status || ''}`);
-        return null;
+      if (parsedData.authority.city) {
+        parsedData.authority.city = normalizeCity(parsedData.authority.city);
+      }
+      if (parsedData.authority.consignee_state) {
+        parsedData.authority.consignee_state = normalizeState(parsedData.authority.consignee_state);
+      }
+      if (parsedData.authority.consignee_city) {
+        parsedData.authority.consignee_city = normalizeCity(parsedData.authority.consignee_city);
       }
     }
+    return parsedData;
+  } catch (error: any) {
+    console.log(">>> [AI] Ollama Failed:", error.message || error);
+    return null;
   }
-  return null;
-}
-
-export function generateSlug(bidNumber: string, title: string): string {
-  const cleanTitle = title
-    .toLowerCase()
-    .replace(/[^\w\s-]/g, "") // remove special chars
-    .replace(/\s+/g, "-") // replace spaces with -
-    .replace(/-+/g, "-") // collapse --
-    .trim();
-
-  const cleanBid = bidNumber.replace(/\//g, "-").toLowerCase();
-  
-  return `${cleanBid}-${cleanTitle}`.substring(0, 200);
 }

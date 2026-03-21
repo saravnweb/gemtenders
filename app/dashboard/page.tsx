@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 import { User, Mail, Shield, Zap, Bookmark, ChevronRight, Bell, CreditCard } from 'lucide-react';
 import Link from 'next/link';
 import MyLocations from './MyLocations';
@@ -6,6 +7,10 @@ import MyLocations from './MyLocations';
 export default async function ProfilePage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect('/login?callback=/dashboard');
+  }
 
   // Fetch some stats for the overview
   const { data: savedSearches } = await supabase.from("saved_searches").select("id").eq("user_id", user!.id);

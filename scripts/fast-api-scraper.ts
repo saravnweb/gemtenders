@@ -134,6 +134,9 @@ export async function runFastScrape(maxPages: number, concurrency: number = 10) 
         details_url: pdfLink,
       };
     }).filter(b => b.bid_number !== "UNKNOWN").filter(b => {
+      // Exclude obviously old tenders that the API might still return
+      if (b.bid_number.match(/GEM\/(2018|2019|2020|2021|2022|2023|2024|2025)\//)) return false;
+      
       if (!b.end_date) return true;
       return new Date(b.end_date) > new Date();
     });

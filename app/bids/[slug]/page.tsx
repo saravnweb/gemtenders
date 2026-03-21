@@ -9,6 +9,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import DownloadButtons from "./DownloadButtons";
+import RevealBidNumber from "./RevealBidNumber";
 
 export const revalidate = 3600; // Cache for 1 hour
 
@@ -251,7 +252,7 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-sans pb-28 lg:pb-12 selection:bg-indigo-100 selection:text-indigo-900">
+    <div className="min-h-screen bg-[#f8fafc] dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-sans pb-12 selection:bg-indigo-100 selection:text-indigo-900">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -294,7 +295,7 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
             <li className="flex items-center">
               <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600 mx-1 shrink-0" />
               <span className="text-slate-700 dark:text-slate-200 font-semibold px-1" aria-current="page">
-                {tender.bid_number}
+                Tender Details
               </span>
             </li>
           </ol>
@@ -307,9 +308,7 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
 
           <div className="relative z-10">
             <div className="flex flex-wrap items-center gap-3 mb-5">
-              <span className="font-mono text-xs font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-md tracking-wide">
-                {tender.bid_number}
-              </span>
+              <RevealBidNumber bidNumber={tender.bid_number} />
               {getStatusBadge()}
             </div>
 
@@ -461,6 +460,30 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
                </div>
             </div>
 
+            {/* Bottom Actions Section */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700 rounded-3xl overflow-hidden shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)] p-6 sm:p-8">
+               <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-6 flex items-center">
+                 <Download className="w-5 h-5 mr-2 text-indigo-500" />
+                 Ready to Proceed?
+               </h3>
+               <div className="flex flex-col sm:flex-row gap-5 items-center bg-slate-50/50 dark:bg-slate-800/50 p-5 rounded-2xl border border-slate-100 dark:border-slate-700">
+                 <div className="flex-1 w-full flex flex-col justify-center">
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 block text-center sm:text-left">GeM Bid Document ID</span>
+                    <RevealBidNumber bidNumber={tender.bid_number} asButton={true} />
+                 </div>
+                 <div className="w-px h-12 bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
+                 <div className="flex-1 w-full flex flex-col justify-center pt-4 sm:pt-0 border-t border-slate-200 dark:border-slate-700 sm:border-t-0">
+                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 block text-center sm:text-left">Tender Document</span>
+                    <DownloadButtons 
+                        pdfUrl={tender.pdf_url} 
+                        detailsUrl={tender.details_url} 
+                        slug={slug} 
+                        isMobile={false} 
+                    />
+                 </div>
+               </div>
+            </div>
+
           </div>
 
           {/* Sidebar Area */}
@@ -515,16 +538,6 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
 
         </div>
       </main>
-
-      {/* Floating Action Bar (Mobile only) */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-200/60 dark:border-slate-700 lg:hidden z-50 shadow-[0_-10px_20px_-5px_rgba(0,0,0,0.05)] flex gap-3 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-         <DownloadButtons 
-            pdfUrl={tender.pdf_url} 
-            detailsUrl={tender.details_url} 
-            slug={slug} 
-            isMobile={true} 
-         />
-      </div>
     </div>
   );
 }

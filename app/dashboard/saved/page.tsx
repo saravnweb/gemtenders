@@ -1,10 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 import { Bookmark, MapPin, Download, ExternalLink, Search } from 'lucide-react';
 import Link from 'next/link';
 
 export default async function SavedBidsPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect('/login?callback=/dashboard/saved');
+  }
 
   // Fetch saved tenders with their full data joined
   const { data: savedTenders } = await supabase

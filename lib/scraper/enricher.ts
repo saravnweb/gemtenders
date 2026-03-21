@@ -4,12 +4,13 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
-import { extractTenderData } from '../gemini';
+import { extractTenderDataRegex as extractTenderData } from '../regex-extractor';
 import { triggerKeywordNotifications } from '../notifications';
 import { chromium } from 'playwright';
 import path from 'path';
 import fs from 'fs';
 import { normalizeState, normalizeCity } from '../locations';
+import { parseGeMDate } from './gem-scraper';
 
 
 export async function runEnrichment(limit: number = 20) {
@@ -41,7 +42,7 @@ export async function runEnrichment(limit: number = 20) {
   });
 
   let successCount = 0;
-  const CONCURRENCY = 5; // Download 5 PDFs in parallel
+  const CONCURRENCY = 1; // Download and AI process 1 PDF at a time locally to prevent socket timeout
   const chunks = [];
   for (let i = 0; i < pendingTenders.length; i += CONCURRENCY) {
     chunks.push(pendingTenders.slice(i, i + CONCURRENCY));
@@ -141,10 +142,18 @@ export async function runEnrichment(limit: number = 20) {
           updatePayload.quantity = aiData.quantity;
           updatePayload.ai_summary = aiData.technical_summary;
           if (aiData.dates) {
-            if (aiData.dates.bid_opening_date) updatePayload.opening_date = aiData.dates.bid_opening_date;
-            if (aiData.dates.bid_start_date) updatePayload.start_date = aiData.dates.bid_start_date;
-            if (aiData.dates.bid_end_date) updatePayload.end_date = aiData.dates.bid_end_date;
+            if (aiData.dates.bid_opening_date) updatePayload.opening_date = parseGeMDate(aiData.dates.bid_opening_date) || aiData.dates.bid_opening_date;
+            if (aiData.dates.bid_start_date) updatePayload.start_date = parseGeMDate(aiData.dates.bid_start_date) || aiData.dates.bid_start_date;
+            if (aiData.dates.bid_end_date) updatePayload.end_date = parseGeMDate(aiData.dates.bid_end_date) || aiData.dates.bid_end_date;
           }
+        }
+
+        const nowMs = Date.now();
+        if (updatePayload.end_date && new Date(updatePayload.end_date).getTime() < nowMs) {
+          console.warn(`    ! DB discovered expired date ${updatePayload.end_date} for ${tender.bid_number}. Deleting...`);
+          await supabase.from('tenders').delete().eq('id', tender.id);
+          successCount++;
+          return;
         }
 
         await supabase.from('tenders').update(updatePayload).eq('id', tender.id);

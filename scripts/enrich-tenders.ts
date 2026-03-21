@@ -12,10 +12,11 @@ const supabase = createClient(
 );
 
 import { normalizeState, normalizeCity } from '../lib/locations';
+const { parseGeMDate } = await import('../lib/scraper/gem-scraper');
 
 // ─── CONFIG ────────────────────────────────────────────────────────────────
 const args = process.argv.slice(2);
-const LIMIT       = parseInt(args.find(a => a.startsWith('--limit='))?.split('=')[1]       || '100', 10);
+const LIMIT       = parseInt(args.find(a => a.startsWith('--limit='))?.split('=')[1]       || '20000', 10);
 const CONCURRENCY = parseInt(args.find(a => a.startsWith('--concurrency='))?.split('=')[1] || '1',   10);
 const BATCH_DELAY = parseInt(args.find(a => a.startsWith('--delay='))?.split('=')[1]       || '0',10);
 const BUCKET      = 'tender-documents';
@@ -128,7 +129,7 @@ async function enrichTenders() {
     ])
   );
 
-  const { extractTenderData } = await import('../lib/gemini');
+  const { extractTenderDataRegex: extractTenderData } = await import('../lib/regex-extractor');
   const { triggerKeywordNotifications } = await import('../lib/notifications');
 
 
@@ -210,9 +211,22 @@ async function enrichTenders() {
       } else if (aiData?.tender_title && tender.title === "N/A") {
         update.title = aiData.tender_title;
       }
-      if (aiData?.dates?.bid_opening_date)  update.opening_date = aiData.dates.bid_opening_date;
-      if (aiData?.dates?.bid_start_date)    update.start_date   = aiData.dates.bid_start_date;
-      if (aiData?.dates?.bid_end_date)      update.end_date     = aiData.dates.bid_end_date;
+      let parsedEndDate: string | null = null;
+      if (aiData?.dates?.bid_opening_date)  update.opening_date = parseGeMDate(aiData.dates.bid_opening_date) || aiData.dates.bid_opening_date;
+      if (aiData?.dates?.bid_start_date)    update.start_date   = parseGeMDate(aiData.dates.bid_start_date) || aiData.dates.bid_start_date;
+      if (aiData?.dates?.bid_end_date) {
+         parsedEndDate = parseGeMDate(aiData.dates.bid_end_date) || aiData.dates.bid_end_date;
+         update.end_date = parsedEndDate;
+      }
+
+      // If the AI discovered this tender is already expired, delete it!
+      const nowMs = Date.now();
+      if (parsedEndDate && new Date(parsedEndDate).getTime() < nowMs) {
+          console.warn(`    ! DB discovered expired date ${parsedEndDate} for ${tender.bid_number}. Deleting...`);
+          await supabase.from('tenders').delete().eq('id', tender.id);
+          failCount++;
+          return;
+      }
 
       const { error: updateErr } = await supabase.from('tenders').update(update).eq('id', tender.id);
       if (updateErr) {

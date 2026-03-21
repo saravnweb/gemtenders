@@ -84,7 +84,7 @@ export default function Navbar() {
                     className="h-full w-auto object-contain transition-transform duration-300 group-hover:scale-105"
                   />
                 </div>
-                <span className="text-xl sm:text-2xl font-black text-fresh-sky-950 dark:text-white tracking-tight flex items-center leading-none">
+                <span className="font-bricolage text-xl sm:text-2xl font-black text-fresh-sky-950 dark:text-white tracking-tight flex items-center leading-none">
                   GeMTenders.org
                 </span>
               </Link>

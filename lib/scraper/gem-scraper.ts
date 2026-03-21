@@ -1,7 +1,11 @@
 import { chromium } from "playwright-extra";
 import stealthPlugin from 'puppeteer-extra-plugin-stealth';
 chromium.use(stealthPlugin());
-import { supabase } from "@/lib/supabase";
+import { createClient } from '@supabase/supabase-js';
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 import path from "path";
 import fs from "fs";
 import { extractTenderData, generateSlug } from "@/lib/gemini";
@@ -176,11 +180,17 @@ export async function scrapeGeMBids(options?: { lightMode?: boolean; maxPages?: 
       const elements = document.querySelectorAll(".card");
       
       elements.forEach(el => {
-        const bidNoEl = el.querySelector('a.bid_no_hover');
-        if (!bidNoEl) return;
+        const bidNoEls = el.querySelectorAll('a.bid_no_hover');
+        if (!bidNoEls || bidNoEls.length === 0) return;
 
-        const bidNo = bidNoEl.textContent?.trim() || "";
-        const pdfLink = (bidNoEl as HTMLAnchorElement).href || "";
+        // An RA will be the last element if both Bid and RA exist
+        const targetBidEl = bidNoEls[bidNoEls.length - 1];
+        let bidNo = targetBidEl.textContent?.trim() || "";
+        
+        // Remove any surrounding text like 'RA NO:' just in case it's in the link text
+        bidNo = bidNo.replace(/^RA NO:?\s*/i, '').replace(/^Bid No.\s*:?\s*/i, '').trim();
+
+        const pdfLink = (targetBidEl as HTMLAnchorElement).href || "";
         
         const cardBody = el.querySelector('.card-body');
         
@@ -238,7 +248,30 @@ export async function scrapeGeMBids(options?: { lightMode?: boolean; maxPages?: 
     });
 
     allBids.push(...pageBids);
-    console.log(`>>> [SCRAPER] Found ${pageBids.length} bids on Page ${START_PAGE + p - 1}.`);
+
+    // Smart duplication check: if all valid bids on this page already exist, we can stop scraping further pages
+    const bidNos = pageBids.map(b => b.bidNo).filter(Boolean);
+    let allExist = false;
+    
+    if (bidNos.length > 0) {
+      const { data: existingPageBids } = await supabase
+        .from("tenders")
+        .select("bid_number")
+        .in("bid_number", bidNos);
+
+      const existingCount = existingPageBids?.length || 0;
+      console.log(`>>> [SCRAPER] Found ${pageBids.length} bids on Page ${START_PAGE + p - 1}. (${existingCount} already in DB)`);
+      
+      // If every bid on this page is already in the database, assume we've caught up with the previous scrape.
+      if (existingCount === bidNos.length) {
+        console.log(">>> [SCRAPER] All bids on this page are already in the database! Stopping pagination early to save resources.");
+        allExist = true;
+      }
+    } else {
+      console.log(`>>> [SCRAPER] Found ${pageBids.length} bids on Page ${START_PAGE + p - 1}.`);
+    }
+
+    if (allExist) break;
 
     if (p < MAX_PAGES) {
       const nextClicked = await page.evaluate(() => {
@@ -266,6 +299,8 @@ export async function scrapeGeMBids(options?: { lightMode?: boolean; maxPages?: 
   
   // Filter for active tenders only (end date > current time)
   uniqueBids = uniqueBids.filter(bid => {
+    if (bid.bidNo && bid.bidNo.match(/GEM\/(2018|2019|2020|2021|2022|2023|2024|2025)\//)) return false;
+    
     const parsedEnd = parseGeMDate(bid.endDate);
     if (!parsedEnd) return true; // Keep if we can't parse date, to be safe
     return new Date(parsedEnd) > now;
@@ -501,7 +536,7 @@ export async function scrapeGeMBids(options?: { lightMode?: boolean; maxPages?: 
   await browser.close();
 }
 
-function parseGeMDate(dateStr: string): string | null {
+export function parseGeMDate(dateStr: string): string | null {
     if (!dateStr) return null;
     try {
         // Look for DD-MM-YYYY

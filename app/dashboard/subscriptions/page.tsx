@@ -42,6 +42,10 @@ export default function SubscriptionsPage() {
   }, []);
 
   const handleCheckout = async (plan: "starter" | "pro") => {
+    if (!profile?.id) {
+       window.location.href = "/login?callback=/dashboard/subscriptions";
+       return;
+    }
     setLoading(true);
     try {
       const order = await createRazorpayOrder(plan, isAnnual);
