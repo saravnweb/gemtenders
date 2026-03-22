@@ -19,7 +19,7 @@ const nextConfig = {
             {
                 source: "/:path*",
                 headers: [
-                    { key: "Content-Security-Policy", value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self' https://*.supabase.co;" },
+                    { key: "Content-Security-Policy", value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://*.supabase.co https://accounts.google.com; frame-src https://accounts.google.com;" },
                     { key: "X-Content-Type-Options", value: "nosniff" },
                     { key: "X-Frame-Options", value: "DENY" },
                     { key: "X-XSS-Protection", value: "1; mode=block" },
@@ -27,8 +27,7 @@ const nextConfig = {
                     { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
                     { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
                     { key: "X-DNS-Prefetch-Control", value: "on" },
-                    { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
-                    { key: "Cross-Origin-Embedder-Policy", value: "require-corp" },
+                    { key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },
                     { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
                 ],
             },

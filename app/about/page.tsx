@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function AboutPage() {
   return (
-    <main className="max-w-4xl mx-auto py-16 px-4 sm:px-6 lg:px-8 bg-white dark:bg-zinc-950 mt-10 rounded-xl shadow-sm border border-slate-100 dark:border-zinc-800">
+    <main id="main-content" className="max-w-4xl mx-auto py-16 px-4 sm:px-6 lg:px-8 bg-white dark:bg-zinc-950 mt-10 rounded-xl shadow-sm border border-slate-100 dark:border-zinc-800">
       <h1 className="text-3xl font-bricolage font-black text-slate-900 dark:text-white mb-6 tracking-tight">About GeMTenders.org</h1>
       
       <div className="prose dark:prose-invert text-slate-600 dark:text-slate-400">

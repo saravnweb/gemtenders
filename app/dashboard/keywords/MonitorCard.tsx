@@ -228,8 +228,8 @@ export default function MonitorCard({ search, membershipPlan, totalKeywords }: {
                         <button
                             type="button"
                             onClick={handleUpdateName}
-                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
-                            title="Save name"
+                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                            aria-label="Save monitor name"
                         >
                             <Check className="w-4 h-4" />
                         </button>
@@ -239,8 +239,8 @@ export default function MonitorCard({ search, membershipPlan, totalKeywords }: {
                                 setIsEditingName(false);
                                 setEditNameValue(name);
                             }}
-                            className="p-1.5 text-slate-600 hover:bg-slate-50 rounded-md transition-colors"
-                            title="Cancel"
+                            className="p-1.5 text-slate-600 hover:bg-slate-50 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+                            aria-label="Cancel editing"
                         >
                             <X className="w-4 h-4" />
                         </button>
@@ -253,8 +253,8 @@ export default function MonitorCard({ search, membershipPlan, totalKeywords }: {
                         <button
                             type="button"
                             onClick={() => setIsEditingName(true)}
-                            className="opacity-0 group-hover/title:opacity-100 p-1 text-slate-600 hover:text-blue-600 transition-all focus:outline-none"
-                            title="Edit group name"
+                            className="opacity-0 group-hover/title:opacity-100 focus:opacity-100 p-1 text-slate-600 hover:text-blue-600 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+                            aria-label="Edit monitor name"
                         >
                             <Pencil className="w-3.5 h-3.5" />
                         </button>
@@ -268,10 +268,10 @@ export default function MonitorCard({ search, membershipPlan, totalKeywords }: {
                         <div key={idx} className="flex items-center gap-1 text-xs font-bold uppercase tracking-widest bg-blue-50 px-2.5 py-1.5 rounded-full border border-blue-100 text-blue-700 group/pill">
                             <span>{keyword}</span>
                             <button
-                                type="button" 
+                                type="button"
                                 onClick={() => handleRemoveKeyword(idx)}
-                                className="hover:bg-blue-200 p-0.5 rounded-full transition-colors focus:outline-none"
-                                title="Remove keyword"
+                                className="hover:bg-blue-200 p-0.5 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                                aria-label={`Remove keyword ${keyword}`}
                             >
                                 <X className="w-3 h-3" />
                             </button>
@@ -280,19 +280,20 @@ export default function MonitorCard({ search, membershipPlan, totalKeywords }: {
                     {states.map((st: string, idx: number) => (
                         <div key={`st-${idx}`} className="flex items-center gap-1 text-xs font-bold uppercase tracking-widest bg-emerald-50 px-2.5 py-1.5 rounded-full border border-emerald-100 text-emerald-700 group/pill">
                             <span>{st}</span>
-                            <button 
-                                type="button" 
+                            <button
+                                type="button"
                                 onClick={() => handleRemoveState(idx)}
-                                className="hover:bg-emerald-200 p-0.5 rounded-full transition-colors focus:outline-none" 
-                                title="Remove state"
+                                className="hover:bg-emerald-200 p-0.5 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                                aria-label={`Remove state ${st}`}
                             >
                                 <X className="w-3 h-3" />
                             </button>
                         </div>
                     ))}
                     {isAddingState ? (
-                        <select 
-                            className="text-xs font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border border-emerald-200 focus:outline-none focus:border-emerald-500 bg-white"
+                        <select
+                            aria-label="Select a state to add"
+                            className="text-xs font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border border-emerald-200 focus:outline-none focus:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500 bg-white"
                             autoFocus
                             onChange={handleAddState}
                             onBlur={() => setIsAddingState(false)}
@@ -316,11 +317,11 @@ export default function MonitorCard({ search, membershipPlan, totalKeywords }: {
                     {cities.map((city: string, idx: number) => (
                         <div key={`ct-${idx}`} className="flex items-center gap-1 text-xs font-bold uppercase tracking-widest bg-purple-50 px-2.5 py-1.5 rounded-full border border-purple-100 text-purple-700 group/pill">
                             <span>{city}</span>
-                            <button 
-                                type="button" 
+                            <button
+                                type="button"
                                 onClick={() => handleRemoveCity(idx)}
-                                className="hover:bg-purple-200 p-0.5 rounded-full transition-colors focus:outline-none" 
-                                title="Remove city"
+                                className="hover:bg-purple-200 p-0.5 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+                                aria-label={`Remove city ${city}`}
                             >
                                 <X className="w-3 h-3" />
                             </button>
@@ -328,8 +329,9 @@ export default function MonitorCard({ search, membershipPlan, totalKeywords }: {
                     ))}
                     {isAddingCity ? (
                         <form onSubmit={handleAddCity} className="flex items-center gap-1">
-                            <input 
+                            <input
                                 type="text"
+                                aria-label="Add city filter"
                                 value={newCity}
                                 onChange={(e) => setNewCity(e.target.value)}
                                 placeholder="e.g. Mumbai, Pune"
@@ -351,8 +353,9 @@ export default function MonitorCard({ search, membershipPlan, totalKeywords }: {
                     
                     {isAdding ? (
                         <form onSubmit={handleAddKeyword} className="flex items-center gap-1">
-                            <input 
+                            <input
                                 type="text"
+                                aria-label="Add new keyword"
                                 value={newKeyword}
                                 onChange={(e) => setNewKeyword(e.target.value)}
                                 placeholder="New keyword"
@@ -381,10 +384,10 @@ export default function MonitorCard({ search, membershipPlan, totalKeywords }: {
                         <span>Live Bids</span>
                         <ChevronRight className="w-3.5 h-3.5" />
                     </Link>
-                    <button 
+                    <button
                         onClick={handleDeleteMonitor}
-                        className="p-2.5 text-slate-300 hover:text-red-500 transition-colors hover:bg-red-50 rounded-lg"
-                        title="Delete Monitor"
+                        className="p-2.5 text-slate-300 hover:text-red-500 transition-colors hover:bg-red-50 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                        aria-label="Delete monitor"
                     >
                         <Trash2 className="w-4 h-4" />
                     </button>

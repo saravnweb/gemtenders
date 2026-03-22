@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Zap, User, LogOut, Menu, X, LayoutDashboard, Bookmark, CreditCard, ChevronRight, Bell, Sun, Moon, Inbox } from "lucide-react";
+import { Zap, User, LogOut, Menu, X, LayoutDashboard, Bookmark, CreditCard, ChevronRight, Bell, Sun, Moon, Inbox, CheckCircle2 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useTheme } from "next-themes";
 import { supabase } from "@/lib/supabase";
@@ -16,7 +16,9 @@ export default function Navbar() {
   const [mounted, setMounted] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [welcomeToast, setWelcomeToast] = useState<{ name: string } | null>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
+  const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
   const { theme, setTheme } = useTheme();
   const router = useRouter();
 
@@ -38,7 +40,7 @@ export default function Navbar() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `https://gemtenders.org/auth/callback`
+          redirectTo: `${window.location.origin}/auth/callback`
         }
       });
       if (error) throw error;
@@ -46,6 +48,12 @@ export default function Navbar() {
       console.error("Sign in error:", e.message);
       setIsSigningIn(false);
     }
+  };
+
+  const showWelcome = (name: string) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setWelcomeToast({ name });
+    toastTimerRef.current = setTimeout(() => setWelcomeToast(null), 3500);
   };
 
   useEffect(() => {
@@ -66,11 +74,25 @@ export default function Navbar() {
 
     fetchUser();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
+      if (event === 'SIGNED_IN' && session?.user) {
+        const name = session.user.user_metadata?.full_name?.split(' ')[0]
+          || session.user.email?.split('@')[0]
+          || 'there';
+        showWelcome(name);
+        // Fetch notifications for newly signed-in user
+        fetch('/api/notifications', { cache: 'no-store' })
+          .then(res => res.json())
+          .then(data => { if (data.notifications) setNotifications(data.notifications); })
+          .catch(console.error);
+      }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    };
   }, []);
 
   const handleSignOut = async () => {
@@ -86,8 +108,8 @@ export default function Navbar() {
             <div className="md:hidden flex items-center z-10">
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="text-fresh-sky-700 p-2 hover:bg-fresh-sky-50 rounded-lg transition-colors"
-                aria-label="Toggle Menu"
+                className="text-fresh-sky-700 p-2 hover:bg-fresh-sky-50 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-blue-500"
+                aria-label={isMenuOpen ? "Close navigation menu" : "Open navigation menu"}
                 aria-expanded={isMenuOpen}
                 aria-controls="mobile-menu"
               >
@@ -116,12 +138,23 @@ export default function Navbar() {
 
             {/* Right Side Icons & Desktop Nav */}
             <div className="flex items-center space-x-1 sm:space-x-4 z-10">
+              {/* Mobile: User Avatar Indicator (visible when signed in, hidden on desktop) */}
+              {!loading && user && (
+                <button
+                  onClick={() => setIsMenuOpen(true)}
+                  aria-label="Open menu — signed in"
+                  className="md:hidden w-8 h-8 bg-linear-to-br from-atomic-tangerine-400 to-atomic-tangerine-600 rounded-full flex items-center justify-center border-2 border-white dark:border-zinc-950 shadow-md animate-in zoom-in duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-atomic-tangerine-400"
+                >
+                  <User className="w-4 h-4 text-white" />
+                </button>
+              )}
+
               {/* Dark Mode Toggle */}
               {mounted && (
                 <button
                   onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                  className="p-2 text-fresh-sky-700 dark:text-fresh-sky-300 hover:bg-fresh-sky-50 dark:hover:bg-fresh-sky-900/30 rounded-full transition-colors"
-                  aria-label="Toggle dark mode"
+                  className="p-2 text-fresh-sky-700 dark:text-fresh-sky-300 hover:bg-fresh-sky-50 dark:hover:bg-fresh-sky-900/30 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-blue-500"
+                  aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
                 >
                   {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                 </button>
@@ -130,19 +163,21 @@ export default function Navbar() {
               {/* Notification Icon and Dropdown */}
               {user && (
                 <div className="relative" ref={notificationRef}>
-                  <button 
+                  <button
                     onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-                    className={`p-2 rounded-full transition-colors relative group ${isNotificationsOpen ? 'bg-fresh-sky-100 dark:bg-zinc-800 text-atomic-tangerine-600' : 'text-fresh-sky-700 dark:text-fresh-sky-300 hover:bg-fresh-sky-50 dark:hover:bg-fresh-sky-900/30'}`} 
-                    aria-label="Notifications"
+                    aria-expanded={isNotificationsOpen}
+                    aria-haspopup="true"
+                    className={`p-2 rounded-full transition-colors relative group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-blue-500 ${isNotificationsOpen ? 'bg-fresh-sky-100 dark:bg-zinc-800 text-atomic-tangerine-600' : 'text-fresh-sky-700 dark:text-fresh-sky-300 hover:bg-fresh-sky-50 dark:hover:bg-fresh-sky-900/30'}`}
+                    aria-label={`Notifications${notifications.some(n => !n.is_read) ? ' — you have unread alerts' : ''}`}
                   >
                     <Bell className="w-5 h-5 sm:w-6 sm:h-6 transition-transform group-hover:rotate-12" />
                     {notifications.some(n => !n.is_read) && (
-                      <span className="absolute top-2 right-2 w-2 h-2 bg-atomic-tangerine-600 rounded-full border border-white dark:border-zinc-950"></span>
+                      <span className="absolute top-2 right-2 w-2 h-2 bg-atomic-tangerine-600 rounded-full border border-white dark:border-zinc-950" aria-hidden="true"></span>
                     )}
                   </button>
 
                   {isNotificationsOpen && (
-                    <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800 rounded-2xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-200">
+                    <div role="dialog" aria-label="Notifications panel" className="absolute right-0 mt-2 w-80 bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800 rounded-2xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-200">
                       <div className="p-4 border-b border-slate-50 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-900/50 flex items-center justify-between">
                         <span className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-white">Alerts</span>
                         <span className="bg-atomic-tangerine-100 text-atomic-tangerine-700 text-[10px] font-bold px-2 py-0.5 rounded-full">{notifications.filter(n => !n.is_read).length} New</span>
@@ -228,10 +263,9 @@ export default function Navbar() {
                             <span className="text-xs font-black text-fresh-sky-900 dark:text-fresh-sky-100 truncate leading-tight">{user.email?.split('@')[0]}</span>
                             <span className="text-[8px] font-bold text-atomic-tangerine-600 uppercase tracking-tighter">Enterprise</span>
                           </div>
-                          <button 
+                          <button
                             onClick={handleSignOut}
-                            className="p-1 text-fresh-sky-300 hover:text-red-500 transition-colors ml-1"
-                            title="Sign Out"
+                            className="p-1 text-fresh-sky-300 hover:text-red-500 transition-colors ml-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 rounded"
                             aria-label="Sign Out"
                           >
                             <LogOut className="w-4 h-4" />
@@ -264,6 +298,21 @@ export default function Navbar() {
         </div>
       </header>
 
+      {/* Sign-in Success Toast */}
+      {welcomeToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-200 pointer-events-none animate-in slide-in-from-bottom-4 fade-in duration-300">
+          <div className="bg-fresh-sky-950 dark:bg-zinc-900 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-fresh-sky-800 dark:border-zinc-700">
+            <div className="w-8 h-8 bg-linear-to-br from-atomic-tangerine-400 to-atomic-tangerine-600 rounded-full flex items-center justify-center shrink-0">
+              <CheckCircle2 className="w-4 h-4 text-white" />
+            </div>
+            <div>
+              <p className="text-sm font-bold leading-tight">Signed in, {welcomeToast.name}!</p>
+              <p className="text-xs text-fresh-sky-400 leading-tight mt-0.5">Welcome to GeMTenders.org</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Mobile Menu Overlay - OUTSIDE Header */}
       {isMenuOpen && (
         <div className="fixed inset-0 z-100 md:hidden">
@@ -278,9 +327,9 @@ export default function Navbar() {
             {/* Drawer Header */}
             <div className="p-4 border-b border-slate-50 dark:border-zinc-800 flex items-center justify-between h-16 shrink-0 bg-white dark:bg-zinc-950">
               <span className="text-xs font-bold text-slate-600 uppercase tracking-[0.2em] ml-2">Navigation</span>
-              <button 
+              <button
                 onClick={() => setIsMenuOpen(false)}
-                className="p-2 text-slate-600 hover:text-slate-900 transition-colors rounded-lg bg-slate-50 border border-slate-100"
+                className="p-2 text-slate-600 hover:text-slate-900 transition-colors rounded-lg bg-slate-50 border border-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
                 aria-label="Close Navigation Menu"
               >
                 <X className="w-5 h-5" />

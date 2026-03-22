@@ -64,10 +64,11 @@ export default function AddMonitorForm({ userId, membershipPlan, totalKeywords }
                            </div>
                            <span className="text-sm font-bold uppercase tracking-widest text-slate-800">Advanced Alert</span>
                         </div>
-                        <button 
-                            type="button" 
+                        <button
+                            type="button"
+                            aria-label="Close alert form"
                             onClick={() => setIsAdding(false)}
-                            className="bg-slate-50 hover:bg-slate-100 p-2 rounded-full transition-all text-slate-500 hover:text-slate-800"
+                            className="bg-slate-50 hover:bg-slate-100 p-2 rounded-full transition-all text-slate-500 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
                         >
                             <X className="w-4 h-4" />
                         </button>
@@ -75,8 +76,9 @@ export default function AddMonitorForm({ userId, membershipPlan, totalKeywords }
 
                     <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2 no-scrollbar">
                        <div>
-                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1 block">Tender Keywords *</label>
+                         <label htmlFor="monitor-keyword-input" className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1 block">Tender Keywords *</label>
                          <input
+                             id="monitor-keyword-input"
                              type="text"
                              value={keyword}
                              onChange={(e) => setKeyword(e.target.value)}
@@ -97,12 +99,13 @@ export default function AddMonitorForm({ userId, membershipPlan, totalKeywords }
                 </form>
             )}
 
-            <button 
+            <button
                 onClick={() => {
                     setIsAdding(!isAdding);
                 }}
-                className={`w-14 h-14 bg-blue-600 text-white shrink-0 rounded-full hover:bg-blue-700 hover:scale-105 active:scale-95 shadow-xl shadow-blue-500/40 transition-all flex items-center justify-center ${isAdding ? 'rotate-45 bg-slate-800 hover:bg-slate-900 shadow-slate-500/40' : ''}`}
-                title={isAdding ? "Close" : "Add Advanced Monitor"}
+                aria-label={isAdding ? "Close alert form" : "Add Advanced Monitor"}
+                aria-expanded={isAdding}
+                className={`w-14 h-14 bg-blue-600 text-white shrink-0 rounded-full hover:bg-blue-700 hover:scale-105 active:scale-95 shadow-xl shadow-blue-500/40 transition-all flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500 ${isAdding ? 'rotate-45 bg-slate-800 hover:bg-slate-900 shadow-slate-500/40' : ''}`}
             >
                 <Plus className="w-6 h-6" />
             </button>

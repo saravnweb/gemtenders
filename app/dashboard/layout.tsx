@@ -24,7 +24,7 @@ export default async function DashboardLayout({
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 min-h-full">
+      <main id="main-content" className="flex-1 min-h-full">
         <div className="p-6 md:p-10 max-w-7xl">
           {children}
         </div>

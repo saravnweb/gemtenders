@@ -285,7 +285,7 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
       {/* Dynamic Header Gradient Background */}
       <div className="absolute top-0 left-0 right-0 h-96 bg-linear-to-b from-slate-200/50 via-slate-100/30 to-transparent -z-10 pointer-events-none" />
 
-      <main className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-12">
+      <main id="main-content" className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-12">
 
         {/* Navigation */}
         <nav aria-label="Breadcrumb" className="mb-6 lg:mb-8">

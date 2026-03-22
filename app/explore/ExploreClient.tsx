@@ -46,7 +46,7 @@ export default function ExploreClient({
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans">
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+      <main id="main-content" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
         {/* Header Section */}
         <div className="mb-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight font-bricolage">
@@ -58,7 +58,7 @@ export default function ExploreClient({
         </div>
 
         {/* Dynamic Tabs Navigation */}
-        <div className="flex flex-wrap pb-4 mb-4 items-center gap-2 sm:gap-3 border-b border-slate-200 dark:border-slate-800 animate-in fade-in duration-700">
+        <div role="tablist" aria-label="Browse tenders by" className="flex flex-wrap pb-4 mb-4 items-center gap-2 sm:gap-3 border-b border-slate-200 dark:border-slate-800 animate-in fade-in duration-700">
           <TabButton id="category" label="By Category" active={activeTab === "category"} onClick={setActiveTab} />
           <TabButton id="ministry" label="By Ministry" active={activeTab === "ministry"} onClick={setActiveTab} />
           <TabButton id="state" label="By State" active={activeTab === "state"} onClick={setActiveTab} badge="new" />
@@ -72,7 +72,7 @@ export default function ExploreClient({
         <div className="min-h-[500px]">
           {/* 1. BY CATEGORY */}
           {activeTab === "category" && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div id="tabpanel-category" role="tabpanel" aria-labelledby="tab-category" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xs font-black tracking-[0.2em] uppercase text-slate-400 dark:text-slate-500">
                   ALL 20 CATEGORIES
@@ -86,7 +86,7 @@ export default function ExploreClient({
                     className="group flex flex-col p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl hover:border-blue-500 dark:hover:border-blue-500 hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300"
                   >
                     <div className="flex items-start justify-between mb-3">
-                      <span className="text-3xl group-hover:scale-110 transition-transform origin-bottom-left">{cat.icon}</span>
+                      <span className="text-3xl group-hover:scale-110 transition-transform origin-bottom-left" aria-hidden="true">{cat.icon}</span>
                       <div className="w-8 h-8 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                         <Search className="w-4 h-4 text-blue-500" />
                       </div>
@@ -105,7 +105,7 @@ export default function ExploreClient({
 
           {/* 2. BY MINISTRY */}
           {activeTab === "ministry" && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div id="tabpanel-ministry" role="tabpanel" aria-labelledby="tab-ministry" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xs font-black tracking-[0.2em] uppercase text-slate-400 dark:text-slate-500">
                   TOP MINISTRIES BY LIVE TENDERS
@@ -138,7 +138,7 @@ export default function ExploreClient({
 
           {/* 3. BY STATE */}
           {activeTab === "state" && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div id="tabpanel-state" role="tabpanel" aria-labelledby="tab-state" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xs font-black tracking-[0.2em] uppercase text-slate-400 dark:text-slate-500">
                   ALL INDIAN STATES & UTS
@@ -165,7 +165,7 @@ export default function ExploreClient({
 
           {/* 4. BY ORGANISATION */}
           {activeTab === "org" && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div id="tabpanel-org" role="tabpanel" aria-labelledby="tab-org" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xs font-black tracking-[0.2em] uppercase text-slate-400 dark:text-slate-500">
                   TOP ORGANISATIONS BY LIVE TENDERS
@@ -198,7 +198,7 @@ export default function ExploreClient({
 
           {/* 5. BY KEYWORD */}
           {activeTab === "keyword" && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div id="tabpanel-keyword" role="tabpanel" aria-labelledby="tab-keyword" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xs font-black tracking-[0.2em] uppercase text-slate-400 dark:text-slate-500">
                   TRENDING KEYWORDS TODAY
@@ -225,7 +225,7 @@ export default function ExploreClient({
 
           {/* 5. BY TYPE */}
           {activeTab === "type" && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-10">
+            <div id="tabpanel-type" role="tabpanel" aria-labelledby="tab-type" className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-10">
               <div>
                 <h2 className="text-xs font-black tracking-[0.2em] uppercase text-slate-400 dark:text-slate-500 mb-6">
                   PROCUREMENT TYPE
@@ -294,7 +294,7 @@ export default function ExploreClient({
 
           {/* 6. MSE / STARTUP */}
           {activeTab === "mse" && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-10">
+            <div id="tabpanel-mse" role="tabpanel" aria-labelledby="tab-mse" className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-10">
               <div>
                 <h2 className="text-xs font-black tracking-[0.2em] uppercase text-slate-400 dark:text-slate-500 mb-6">
                   POLICY PREFERENCES
@@ -366,18 +366,22 @@ export default function ExploreClient({
 function TabButton({ id, label, active, onClick, badge }: { id: TabId, label: string, active: boolean, onClick: (id: TabId) => void, badge?: string }) {
   return (
     <button
+      role="tab"
+      aria-selected={active}
+      aria-controls={`tabpanel-${id}`}
+      id={`tab-${id}`}
       onClick={() => onClick(id)}
-      className={`relative px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all border shrink-0 ${
-        active 
-          ? "bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-950 dark:border-white shadow-md scale-105" 
-          : "bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800 dark:hover:bg-slate-800"
+      className={`relative px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all border shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500 ${
+        active
+          ? "bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-950 dark:border-white shadow-md scale-105 underline-offset-4"
+          : "bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-800 dark:hover:bg-slate-800"
       }`}
     >
       {label}
       {badge && (
         <span className={`ml-2 text-[9px] uppercase tracking-wider font-black px-1.5 py-0.5 rounded-sm ${
-          active 
-            ? "bg-white/20 text-white dark:bg-black/10 dark:text-black" 
+          active
+            ? "bg-white/20 text-white dark:bg-black/10 dark:text-black"
             : "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400"
         }`}>
           {badge}

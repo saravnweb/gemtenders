@@ -8,7 +8,7 @@ export default function PricingPage() {
   const [isAnnual, setIsAnnual] = useState(false);
 
   return (
-    <div className="min-h-screen bg-fresh-sky-50 font-sans py-20 px-4 sm:px-6 lg:px-8">
+    <div id="main-content" className="min-h-screen bg-fresh-sky-50 font-sans py-20 px-4 sm:px-6 lg:px-8">
       {/* Header section */}
       <div className="text-center max-w-3xl mx-auto mb-16">
         <h1 className="text-4xl md:text-5xl font-black text-fresh-sky-950 tracking-tight mb-6">
@@ -22,11 +22,13 @@ export default function PricingPage() {
         {/* Toggle */}
         <div className="flex items-center justify-center space-x-4">
           <span className={`text-sm font-bold ${!isAnnual ? 'text-fresh-sky-900' : 'text-fresh-sky-400'}`}>Monthly</span>
-          <button 
-            type="button" 
+          <button
+            type="button"
+            role="switch"
+            aria-checked={isAnnual}
+            aria-label="Toggle billing cycle: Annual"
             onClick={() => setIsAnnual(!isAnnual)}
-            className="w-16 h-8 bg-fresh-sky-200 rounded-full flex items-center p-1 cursor-pointer transition-colors relative focus:outline-none"
-            title="Toggle billing cycle"
+            className="w-16 h-8 bg-fresh-sky-200 rounded-full flex items-center p-1 cursor-pointer transition-colors relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500"
           >
             <div className={`w-6 h-6 bg-white rounded-full shadow-md transform transition-transform duration-300 flex items-center justify-center ${isAnnual ? 'translate-x-8 bg-atomic-tangerine-600' : 'translate-x-0'}`}>
                {isAnnual && <Star className="w-3.5 h-3.5 text-white" />}
@@ -47,13 +49,13 @@ export default function PricingPage() {
             <h3 className="text-xl font-bold text-fresh-sky-900 mb-2">Basic</h3>
             <p className="text-sm text-fresh-sky-700 font-medium h-10">Perfect for getting started and exploring active tenders.</p>
           </div>
-          <div className="mb-8 flex items-baseline outline-none focus:outline-none">
+          <div className="mb-8 flex items-baseline">
             <span className="text-5xl font-black text-fresh-sky-950">₹0</span>
             <span className="text-sm text-fresh-sky-600 ml-2 font-bold uppercase tracking-wider">/forever</span>
           </div>
           <Link 
             href="/signup?plan=free"
-            className="w-full block text-center py-4 bg-fresh-sky-50 hover:bg-fresh-sky-100 text-fresh-sky-900 font-bold rounded-2xl transition-colors mb-8 focus:outline-none"
+            className="w-full block text-center py-4 bg-fresh-sky-50 hover:bg-fresh-sky-100 text-fresh-sky-900 font-bold rounded-2xl transition-colors mb-8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500"
           >
             Get Started
           </Link>
@@ -79,13 +81,13 @@ export default function PricingPage() {
             <p className="text-sm text-fresh-sky-700 font-medium h-10">Automation and alerts to help your business win faster.</p>
           </div>
           <div className="mb-8 flex items-baseline">
-            <span className="text-5xl font-black text-fresh-sky-950 outline-none focus:outline-none">{isAnnual ? '₹79' : '₹99'}</span>
+            <span className="text-5xl font-black text-fresh-sky-950">{isAnnual ? '₹79' : '₹99'}</span>
             <span className="text-sm text-fresh-sky-600 ml-2 font-bold uppercase tracking-wider">/month</span>
           </div>
           <div className="flex flex-col mb-8">
             <Link 
               href={`/signup?plan=starter&billing=${isAnnual ? 'annual' : 'monthly'}`}
-              className="w-full flex items-center justify-center py-4 bg-linear-to-r from-atomic-tangerine-600 to-atomic-tangerine-700 hover:from-atomic-tangerine-700 hover:to-atomic-tangerine-800 text-white font-bold rounded-2xl shadow-xl shadow-atomic-tangerine-200 transition-all active:scale-95 focus:outline-none"
+              className="w-full flex items-center justify-center py-4 bg-linear-to-r from-atomic-tangerine-600 to-atomic-tangerine-700 hover:from-atomic-tangerine-700 hover:to-atomic-tangerine-800 text-white font-bold rounded-2xl shadow-xl shadow-atomic-tangerine-200 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-white"
             >
               Start Free Trial
             </Link>
@@ -110,13 +112,13 @@ export default function PricingPage() {
             <p className="text-sm text-fresh-sky-400 font-medium h-10">Advanced tools for businesses serious about winning tenders.</p>
           </div>
           <div className="mb-8 flex items-baseline">
-            <span className="text-5xl font-black text-white outline-none focus:outline-none">{isAnnual ? '₹239' : '₹299'}</span>
+            <span className="text-5xl font-black text-white">{isAnnual ? '₹239' : '₹299'}</span>
             <span className="text-sm text-fresh-sky-400 ml-2 font-bold uppercase tracking-wider">/month</span>
           </div>
           <div className="flex flex-col mb-8">
             <Link 
               href={`/signup?plan=pro&billing=${isAnnual ? 'annual' : 'monthly'}`}
-              className="w-full block text-center py-4 bg-fresh-sky-800 hover:bg-fresh-sky-700 text-white font-bold rounded-2xl transition-colors focus:outline-none"
+              className="w-full block text-center py-4 bg-fresh-sky-800 hover:bg-fresh-sky-700 text-white font-bold rounded-2xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-white"
             >
               Get Started
             </Link>
@@ -144,7 +146,7 @@ function FeatureItem({ text, disabled = false, dark = false }: { text: string, d
       <div className={`mt-0.5 shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${disabled ? 'bg-fresh-sky-100 text-fresh-sky-300' : (dark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-green-100 text-green-600')}`}>
         <Check className="w-3 h-3 stroke-3" />
       </div>
-      <span className={`text-sm font-medium ${disabled ? (dark ? 'text-fresh-sky-500 outline-none focus:outline-none' : 'text-fresh-sky-400 outline-none focus:outline-none') : (dark ? 'text-fresh-sky-200 outline-none focus:outline-none' : 'text-fresh-sky-700 outline-none focus:outline-none')}`}>
+      <span className={`text-sm font-medium ${disabled ? (dark ? 'text-fresh-sky-500' : 'text-fresh-sky-400') : (dark ? 'text-fresh-sky-200' : 'text-fresh-sky-700')}`}>
         {text}
       </span>
     </li>

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Zap } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
@@ -27,7 +28,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-64px)] flex items-center justify-center p-6 bg-fresh-sky-50 font-sans">
+    <div id="main-content" className="min-h-[calc(100vh-64px)] flex items-center justify-center p-6 bg-fresh-sky-50 font-sans">
       <div className="max-w-md w-full bg-white rounded-4xl p-8 sm:p-10 shadow-2xl shadow-fresh-sky-200/50 border border-fresh-sky-100 animate-in fade-in zoom-in duration-500">
         
         <div className="text-center mb-10">
@@ -39,8 +40,8 @@ export default function LoginPage() {
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-100 text-red-600 text-sm rounded-2xl font-medium flex items-center animate-in slide-in-from-top-2 duration-300">
-            <div className="w-1.5 h-1.5 bg-red-600 rounded-full mr-2 shrink-0" />
+          <div role="alert" aria-live="assertive" className="mb-6 p-4 bg-red-50 border border-red-100 text-red-600 text-sm rounded-2xl font-medium flex items-center animate-in slide-in-from-top-2 duration-300">
+            <div className="w-1.5 h-1.5 bg-red-600 rounded-full mr-2 shrink-0" aria-hidden="true" />
             {error}
           </div>
         )}
@@ -63,7 +64,7 @@ export default function LoginPage() {
         </div>
 
         <p className="mt-8 text-center text-xs text-fresh-sky-600 leading-relaxed px-4">
-          By continuing, you agree to our <span className="text-fresh-sky-700 underline cursor-pointer hover:text-fresh-sky-800 transition-colors">Terms of Service</span> and <span className="text-fresh-sky-700 underline cursor-pointer hover:text-fresh-sky-800 transition-colors">Privacy Policy</span>.
+          By continuing, you agree to our <Link href="/privacy" className="text-fresh-sky-700 underline hover:text-fresh-sky-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded">Terms of Service</Link> and <Link href="/privacy" className="text-fresh-sky-700 underline hover:text-fresh-sky-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded">Privacy Policy</Link>.
         </p>
       </div>
     </div>

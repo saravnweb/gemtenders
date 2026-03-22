@@ -674,7 +674,7 @@ function TendersClient({
   // ─────────────────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-fresh-sky-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 font-sans">
-      <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
+      <main id="main-content" className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
 
         {/* ── Hero / Search ── */}
         <div className="mb-6 sm:mb-8 relative z-10 w-full">
@@ -693,8 +693,10 @@ function TendersClient({
 
               <div className="mt-3 sm:mt-4 flex flex-row gap-2 sm:gap-3 max-w-3xl w-full">
                 <div className="relative flex-1 min-w-0">
-                  <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-slate-600 dark:text-slate-400" />
+                  <label htmlFor="tender-search" className="sr-only">Search tenders by keywords or bid number</label>
+                  <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-slate-600 dark:text-slate-400" aria-hidden="true" />
                   <input
+                    id="tender-search"
                     type="text"
                     placeholder="Search by keywords, bid number..."
                     value={searchQuery}
@@ -849,12 +851,13 @@ function TendersClient({
               <div className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar">
                 {/* Advanced Search */}
                 <div className="space-y-3 relative">
-                  <label className="text-xs font-black text-slate-600 uppercase tracking-widest flex items-center">
-                    <Zap className="w-3.5 h-3.5 mr-2 text-blue-500" /> Advanced Search
+                  <label htmlFor="advanced-search-input" className="text-xs font-black text-slate-600 uppercase tracking-widest flex items-center">
+                    <Zap className="w-3.5 h-3.5 mr-2 text-blue-500" aria-hidden="true" /> Advanced Search
                   </label>
                   <div className="relative">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 dark:text-slate-600" />
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 dark:text-slate-600" aria-hidden="true" />
                     <input
+                      id="advanced-search-input"
                       type="text"
                       disabled={!isPremium}
                       placeholder={isPremium ? "Keywords in AI summary..." : "Premium feature..."}
@@ -872,10 +875,10 @@ function TendersClient({
                 </div>
 
                 {/* State Filter */}
-                <div className="space-y-4">
-                  <label className="text-xs font-black text-slate-600 uppercase tracking-widest flex items-center">
-                    <MapPin className="w-3.5 h-3.5 mr-2" /> State / Location
-                  </label>
+                <fieldset className="space-y-4">
+                  <legend className="text-xs font-black text-slate-600 uppercase tracking-widest flex items-center">
+                    <MapPin className="w-3.5 h-3.5 mr-2" aria-hidden="true" /> State / Location
+                  </legend>
                   {!statesLoaded ? (
                     <div className="grid grid-cols-2 gap-2">
                       {Array.from({ length: 6 }).map((_, i) => (
@@ -899,14 +902,14 @@ function TendersClient({
                       ))}
                     </div>
                   )}
-                </div>
+                </fieldset>
 
                 {/* City Filter */}
                 {cities.length > 0 && (
-                  <div className="space-y-4">
-                    <label className="text-xs font-black text-slate-600 uppercase tracking-widest flex items-center">
-                      <MapPin className="w-3.5 h-3.5 mr-2" /> City
-                    </label>
+                  <fieldset className="space-y-4">
+                    <legend className="text-xs font-black text-slate-600 uppercase tracking-widest flex items-center">
+                      <MapPin className="w-3.5 h-3.5 mr-2" aria-hidden="true" /> City
+                    </legend>
                     <div className="grid grid-cols-2 gap-2 max-h-[200px] overflow-y-auto no-scrollbar">
                       <button aria-pressed={selectedCities.length === 0} onClick={() => setSelectedCities([])} className={`px-3 py-2.5 rounded-xl text-xs font-bold transition-all border ${selectedCities.length === 0 ? "bg-blue-600 border-blue-600 text-white shadow-md" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 hover:border-blue-200"}`}>
                         All Cities
@@ -917,14 +920,14 @@ function TendersClient({
                         </button>
                       ))}
                     </div>
-                  </div>
+                  </fieldset>
                 )}
 
                 {/* EMD Filter */}
-                <div className="space-y-4">
-                  <label className="text-xs font-black text-slate-600 uppercase tracking-widest flex items-center">
-                    <Zap className="w-3.5 h-3.5 mr-2 text-amber-500" /> EMD Amount
-                  </label>
+                <fieldset className="space-y-4">
+                  <legend className="text-xs font-black text-slate-600 uppercase tracking-widest flex items-center">
+                    <Zap className="w-3.5 h-3.5 mr-2 text-amber-500" aria-hidden="true" /> EMD Amount
+                  </legend>
                   <div className="grid grid-cols-1 gap-2">
                     {[
                       { label: "All Amounts", value: "all" }, { label: "EMD Free", value: "free" },
@@ -936,13 +939,13 @@ function TendersClient({
                       </button>
                     ))}
                   </div>
-                </div>
+                </fieldset>
 
                 {/* Date Filter */}
-                <div className="space-y-4">
-                  <label className="text-xs font-black text-slate-600 uppercase tracking-widest flex items-center">
-                    <Clock className="w-3.5 h-3.5 mr-2" /> Closing Date
-                  </label>
+                <fieldset className="space-y-4">
+                  <legend className="text-xs font-black text-slate-600 uppercase tracking-widest flex items-center">
+                    <Clock className="w-3.5 h-3.5 mr-2" aria-hidden="true" /> Closing Date
+                  </legend>
                   <div className="grid grid-cols-1 gap-2">
                     {[
                       { label: "Anytime", value: "all" }, { label: "Ending Today", value: "today" },
@@ -953,14 +956,14 @@ function TendersClient({
                       </button>
                     ))}
                   </div>
-                </div>
+                </fieldset>
 
                 {/* Preferences */}
-                <div className="space-y-4 pb-10">
-                  <label className="text-xs font-black text-slate-600 uppercase tracking-widest flex items-center justify-between">
-                    <span className="flex items-center"><Shield className="w-3.5 h-3.5 mr-2" /> Preferences</span>
+                <fieldset className="space-y-4 pb-10">
+                  <legend className="text-xs font-black text-slate-600 uppercase tracking-widest flex items-center justify-between w-full">
+                    <span className="flex items-center"><Shield className="w-3.5 h-3.5 mr-2" aria-hidden="true" /> Preferences</span>
                     {!isPremium && <span className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 text-[9px] px-1.5 py-0.5 rounded font-bold">PREMIUM</span>}
-                  </label>
+                  </legend>
                   <div className="space-y-3 relative">
                     {!isPremium && (
                       <div className="absolute inset-0 z-10 bg-white/40 dark:bg-slate-900/60 backdrop-blur-[1px] rounded-xl flex items-center justify-center">
@@ -972,7 +975,7 @@ function TendersClient({
                     <ToggleButton label="MSME Eligibility Only" checked={msmeOnly} onChange={(v) => isPremium && setMsmeOnly(v)} color="blue" />
                     <ToggleButton label="MII Preference Only"   checked={miiOnly}  onChange={(v) => isPremium && setMiiOnly(v)}  color="amber" />
                   </div>
-                </div>
+                </fieldset>
               </div>
 
               {/* Drawer Footer */}
