@@ -91,10 +91,12 @@ function toTitleCase(str: string): string {
 }
 
 // Utility: split concatenated Ministry/Department strings properly and format as requested
+const isNAValue = (v?: string | null) => !v || /^n\/?a$/i.test(v.trim());
+
 function formatDepartmentInfo(ministry?: string, dept?: string, org?: string): string {
   let ministryStr = ministry || "";
   let deptStr = dept || "";
-  let orgStr = org || "";
+  let orgStr = isNAValue(org) ? (dept || "") : (org || "");
 
   const states = ["Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal", "Delhi", "Puducherry", "Chandigarh", "Ladakh", "Jammu And Kashmir"];
 
@@ -238,7 +240,7 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
     },
     "url": `https://gemtenders.org/bids/${slug}`,
     "identifier": tender.bid_number,
-    "termsOfService": tender.pdf_url || undefined,
+    "termsOfService": tender.pdf_url ? `https://gemtenders.org/api/download/${slug}` : undefined,
   };
 
   const breadcrumbItems = [
@@ -326,7 +328,6 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
 
           <div className="relative z-10">
             <div className="flex flex-wrap items-center gap-3 mb-5">
-              <RevealBidNumber bidNumber={tender.bid_number} />
               {getStatusBadge()}
             </div>
 

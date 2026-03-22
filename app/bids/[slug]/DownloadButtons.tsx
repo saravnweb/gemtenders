@@ -70,7 +70,7 @@ export default function DownloadButtons({
             <div className="flex w-full gap-3">
                 {pdfUrl ? (
                     <a
-                        href={pdfUrl}
+                        href={`/api/download/${slug}`}
                         target="_blank"
                         onClick={handleDownload}
                         className="flex-1 py-3.5 bg-slate-900 dark:bg-slate-700 text-white text-sm rounded-xl font-semibold flex items-center justify-center space-x-2 hover:bg-black dark:hover:bg-slate-600 transition-all shadow-md"
@@ -93,7 +93,7 @@ export default function DownloadButtons({
         <div className="space-y-3 w-full">
             {pdfUrl ? (
                 <a
-                    href={pdfUrl}
+                    href={`/api/download/${slug}`}
                     target="_blank"
                     onClick={handleDownload}
                     className="flex w-full relative group overflow-hidden py-3.5 bg-slate-900 dark:bg-slate-700 text-white text-sm rounded-2xl font-semibold items-center justify-center space-x-2.5 hover:bg-black dark:hover:bg-slate-600 transition-all shadow-md hover:shadow-xl hover:-translate-y-0.5"

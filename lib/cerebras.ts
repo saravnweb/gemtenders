@@ -1,62 +1,13 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { normalizeState, normalizeCity } from "./locations";
 
-const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+const CEREBRAS_API_URL = "https://api.cerebras.ai/v1/chat/completions";
+const CEREBRAS_MODEL = "qwen-3-235b-a22b-instruct-2507";
 
-// --- Key Rotation ---
-// Add GEMINI_API_KEY_2, GEMINI_API_KEY_3, etc. to .env.local for multiplied rate limits.
-// Each key gets its own rate limiter (15 RPM per key → 3 keys = 45 RPM total).
-const MIN_DELAY_MS = 2000; // 30 RPM (conservative for gemini-2.5-flash preview tier)
-
-function loadKeyPool() {
-  const keys: string[] = [];
-  const primary = process.env.GEMINI_API_KEY?.trim();
-  if (primary) keys.push(primary);
-  for (let i = 2; i <= 10; i++) {
-    const k = process.env[`GEMINI_API_KEY_${i}`]?.trim();
-    if (k) keys.push(k);
-  }
-  if (keys.length === 0) throw new Error("No GEMINI_API_KEY found in environment.");
-  console.log(`>>> [AI] Gemini: ${keys.length} key(s) loaded (~${keys.length * 12} RPM capacity)`);
-  return keys.map(k => ({ genAI: new GoogleGenerativeAI(k), lastCallTime: 0 }));
-}
-
-const keyPool = loadKeyPool();
-let keyIndex = 0;
-let globalLastCallTime = 0; // shared queue across all keys
-
-async function getNextClient(): Promise<GoogleGenerativeAI> {
-  const slot = keyPool[keyIndex % keyPool.length];
-  keyIndex++;
-
-  // Single global queue — one call every MIN_DELAY_MS regardless of which key is used.
-  // This prevents bursting when multiple keys share the same GCP project quota.
-  const now = Date.now();
-  if (now - globalLastCallTime < MIN_DELAY_MS) {
-    const wait = MIN_DELAY_MS - (now - globalLastCallTime);
-    globalLastCallTime = globalLastCallTime + MIN_DELAY_MS;
-    await sleep(wait);
-  } else {
-    globalLastCallTime = Date.now();
-  }
-
-  return slot.genAI;
-}
-
-export async function extractTenderData(pdfText: string) {
-  const genAI = await getNextClient();
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
-  const cleanedText = pdfText
-    .replace(/[^\x20-\x7E\n\u0900-\u097F]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .substring(0, 35000);
-
-  const prompt = `
+function buildPrompt(cleanedText: string): string {
+  return `
     You are an expert Procurement Data Scientist. Extract RAW, UNTRUNCATED structured data from this GeM (Government e-Marketplace) Bid Document.
     The document layout is a table with Hindi and English headers. The values are usually in English.
-    
+
     CRITICAL EXTRACTION RULES:
     1. AUTHORITY HIERARCHY & LOCATIONS:
        - ministry: "Ministry/State Name"
@@ -115,9 +66,9 @@ export async function extractTenderData(pdfText: string) {
          "water-environment" (Water & Environment: water treatment, ETP, STP, water purifiers, borewell, pollution control)
          "defence" (Defence & Specialized: military equipment, army stores, ordnance, tactical/defence items)
        - procurement_type: "Goods" if buying physical products, "Works" if construction/civil/installation work, "Services" if hiring people or services.
-       - keywords: Array of 5-8 most specific and relevant English keywords describing what is being procured (e.g. ["16 channel IP DVR", "2MP dome camera", "CCTV surveillance system"]). Use specific product/service names, not generic words.
+       - keywords: Array of 5-8 most specific and relevant English keywords describing what is being procured.
 
-    Output Schema (JSON):
+    Output ONLY valid JSON matching this schema exactly:
     {
       "tender_title": "string (FULL, UNTRUNCATED title/category)",
       "category": "string (one of the 20 category IDs listed in Rule 8)",
@@ -138,11 +89,11 @@ export async function extractTenderData(pdfText: string) {
         "bid_end_date": "ISO-8601",
         "bid_opening_date": "ISO-8601"
       },
-      "quantity": number,
+      "quantity": 0,
       "gemarpts_strings": "string",
       "gemarpts_result": "string",
       "relevant_categories": "string",
-      "emd_amount": number,
+      "emd_amount": 0,
       "relaxations": {
         "mse_experience": "string",
         "mse_turnover": "string",
@@ -177,56 +128,64 @@ export async function extractTenderData(pdfText: string) {
     Document Text Content:
     ${cleanedText}
   `;
-
-  try {
-    console.log(`>>> [AI] Calling Gemini (Model: gemini-2.5-flash)...`);
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
-
-    const cleanJson = text.replace(/```json|```/g, "").trim();
-    const parsedData = JSON.parse(cleanJson);
-
-    if (parsedData.parameters) {
-      if (parsedData.parameters.insight) {
-        parsedData.parameters["AI_INSIGHT"] = parsedData.parameters.insight;
-      }
-      parsedData.technical_summary = JSON.stringify(parsedData.parameters);
-    } else {
-      parsedData.technical_summary = "{}";
-    }
-
-    if (parsedData?.authority) {
-      if (parsedData.authority.state) parsedData.authority.state = normalizeState(parsedData.authority.state);
-      if (parsedData.authority.city) parsedData.authority.city = normalizeCity(parsedData.authority.city);
-      if (parsedData.authority.consignee_state) parsedData.authority.consignee_state = normalizeState(parsedData.authority.consignee_state);
-      if (parsedData.authority.consignee_city) parsedData.authority.consignee_city = normalizeCity(parsedData.authority.consignee_city);
-    }
-    return parsedData;
-
-  } catch (error: any) {
-    const msg = error.message || "";
-    const isRateLimit = error.status === 429 || msg.includes('429') || msg.includes('quota') || msg.includes('limit');
-
-    if (isRateLimit) {
-      console.warn(`>>> [AI] Gemini rate limited (429). Falling back to Groq...`);
-      const { extractTenderDataGroq } = await import('./groq-ai');
-      return extractTenderDataGroq(pdfText);
-    }
-
-    console.warn(`>>> [AI] Gemini Error: ${msg} - ${error.status || ''}`);
-    return null;
-  }
 }
 
-export function generateSlug(bidNumber: string, title: string): string {
-  const cleanTitle = title
-    .toLowerCase()
-    .replace(/[^\w\s-]/g, "") // remove special chars
-    .replace(/\s+/g, "-") // replace spaces with -
-    .replace(/-+/g, "-") // collapse --
-    .trim();
+function postProcess(parsedData: any): any {
+  if (parsedData.parameters) {
+    if (parsedData.parameters.insight) {
+      parsedData.parameters["AI_INSIGHT"] = parsedData.parameters.insight;
+    }
+    parsedData.technical_summary = JSON.stringify(parsedData.parameters);
+  } else {
+    parsedData.technical_summary = "{}";
+  }
+  if (parsedData?.authority) {
+    if (parsedData.authority.state) parsedData.authority.state = normalizeState(parsedData.authority.state);
+    if (parsedData.authority.city) parsedData.authority.city = normalizeCity(parsedData.authority.city);
+    if (parsedData.authority.consignee_state) parsedData.authority.consignee_state = normalizeState(parsedData.authority.consignee_state);
+    if (parsedData.authority.consignee_city) parsedData.authority.consignee_city = normalizeCity(parsedData.authority.consignee_city);
+  }
+  return parsedData;
+}
 
-  const cleanBid = bidNumber.replace(/\//g, "-").toLowerCase();
-  
-  return `${cleanBid}-${cleanTitle}`.substring(0, 200);
+export async function extractTenderData(pdfText: string) {
+  const apiKey = process.env.CEREBRAS_API_KEY;
+  if (!apiKey) throw new Error("CEREBRAS_API_KEY not set in environment.");
+
+  const cleanedText = pdfText
+    .replace(/[^\x20-\x7E\n\u0900-\u097F]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .substring(0, 35000);
+
+  const prompt = buildPrompt(cleanedText);
+
+  console.log(`>>> [AI] Calling Cerebras (Model: ${CEREBRAS_MODEL})...`);
+
+  const response = await fetch(CEREBRAS_API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: CEREBRAS_MODEL,
+      messages: [{ role: "user", content: prompt }],
+      response_format: { type: "json_object" },
+      temperature: 0.1,
+      max_tokens: 4096,
+    }),
+  });
+
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(`Cerebras ${response.status}: ${err}`);
+  }
+
+  const json = await response.json();
+  const text = json.choices?.[0]?.message?.content;
+  if (!text) throw new Error("Empty response from Cerebras");
+
+  const parsedData = JSON.parse(text.replace(/```json|```/g, "").trim());
+  return postProcess(parsedData);
 }

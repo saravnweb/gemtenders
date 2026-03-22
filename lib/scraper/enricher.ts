@@ -4,13 +4,20 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
-import { extractTenderDataOllama as extractTenderData } from '../ollama';
+import { extractTenderDataGroq as extractTenderData } from '../groq-ai';
 import { triggerKeywordNotifications } from '../notifications';
 import { chromium } from 'playwright';
 import path from 'path';
 import fs from 'fs';
 import { normalizeState, normalizeCity } from '../locations';
+import { detectCategory } from '../categories';
 import { parseGeMDate } from './gem-scraper';
+
+function detectBidType(bidNo: string, title: string): string {
+  if (/\/RA\//i.test(bidNo) || /reverse\s*auction/i.test(title)) return "Reverse Auction";
+  if (/custom\s*bid/i.test(title)) return "Custom Bid";
+  return "Open Bid";
+}
 
 
 export async function runEnrichment(limit: number = 20, reprocess: boolean = false) {
@@ -146,6 +153,17 @@ export async function runEnrichment(limit: number = 20, reprocess: boolean = fal
           updatePayload.emd_amount = aiData.emd_amount;
           updatePayload.quantity = aiData.quantity;
           updatePayload.ai_summary = aiData.technical_summary;
+          updatePayload.eligibility_msme = aiData.eligibility?.msme || false;
+          updatePayload.eligibility_mii = aiData.eligibility?.mii || false;
+          updatePayload.mse_relaxation = aiData.relaxations?.mse_experience || null;
+          updatePayload.mse_turnover_relaxation = aiData.relaxations?.mse_turnover || null;
+          updatePayload.startup_relaxation = aiData.relaxations?.startup_experience || null;
+          updatePayload.startup_turnover_relaxation = aiData.relaxations?.startup_turnover || null;
+          updatePayload.documents_required = aiData.documents_required || [];
+          updatePayload.category = aiData.category || detectCategory((aiData.tender_title || '') + ' ' + (aiData.technical_summary || '')) || null;
+          updatePayload.bid_type = detectBidType(tender.bid_number, aiData.tender_title || '');
+          updatePayload.procurement_type = aiData.procurement_type || null;
+          updatePayload.keywords = aiData.keywords || [];
           if (aiData.dates) {
             if (aiData.dates.bid_opening_date) updatePayload.opening_date = parseGeMDate(aiData.dates.bid_opening_date) || aiData.dates.bid_opening_date;
             if (aiData.dates.bid_start_date) updatePayload.start_date = parseGeMDate(aiData.dates.bid_start_date) || aiData.dates.bid_start_date;

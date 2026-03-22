@@ -126,7 +126,7 @@ export default async function SavedBidsPage() {
                     </Link>
                     {tender.pdf_url && (
                       <a
-                        href={tender.pdf_url}
+                        href={`/api/download/${tender.slug}`}
                         target="_blank"
                         className="flex-1 md:flex-none py-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 text-slate-600 dark:text-slate-400 rounded-lg text-xs font-bold text-center hover:bg-slate-50 dark:hover:bg-zinc-800 transition-all flex items-center justify-center space-x-2"
                       >

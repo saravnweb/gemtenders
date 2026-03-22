@@ -44,10 +44,18 @@ export async function extractTenderDataOllama(pdfText: string) {
        - "CONSIGNEES/REPORTING OFFICER AND QUANTITY": Extract the FULL consignee details exactly as written, including the person's name, address, CITY, state, and quantity.
        - "DOCUMENT REQUIRED FROM SELLER": Give a comma-separated list of required documents.
        - "insight": Provide a 1-sentence professional summary of this tender. DO NOT start with "This tender is for" or "This tender". Start directly with the action/item being procured, e.g. "Supply of [Item] for [Organization]".
+    7. CLASSIFICATION (based on what is being procured):
+       - category: Pick EXACTLY ONE ID from this list that best matches the primary item/service:
+         "it","civil","electrical","medical","furniture","vehicles","manpower","security","transport","printing","catering","textile","maintenance","pipes-hardware","cleaning","events-training","supplies","survey-consulting","water-environment","defence"
+       - procurement_type: "Goods" if buying physical products, "Works" if construction/installation work, "Services" if hiring people or services.
+       - keywords: Array of 5-8 most specific English keywords describing what is being procured.
 
     Output Schema (JSON):
     {
       "tender_title": "string (FULL, UNTRUNCATED title/category)",
+      "category": "string (one of the 20 IDs from Rule 7)",
+      "procurement_type": "Goods | Works | Services",
+      "keywords": ["string", "string"],
       "authority": {
         "ministry": "string",
         "department": "string",

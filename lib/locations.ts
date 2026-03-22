@@ -1,5 +1,18 @@
 import { City } from 'country-state-city';
 
+// Canonical set of all Indian states and UTs
+export const INDIAN_STATES = new Set([
+  'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
+  'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand',
+  'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur',
+  'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab',
+  'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura',
+  'Uttar Pradesh', 'Uttarakhand', 'West Bengal',
+  // Union Territories
+  'Andaman And Nicobar', 'Chandigarh', 'Dadra And Nagar Haveli And Daman And Diu',
+  'Delhi', 'Jammu And Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry',
+]);
+
 export function normalizeState(state: string | null | undefined): string | null {
   if (!state || state.trim() === "") return null;
   const s = state.trim().toLowerCase().replace(/[\.\,]/g, '').replace(/\s+state$/, '');
@@ -45,7 +58,14 @@ export function normalizeState(state: string | null | undefined): string | null 
   if (map[clean]) return map[clean];
 
   for (const [key, val] of Object.entries(map)) {
-      if (clean === key || clean.includes(key) || key.includes(clean.length > 5 ? clean : "----")) {
+      if (clean === key) {
+         return val;
+      }
+
+      // Ensure that we only match the abbreviation as a distinct word
+      const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const safeRegex = new RegExp(`\\b${escapedKey}\\b`, 'i');
+      if (safeRegex.test(clean) || key.includes(clean.length > 5 ? clean : "----")) {
          return val;
       }
   }

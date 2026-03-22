@@ -8,13 +8,14 @@ import {
   Share2, Archive
 } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams, useRouter } from "next/navigation";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const PAGE_SIZE = 21;
 const COLUMNS =
   "id,title,bid_number,state,city,department,ministry_name,department_name,organisation_name,office_name,emd_amount,start_date,end_date,ai_summary,eligibility_msme,eligibility_mii,created_at,slug";
 
-import { KEYWORD_CATEGORIES } from "@/lib/categories";
+import { CATEGORIES, getCategoryById } from "@/lib/categories";
 
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
@@ -25,13 +26,22 @@ function toTitleCase(str: string): string {
 
 function getCategory(title: string, summary: string) {
   const text = `${title} ${summary || ""}`.toLowerCase();
-  return KEYWORD_CATEGORIES.find((cat) => cat.keywords.some((k) => text.includes(k)));
+  return CATEGORIES.find((cat) => cat.keywords.some((k) => {
+    try {
+      const regex = new RegExp(`\\b${k.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&')}\\b`, "i");
+      return regex.test(text);
+    } catch {
+      return text.includes(k);
+    }
+  }));
 }
+
+const isNAValue = (v?: string | null) => !v || /^n\/?a$/i.test(v.trim());
 
 function formatDepartmentInfo(ministry?: string, dept?: string, org?: string): string {
   let ministryStr = ministry || "";
   let deptStr = dept || "";
-  let orgStr = org || "";
+  let orgStr = isNAValue(org) ? (dept || "") : (org || "");
 
   const states = ["Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Goa","Gujarat","Haryana","Himachal Pradesh","Jharkhand","Karnataka","Kerala","Madhya Pradesh","Maharashtra","Manipur","Meghalaya","Mizoram","Nagaland","Odisha","Punjab","Rajasthan","Sikkim","Tamil Nadu","Telangana","Tripura","Uttar Pradesh","Uttarakhand","West Bengal","Delhi","Puducherry","Chandigarh","Ladakh","Jammu And Kashmir"];
 
@@ -127,8 +137,7 @@ async function queryTendersCount(filters: Filters): Promise<number> {
   else if (filters.emdFilter === ">5L")  q = q.gt("emd_amount", 500000);
 
   if (filters.category) {
-    const cat = KEYWORD_CATEGORIES.find((c) => c.id === filters.category);
-    if (cat) q = q.or(cat.keywords.map((k) => `title.ilike.%${k}%`).join(","));
+    q = q.eq("category", filters.category);
   }
 
   if (filters.descriptionQuery.trim()) {
@@ -154,17 +163,24 @@ async function queryForYouTenders(searches: any[]): Promise<any[]> {
 
   // Build OR parts from all saved search keywords + category keywords
   const orParts: string[] = [];
+  const allStates: string[] = [];
+  const allCities: string[] = [];
+
   searches.forEach(search => {
     const p = search.query_params;
     if (!p) return;
+
+    if (p.states) allStates.push(...p.states);
+    if (p.state) allStates.push(p.state);
+    if (p.cities) allCities.push(...p.cities);
+
     if (p.q) {
       p.q.split(",").map((k: string) => k.trim()).filter(Boolean).forEach((kw: string) => {
         orParts.push(`title.ilike.%${kw}%`, `department.ilike.%${kw}%`, `ai_summary.ilike.%${kw}%`);
       });
     }
     if (p.category) {
-      const cat = KEYWORD_CATEGORIES.find((c) => c.id === p.category);
-      if (cat) cat.keywords.forEach((k) => { orParts.push(`title.ilike.%${k}%`); orParts.push(`ai_summary.ilike.%${k}%`); });
+      orParts.push(`category.eq.${p.category}`); // Since we are combining with .or(), wait actually .or("category.eq.it,title.ilike...") works in Supabase string syntax
     }
   });
 
@@ -172,12 +188,35 @@ async function queryForYouTenders(searches: any[]): Promise<any[]> {
     .from("tenders")
     .select(COLUMNS)
     .gte("end_date", new Date().toISOString())
-    .order("start_date", { ascending: false })
-    .order("id", { ascending: true });
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: true })
+    .limit(3000);
 
   if (orParts.length > 0) {
     const unique = [...new Set(orParts)];
     q = q.or(unique.join(","));
+  }
+
+  const uniqueStates = [...new Set(allStates)];
+  if (uniqueStates.length > 0) {
+    const hasSearchWithoutStates = searches.some(s => {
+      const p = s.query_params || {};
+      return !(p.states?.length > 0 || p.state);
+    });
+    if (!hasSearchWithoutStates) {
+      q = q.in("state", uniqueStates);
+    }
+  }
+
+  const uniqueCities = [...new Set(allCities)];
+  if (uniqueCities.length > 0) {
+    const hasSearchWithoutCities = searches.some(s => {
+      const p = s.query_params || {};
+      return !(p.cities?.length > 0);
+    });
+    if (!hasSearchWithoutCities) {
+      q = q.in("city", uniqueCities);
+    }
   }
 
   const { data } = await q;
@@ -203,7 +242,7 @@ async function queryTenders(filters: Filters, page: number): Promise<any[]> {
 
   // Sort
   if (filters.sortOrder === "newest") {
-    q = q.order("start_date", { ascending: false }).order("id", { ascending: true });
+    q = q.order("created_at", { ascending: false }).order("id", { ascending: true });
   } else {
     q = q.order("end_date", { ascending: true }).order("id", { ascending: true });
   }
@@ -231,13 +270,9 @@ async function queryTenders(filters: Filters, page: number): Promise<any[]> {
   else if (filters.emdFilter === "1-5L") q = q.gte("emd_amount", 100000).lte("emd_amount", 500000);
   else if (filters.emdFilter === ">5L")  q = q.gt("emd_amount", 500000);
 
-  // Category (keyword matching in title)
+  // Category (exact match with the new DB column)
   if (filters.category) {
-    const cat = KEYWORD_CATEGORIES.find((c) => c.id === filters.category);
-    if (cat) {
-      const orClause = cat.keywords.map((k) => `title.ilike.%${k}%`).join(",");
-      q = q.or(orClause);
-    }
+    q = q.eq("category", filters.category);
   }
 
   // AI summary / description search
@@ -268,7 +303,11 @@ export default function TendersClientWrapper(props: {
   initialCategory?: string;
   initialTotalCount?: number;
 }) {
-  return <TendersClient {...props} />;
+  return (
+    <Suspense fallback={<TendersSkeleton />}>
+      <TendersClient {...props} />
+    </Suspense>
+  );
 }
 
 function TendersSkeleton() {
@@ -304,7 +343,7 @@ function TendersClient({
   initialCategory?: string;
   initialTotalCount?: number;
 }) {
-  const searchParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : new URLSearchParams();
+  const searchParams = useSearchParams();
 
   // ── Tender data state ──
   const [tenders, setTenders]                   = useState<any[]>(initialTenders);
@@ -352,6 +391,9 @@ function TendersClient({
   useEffect(() => {
     const q = searchParams.get("q");
     if (q && !initialQ) setSearchQuery(q);
+
+    const cat = searchParams.get("category");
+    if (cat && !initialCategory) setSelectedCategory(cat);
 
     const s = searchParams.getAll("state");
     if (s.length > 0 && initialStates.length === 0) setSelectedStates(s);
@@ -523,31 +565,39 @@ function TendersClient({
   // ── "For You" matching (precise client-side filter on DB-fetched forYouAllTenders) ──
   const forYouTenders = useMemo(() => {
     if (!savedSearches.length) return [];
-    return forYouAllTenders.filter((tender) =>
+    const filtered = forYouAllTenders.filter((tender) =>
       savedSearches.some((search) => {
         const p = search.query_params;
         if (!p) return false;
         let match = true;
 
         if (p.q) {
-          const kws = p.q.toLowerCase().split(",").map((k: string) => k.trim()).filter(Boolean);
-          if (kws.length && !kws.some((kw: string) =>
-            tender.title?.toLowerCase().includes(kw) ||
-            tender.bid_number?.toLowerCase().includes(kw) ||
-            tender.department?.toLowerCase().includes(kw) ||
-            tender.ai_summary?.toLowerCase().includes(kw)
-          )) match = false;
+           const kws = p.q.split(",").map((k: string) => k.trim()).filter(Boolean);
+           if (kws.length && !kws.some((kw: string) => {
+             try {
+               const regex = new RegExp(`\\b${kw.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&')}\\b`, 'i');
+               return regex.test(tender.title || "") ||
+                      regex.test(tender.bid_number || "") ||
+                      regex.test(tender.department || "") ||
+                      regex.test(tender.ai_summary || "");
+             } catch (e) {
+               const lowerKw = kw.toLowerCase();
+               return tender.title?.toLowerCase().includes(lowerKw) ||
+                      tender.bid_number?.toLowerCase().includes(lowerKw) ||
+                      tender.department?.toLowerCase().includes(lowerKw) ||
+                      tender.ai_summary?.toLowerCase().includes(lowerKw);
+             }
+           })) match = false;
         }
 
         const alertStates = p.states || (p.state ? [p.state] : []);
         if (alertStates.length && !alertStates.includes(tender.state)) match = false;
 
+        const alertCities = p.cities || [];
+        if (alertCities.length && !alertCities.includes(tender.city)) match = false;
+
         if (p.category) {
-          const cat = KEYWORD_CATEGORIES.find((c) => c.id === p.category);
-          if (cat) {
-            const text = `${tender.title} ${tender.ai_summary || ""}`.toLowerCase();
-            if (!cat.keywords.some((k) => text.includes(k))) match = false;
-          }
+          if (tender.category !== p.category) match = false;
         }
 
         if (p.msme && !tender.eligibility_msme) match = false;
@@ -555,7 +605,17 @@ function TendersClient({
         return match;
       })
     );
-  }, [forYouAllTenders, savedSearches]);
+    
+    const sorted = [...filtered].sort((a, b) => {
+      if (sortOrder === "newest") {
+        return new Date(b.created_at || b.start_date || 0).getTime() - new Date(a.created_at || a.start_date || 0).getTime();
+      } else {
+        return new Date(a.end_date || 0).getTime() - new Date(b.end_date || 0).getTime();
+      }
+    });
+
+    return sorted;
+  }, [forYouAllTenders, savedSearches, sortOrder]);
 
   // ── Display list (For You tab filtering is client-side on current page) ──
   const displayTenders = activeTab === "foryou" ? forYouTenders : tenders;
@@ -568,7 +628,7 @@ function TendersClient({
     }
     setIsSavingSearch(true);
     const searchName = searchQuery || descriptionQuery
-      || (selectedCategory ? KEYWORD_CATEGORIES.find((c) => c.id === selectedCategory)?.name : "")
+      || (selectedCategory ? CATEGORIES.find((c) => c.id === selectedCategory)?.label : "")
       || "My Tender Alert";
 
     const { error } = await supabase.from("saved_searches").insert({
@@ -686,7 +746,7 @@ function TendersClient({
         </div>
 
         {/* ── Tabs ── */}
-        <div className="flex items-start sm:items-center justify-between mb-4 border-b border-slate-200 dark:border-slate-700 w-full overflow-x-auto no-scrollbar">
+        <div className="flex items-start sm:items-center justify-between mb-4 border-b border-slate-200 dark:border-slate-700 w-full overflow-x-auto overflow-y-hidden no-scrollbar">
           <div className="flex flex-nowrap items-center gap-x-4 sm:gap-x-6 flex-1 pt-1 pr-2 shrink-0" role="tablist" aria-label="Tender Views">
             <TabButton label="All Active Bids" active={activeTab === "all"} onClick={() => setActiveTab("all")} />
 
@@ -748,7 +808,7 @@ function TendersClient({
           <div className="flex items-center space-x-2 mb-4 overflow-x-auto pb-1 no-scrollbar min-h-[32px]">
             <div className="flex items-center space-x-2">
               {selectedCategory && (
-                <FilterTag label={`Category: ${KEYWORD_CATEGORIES.find((c) => c.id === selectedCategory)?.name}`} onRemove={() => setSelectedCategory(null)} />
+                <FilterTag label={`Category: ${CATEGORIES.find((c) => c.id === selectedCategory)?.label}`} onRemove={() => setSelectedCategory(null)} />
               )}
               {descriptionQuery && <FilterTag label={`Details: ${descriptionQuery}`} onRemove={() => setDescriptionQuery("")} />}
               {selectedStates.map((st) => (
@@ -1084,7 +1144,7 @@ function TenderCard({
 
   const bidId = tender.bid_number?.replace(/\//g, "/");
   const departmentDisplay = formatDepartmentInfo(tender.ministry_name, tender.department_name || tender.department, tender.organisation_name);
-  const category = getCategory(tender.title, tender.ai_summary);
+  const category = (tender.category ? getCategoryById(tender.category) : null) ?? getCategory(tender.title, tender.ai_summary);
 
   let displayInsight = tender.ai_summary;
   let hasValidInsight = !!tender.ai_summary;
@@ -1128,7 +1188,7 @@ function TenderCard({
             </button>
             {category && (
               <span className="flex items-center space-x-1 px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-xs font-bold text-slate-500 dark:text-slate-400">
-                <span>{category.icon}</span><span>{category.name}</span>
+                <span>{category.icon}</span><span>{category.label}</span>
               </span>
             )}
           </div>
@@ -1136,7 +1196,7 @@ function TenderCard({
         {tender.title && tender.title.length <= 60 && category && (
           <div className="flex items-center space-x-2 mt-1 relative z-10">
             <span className="flex items-center space-x-1 px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-xs font-bold text-slate-500 dark:text-slate-400">
-              <span>{category.icon}</span><span>{category.name}</span>
+              <span>{category.icon}</span><span>{category.label}</span>
             </span>
           </div>
         )}

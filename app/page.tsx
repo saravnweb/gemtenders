@@ -5,7 +5,9 @@ import { createClient } from '@/lib/supabase/server';
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: 'GeM Tender Tracker — Live Government Bids | GeMTenders.org',
+  title: {
+    absolute: 'Live GeM Tenders — AI-Powered Bid Tracking | GeMTenders.org'
+  },
   description: 'Discover 10,000+ live GeM portal tenders with our advanced search tool. Find the best government bids by category, ministry, and state, updated daily.',
 };
 
@@ -15,7 +17,7 @@ export default async function Page() {
     .from('tenders')
     .select('id,title,bid_number,state,city,department,ministry_name,department_name,organisation_name,office_name,emd_amount,start_date,end_date,ai_summary,eligibility_msme,eligibility_mii,created_at,slug')
     .gte('end_date', new Date().toISOString())
-    .order('start_date', { ascending: false })
+    .order('created_at', { ascending: false })
     .order('id', { ascending: true })
     .limit(21);
 

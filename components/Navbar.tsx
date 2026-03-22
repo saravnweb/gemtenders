@@ -189,9 +189,9 @@ export default function Navbar() {
 
               {/* Desktop Nav */}
               <nav className="hidden md:flex items-center space-x-6">
-                <Link href="/categories" className="flex items-center space-x-1.5 text-xs font-black uppercase tracking-widest text-fresh-sky-700 dark:text-fresh-sky-300 hover:text-atomic-tangerine-600 transition-colors">
+                <Link href="/explore" className="flex items-center space-x-1.5 text-xs font-black uppercase tracking-widest text-fresh-sky-700 dark:text-fresh-sky-300 hover:text-atomic-tangerine-600 transition-colors">
                   <LayoutDashboard className="w-4 h-4" />
-                  <span>Categories</span>
+                  <span>Explore</span>
                 </Link>
                 {!loading && user ? (
                   <>
@@ -317,9 +317,9 @@ export default function Navbar() {
                     {/* Navigation Links - Always Visible */}
                     <div className="flex flex-col space-y-1">
                       <MenuListItem 
-                        href="/categories" 
+                        href="/explore" 
                         icon={<LayoutDashboard className="w-4 h-4 text-slate-600" />} 
-                        label="Categories" 
+                        label="Explore" 
                         onClick={() => setIsMenuOpen(false)} 
                       />
                       <MenuListItem 

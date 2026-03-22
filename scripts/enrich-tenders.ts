@@ -17,7 +17,7 @@ const { parseGeMDate } = await import('../lib/scraper/gem-scraper');
 // ─── CONFIG ────────────────────────────────────────────────────────────────
 const args = process.argv.slice(2);
 const LIMIT       = parseInt(args.find(a => a.startsWith('--limit='))?.split('=')[1]       || '20000', 10);
-const CONCURRENCY = parseInt(args.find(a => a.startsWith('--concurrency='))?.split('=')[1] || '1',   10);
+const CONCURRENCY = Math.max(1, parseInt(args.find(a => a.startsWith('--concurrency='))?.split('=')[1] || '1', 10));
 const START_BATCH = parseInt(args.find(a => a.startsWith('--start-batch='))?.split('=')[1] || '1',   10);
 const BATCH_DELAY = parseInt(args.find(a => a.startsWith('--delay='))?.split('=')[1]       || '0',10);
 const REPROCESS   = args.includes('--reprocess');
@@ -135,7 +135,7 @@ async function enrichTenders() {
     ])
   );
 
-  const { extractTenderDataOllama: extractTenderData } = await import('../lib/ollama');
+  const { extractTenderDataGroq: extractTenderData } = await import('../lib/groq-ai');
   const { triggerKeywordNotifications } = await import('../lib/notifications');
 
 

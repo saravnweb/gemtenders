@@ -19,7 +19,15 @@
       "Bash(npm run:*)",
       "Bash(netstat -ano)",
       "Bash(findstr \":300\")",
-      "Bash(findstr LISTENING)"
+      "Bash(findstr LISTENING)",
+      "Bash(xargs ls:*)",
+      "Bash(wc -l /d/websites/Tenders/app/TendersClient.tsx /d/websites/Tenders/app/bids/[slug]/page.tsx)",
+      "Bash(xargs cat:*)",
+      "Bash(ls -lh /d/websites/Tenders/app/bids/[slug]/)",
+      "WebFetch(domain:api.cerebras.ai)",
+      "WebFetch(domain:inference-docs.cerebras.ai)",
+      "Bash(curl -s \"https://api.cerebras.ai/v1/models\" -H \"Authorization: Bearer csk-d3jjvd9392fx3j2jcfjyewe6mvm26jjchry245xjjkry55rv\")",
+      "Bash(node -e \"const d=require\\(''''fs''''\\).readFileSync\\(''''/dev/stdin'''',''''utf8''''\\); try{const j=JSON.parse\\(d\\); \\(j.data||j.models||[j]\\).forEach\\(m=>console.log\\(m.id||m.name||m\\)\\)}catch\\(e\\){console.log\\(d\\)}\")"
     ]
   }
 }
