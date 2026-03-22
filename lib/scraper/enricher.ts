@@ -4,7 +4,7 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
-import { extractTenderDataRegex as extractTenderData } from '../regex-extractor';
+import { extractTenderData } from '../gemini';
 import { triggerKeywordNotifications } from '../notifications';
 import { chromium } from 'playwright';
 import path from 'path';
@@ -13,16 +13,21 @@ import { normalizeState, normalizeCity } from '../locations';
 import { parseGeMDate } from './gem-scraper';
 
 
-export async function runEnrichment(limit: number = 20) {
+export async function runEnrichment(limit: number = 20, reprocess: boolean = false) {
   console.log(`\n>>> [ENRICHER] Starting enrichment run. Processing up to ${limit} tenders...\n`);
 
-  const { data: pendingTenders, error } = await supabase
+  let query = supabase
     .from('tenders')
     .select('id, bid_number, details_url')
     .is('pdf_url', null)
-    .gte('end_date', new Date().toISOString())
     .order('created_at', { ascending: true })
     .limit(limit);
+
+  if (!reprocess) {
+    query = query.gte('end_date', new Date().toISOString());
+  }
+
+  const { data: pendingTenders, error } = await query;
 
   if (error || !pendingTenders || pendingTenders.length === 0) {
     return { success: true, processed: 0, message: "No pending tenders found." };

@@ -13,9 +13,16 @@ export default async function Page() {
   const supabase = await createClient();
   const { data: tenders } = await supabase
     .from('tenders')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(20);
+    .select('id,title,bid_number,state,city,department,ministry_name,department_name,organisation_name,office_name,emd_amount,start_date,end_date,ai_summary,eligibility_msme,eligibility_mii,created_at,slug')
+    .gte('end_date', new Date().toISOString())
+    .order('start_date', { ascending: false })
+    .order('id', { ascending: true })
+    .limit(21);
+
+  const { count } = await supabase
+    .from('tenders')
+    .select('*', { count: 'exact', head: true })
+    .gte('end_date', new Date().toISOString());
 
   const initialTenders = tenders ?? [];
 
@@ -39,6 +46,7 @@ export default async function Page() {
         initialTenders={initialTenders}
         initialQ=""
         initialStates={[]}
+        initialTotalCount={count ?? 0}
       />
     </>
   );

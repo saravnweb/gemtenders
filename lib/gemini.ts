@@ -28,8 +28,8 @@ export async function extractTenderData(pdfText: string) {
        - office: "Office Name"
        - state: Extract the exact STATE perfectly from the buyer address.
        - city: Extract the exact CITY or DISTRICT from the buyer address.
-       - consignee_state: Extract the exact STATE perfectly from the "Consignees/Reporting Officer" or delivery location.
-       - consignee_city: Extract the exact CITY perfectly from the "Consignees/Reporting Officer" or delivery location.
+       - consignee_state: Look at the "Consignees/Reporting Officer" section. Extract ONLY the STATE name.
+       - consignee_city: Look at the "Consignees/Reporting Officer" section. Extract ONLY the CITY or DISTRICT name (e.g. "New Delhi", "Mumbai", "Ambala"). Do not include the person's name or the state here.
        DO NOT leave these null if they are present in the text.
     2. ITEM DETAILS:
        - tender_title: Extract the FULL, UNTRUNCATED value of the Item Category or BOQ Title. Search the entire document to find the complete name without trailing '...'. NEVER return a title ending in '...'. If the document only has a truncated title, remove '...' from the end.
@@ -44,6 +44,17 @@ export async function extractTenderData(pdfText: string) {
        - bid_opening_date: "Bid Opening Date/Time" - ENSURE THIS IS EXTRACTED.
     5. RELAXATIONS:
        - Check "MSE Relaxation for Years Of Experience and Turnover" and the Startup equivalent.
+    6. LANGUAGE:
+       - DO NOT INCLUDE ANY HINDI TEXT in your output. If a value contains both English and Hindi, extract ONLY the English portion. Omit all Hindi characters entirely.
+    7. FRONTEND PARAMETERS:
+       - You MUST extract these specific keys perfectly into the "parameters" object. Do not rename the keys.
+       - "CONTRACT PERIOD": Look for "Bid Offer Validity" or "Contract Period".
+       - "MINIMUM AVERAGE ANNUAL TURNOVER OF THE BIDDER": Look for "Minimum Average Annual Turnover of the bidder" in Lakhs or Crores.
+       - "ESTIMATED BID VALUE": Look for estimated value in INR.
+       - "EPBG DETAIL": Look for ePBG percentage or details.
+       - "CONSIGNEES/REPORTING OFFICER AND QUANTITY": Extract the FULL consignee details exactly as written, including the person's name, address, CITY, state, and quantity.
+       - "DOCUMENT REQUIRED FROM SELLER": Give a comma-separated list of required documents.
+       - "insight": Provide a 1-sentence professional summary of this tender (what is being bought and for whom).
     
     Output Schema (JSON):
     {
@@ -76,10 +87,27 @@ export async function extractTenderData(pdfText: string) {
       },
       "documents_required": ["string list"],
       "eligibility": {
-        "msme": boolean,
-        "mii": boolean
+        "msme": false,
+        "mii": false
       },
-      "technical_summary": "string"
+      "parameters": {
+        "CONTRACT PERIOD": "string or N/A",
+        "QUANTITY": "string or N/A",
+        "ITEM CATEGORY": "string or N/A",
+        "YEARS OF PAST EXPERIENCE REQUIRED FOR SAME/SIMILAR SERVICE": "string or N/A",
+        "PAST EXPERIENCE OF SIMILAR SERVICES REQUIRED": "string or N/A",
+        "MINIMUM AVERAGE ANNUAL TURNOVER OF THE BIDDER": "string or N/A",
+        "ADDITIONAL QUALIFICATION/DATA REQUIRED": "string or N/A",
+        "ESTIMATED BID VALUE": "string or N/A",
+        "EPBG DETAIL": "string or N/A",
+        "CONSIGNEES/REPORTING OFFICER AND QUANTITY": "string or N/A",
+        "MSE PURCHASE PREFERENCE": "Yes or No",
+        "MII COMPLIANCE": "Yes or No",
+        "STARTUP RELAXATION FOR YEARS OF EXPERIENCE AND TURNOVER": "string or N/A",
+        "MSE RELAXATION FOR YEARS OF EXPERIENCE AND TURNOVER": "string or N/A",
+        "DOCUMENT REQUIRED FROM SELLER": "string or N/A",
+        "insight": "string (1-sentence executive summary)"
+      }
     }
 
     Document Text Content:
@@ -101,6 +129,15 @@ export async function extractTenderData(pdfText: string) {
       
       const cleanJson = text.replace(/```json|```/g, "").trim();
       const parsedData = JSON.parse(cleanJson);
+      
+      if (parsedData.parameters) {
+        if (parsedData.parameters.insight) {
+          parsedData.parameters["AI_INSIGHT"] = parsedData.parameters.insight;
+        }
+        parsedData.technical_summary = JSON.stringify(parsedData.parameters);
+      } else {
+        parsedData.technical_summary = "{}";
+      }
       
       if (parsedData?.authority) {
         if (parsedData.authority.state) {

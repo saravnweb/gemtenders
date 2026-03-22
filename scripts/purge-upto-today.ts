@@ -13,8 +13,8 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function purgeUptoToday() {
   const today = new Date();
-  today.setHours(23, 59, 59, 999);
-  const now = today.toISOString();
+  const dateStr = today.toISOString().split('T')[0];
+  const now = `${dateStr}T23:59:59.999Z`;
   console.log(`Purging all tenders ending before: ${now}...`);
 
   let totalDeletedGlobally = 0;

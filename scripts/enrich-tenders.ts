@@ -18,7 +18,9 @@ const { parseGeMDate } = await import('../lib/scraper/gem-scraper');
 const args = process.argv.slice(2);
 const LIMIT       = parseInt(args.find(a => a.startsWith('--limit='))?.split('=')[1]       || '20000', 10);
 const CONCURRENCY = parseInt(args.find(a => a.startsWith('--concurrency='))?.split('=')[1] || '1',   10);
+const START_BATCH = parseInt(args.find(a => a.startsWith('--start-batch='))?.split('=')[1] || '1',   10);
 const BATCH_DELAY = parseInt(args.find(a => a.startsWith('--delay='))?.split('=')[1]       || '0',10);
+const REPROCESS   = args.includes('--reprocess');
 const BUCKET      = 'tender-documents';
 // ──────────────────────────────────────────────────────────────────────────
 
@@ -95,13 +97,17 @@ async function enrichTenders() {
 
   for (let i = 0; i < storageBidNumbers.length; i += 500) {
     const chunk = storageBidNumbers.slice(i, i + 500);
-    const { data, error } = await supabase
+    let query = supabase
       .from('tenders')
       .select('id, bid_number, pdf_url, title')
       .in('bid_number', chunk)
-      .is('ai_summary', null)
-      .gte('end_date', new Date().toISOString())
       .limit(LIMIT - pending.length);
+
+    if (!REPROCESS) {
+      query = query.is('ai_summary', null).gte('end_date', new Date().toISOString());
+    }
+
+    const { data, error } = await query;
 
     if (error) { console.error('DB fetch error:', error.message); continue; }
     if (data) pending.push(...data);
@@ -113,7 +119,7 @@ async function enrichTenders() {
     console.log('    All tenders with PDFs are already enriched, or none match.');
     console.log(`\n>>> [ENRICHER] Transitioning to download missing PDFs for unenriched tenders...`);
     const { runEnrichment } = await import('../lib/scraper/enricher');
-    const result = await runEnrichment(LIMIT);
+    const result = await runEnrichment(LIMIT, REPROCESS);
     console.log(`\n>>> [ENRICHER] Run complete. Downloaded & Enriched: ${result.processed}`);
     return;
   }
@@ -129,7 +135,7 @@ async function enrichTenders() {
     ])
   );
 
-  const { extractTenderDataRegex: extractTenderData } = await import('../lib/regex-extractor');
+  const { extractTenderData } = await import('../lib/gemini');
   const { triggerKeywordNotifications } = await import('../lib/notifications');
 
 
@@ -140,7 +146,8 @@ async function enrichTenders() {
   for (let i = 0; i < pending.length; i += CONCURRENCY)
     chunks.push(pending.slice(i, i + CONCURRENCY));
 
-  for (let i = 0; i < chunks.length; i++) {
+  const startIndex = Math.max(0, START_BATCH - 1);
+  for (let i = startIndex; i < chunks.length; i++) {
     console.log(`>>> [ENRICHER] Batch ${i + 1} / ${chunks.length}...`);
 
     await Promise.all(chunks[i].map(async (tender) => {
@@ -159,7 +166,7 @@ async function enrichTenders() {
       // ── AI extraction ─────────────────────────────────────────────────
       let aiData: any = null;
       try {
-        aiData = await extractTenderData(pdfText.substring(0, 6000));
+        aiData = await extractTenderData(pdfText);
       } catch (e: any) {
         if (e.message?.includes('429') || e.message?.includes('quota')) {
           console.warn(`    ✗ AI rate limit hit. Stopping.`);
@@ -184,8 +191,8 @@ async function enrichTenders() {
         department_name:             auth?.department           || null,
         organisation_name:           auth?.organisation         || null,
         office_name:                 auth?.office               || null,
-        state:                       normalizeState(auth?.state),
-        city:                        normalizeCity(auth?.city),
+        state:                       normalizeState(auth?.consignee_state || auth?.state),
+        city:                        normalizeCity(auth?.consignee_city || auth?.city),
         emd_amount:                  aiData?.emd_amount         ?? null,
         quantity:                    aiData?.quantity           || null,
         ai_summary:                  aiData?.technical_summary  || null,
@@ -259,7 +266,7 @@ async function enrichTenders() {
   if (remainingLimit > 0) {
     console.log(`\n>>> [ENRICHER] Processing ${remainingLimit} more unenriched tenders by downloading missing PDFs...`);
     const { runEnrichment } = await import('../lib/scraper/enricher');
-    const result = await runEnrichment(remainingLimit);
+    const result = await runEnrichment(remainingLimit, REPROCESS);
     console.log(`    ✓ Downloaded & Enriched: ${result.processed}`);
   } else {
     console.log(`    Remaining:  Run again to process the next batch.\n`);

@@ -6,6 +6,14 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 
+const STATES = [
+  "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", 
+  "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh", 
+  "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", 
+  "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", 
+  "Uttarakhand", "West Bengal", "Delhi", "Puducherry", "Chandigarh", "Ladakh", "Jammu And Kashmir"
+].sort();
+
 export default function MonitorCard({ search, membershipPlan, totalKeywords }: { search: any, membershipPlan: string, totalKeywords: number }) {
     const router = useRouter();
     const [keywords, setKeywords] = useState<string[]>(
@@ -15,6 +23,13 @@ export default function MonitorCard({ search, membershipPlan, totalKeywords }: {
     const [newKeyword, setNewKeyword] = useState('');
     const [isUpdating, setIsUpdating] = useState(false);
     
+    const [states, setStates] = useState<string[]>(search.query_params.states || []);
+    const [cities, setCities] = useState<string[]>(search.query_params.cities || []);
+    
+    const [isAddingState, setIsAddingState] = useState(false);
+    const [isAddingCity, setIsAddingCity] = useState(false);
+    const [newCity, setNewCity] = useState('');
+
     const [name, setName] = useState(search.name);
     const [isEditingName, setIsEditingName] = useState(false);
     const [editNameValue, setEditNameValue] = useState(search.name);
@@ -71,6 +86,77 @@ export default function MonitorCard({ search, membershipPlan, totalKeywords }: {
             console.error("Failed to update keywords", error);
         }
         setIsUpdating(false);
+    };
+
+    const updateFilters = async (newStates: string[], newCities: string[]) => {
+        setIsUpdating(true);
+        const { error } = await supabase
+            .from('saved_searches')
+            .update({
+                query_params: {
+                    ...search.query_params,
+                    states: newStates,
+                    cities: newCities
+                }
+            })
+            .eq('id', search.id);
+
+        if (!error) {
+            setStates(newStates);
+            setCities(newCities);
+            router.refresh();
+        } else {
+            console.error("Failed to update filters", error);
+        }
+        setIsUpdating(false);
+    };
+
+    const handleRemoveState = (indexToRemove: number) => {
+        const newStates = states.filter((_, idx) => idx !== indexToRemove);
+        updateFilters(newStates, cities);
+    };
+    
+    const handleRemoveCity = (indexToRemove: number) => {
+        const newCities = cities.filter((_, idx) => idx !== indexToRemove);
+        updateFilters(states, newCities);
+    };
+
+    const handleAddState = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const state = e.target.value;
+        if (!state) { setIsAddingState(false); return; }
+
+        if (membershipPlan === 'free' && states.length >= 1) {
+            if (confirm(`Free plan allows only 1 state filter per monitor. Would you like to upgrade?`)) { router.push('/dashboard/subscriptions'); }
+            setIsAddingState(false);
+            return;
+        }
+        if (membershipPlan === 'starter' && states.length >= 1) {
+            if (confirm(`Starter plan allows only 1 state filter per monitor. Would you like to upgrade to Pro?`)) { router.push('/dashboard/subscriptions'); }
+            setIsAddingState(false);
+            return;
+        }
+        if (!states.includes(state)) {
+            updateFilters([...states, state], cities);
+        }
+        setIsAddingState(false);
+    };
+
+    const handleAddCity = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newCity.trim()) { setIsAddingCity(false); return; }
+        
+        const citiesToAdd = newCity.split(',').map(c => c.trim()).filter(Boolean);
+        const cityCount = cities.length + citiesToAdd.length;
+        
+        if (membershipPlan === 'free' && cityCount > 1) {
+            if (confirm(`Free plan allows only 1 city filter per monitor. Would you like to upgrade?`)) { router.push('/dashboard/subscriptions'); }
+            return;
+        }
+        
+        const newCities = Array.from(new Set([...cities, ...citiesToAdd]));
+        updateFilters(states, newCities);
+        setNewCity('');
+        setIsAddingCity(false);
     };
 
     const handleRemoveKeyword = (indexToRemove: number) => {
@@ -191,30 +277,78 @@ export default function MonitorCard({ search, membershipPlan, totalKeywords }: {
                             </button>
                         </div>
                     ))}
-                    {search.query_params.state && (
-                        <div className="flex items-center gap-1 text-xs font-bold uppercase tracking-widest bg-indigo-50 px-2.5 py-1.5 rounded-full border border-indigo-100 text-indigo-700">
-                            <span>{search.query_params.state}</span>
+                    {states.map((st: string, idx: number) => (
+                        <div key={`st-${idx}`} className="flex items-center gap-1 text-xs font-bold uppercase tracking-widest bg-emerald-50 px-2.5 py-1.5 rounded-full border border-emerald-100 text-emerald-700 group/pill">
+                            <span>{st}</span>
                             <button 
                                 type="button" 
-                                className="hover:bg-indigo-200 p-0.5 rounded-full transition-colors focus:outline-none" 
-                                title="Remove state (Not yet supported in UI)"
+                                onClick={() => handleRemoveState(idx)}
+                                className="hover:bg-emerald-200 p-0.5 rounded-full transition-colors focus:outline-none" 
+                                title="Remove state"
                             >
                                 <X className="w-3 h-3" />
                             </button>
                         </div>
+                    ))}
+                    {isAddingState ? (
+                        <select 
+                            className="text-xs font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border border-emerald-200 focus:outline-none focus:border-emerald-500 bg-white"
+                            autoFocus
+                            onChange={handleAddState}
+                            onBlur={() => setIsAddingState(false)}
+                        >
+                            <option value="">Select State</option>
+                            {STATES.filter(s => !states.includes(s)).map(s => (
+                                <option key={s} value={s}>{s}</option>
+                            ))}
+                        </select>
+                    ) : (
+                        <button 
+                            type="button" 
+                            onClick={() => setIsAddingState(true)}
+                            className="flex items-center gap-1 text-xs font-bold uppercase tracking-widest bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1.5 rounded-full border border-dashed border-emerald-300 text-emerald-700 transition-colors"
+                        >
+                            <Plus className="w-3 h-3" />
+                            <span>State</span>
+                        </button>
                     )}
-                    {search.query_params.city && (
-                        <div className="flex items-center gap-1 text-xs font-bold uppercase tracking-widest bg-indigo-50 px-2.5 py-1.5 rounded-full border border-indigo-100 text-indigo-700">
-                            <span>{search.query_params.city}</span>
+
+                    {cities.map((city: string, idx: number) => (
+                        <div key={`ct-${idx}`} className="flex items-center gap-1 text-xs font-bold uppercase tracking-widest bg-purple-50 px-2.5 py-1.5 rounded-full border border-purple-100 text-purple-700 group/pill">
+                            <span>{city}</span>
                             <button 
                                 type="button" 
-                                className="hover:bg-indigo-200 p-0.5 rounded-full transition-colors focus:outline-none" 
-                                title="Remove city (Not yet supported in UI)"
+                                onClick={() => handleRemoveCity(idx)}
+                                className="hover:bg-purple-200 p-0.5 rounded-full transition-colors focus:outline-none" 
+                                title="Remove city"
                             >
                                 <X className="w-3 h-3" />
                             </button>
                         </div>
+                    ))}
+                    {isAddingCity ? (
+                        <form onSubmit={handleAddCity} className="flex items-center gap-1">
+                            <input 
+                                type="text"
+                                value={newCity}
+                                onChange={(e) => setNewCity(e.target.value)}
+                                placeholder="e.g. Mumbai, Pune"
+                                className="text-xs font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border border-purple-200 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 w-36 bg-white"
+                                autoFocus
+                                onBlur={() => setIsAddingCity(false)}
+                            />
+                        </form>
+                    ) : (
+                        <button 
+                            type="button" 
+                            onClick={() => setIsAddingCity(true)}
+                            className="flex items-center gap-1 text-xs font-bold uppercase tracking-widest bg-purple-50 hover:bg-purple-100 px-2.5 py-1.5 rounded-full border border-dashed border-purple-300 text-purple-700 transition-colors"
+                        >
+                            <Plus className="w-3 h-3" />
+                            <span>City</span>
+                        </button>
                     )}                    
+                    
                     {isAdding ? (
                         <form onSubmit={handleAddKeyword} className="flex items-center gap-1">
                             <input 
@@ -234,14 +368,14 @@ export default function MonitorCard({ search, membershipPlan, totalKeywords }: {
                             className="flex items-center gap-1 text-xs font-bold uppercase tracking-widest bg-slate-50 hover:bg-slate-100 px-2.5 py-1.5 rounded-full border border-dashed border-slate-300 text-slate-600 transition-colors"
                         >
                             <Plus className="w-3 h-3" />
-                            <span>Add</span>
+                            <span>Keyword</span>
                         </button>
                     )}
                 </div>
 
                 <div className="pt-4 border-t border-slate-50 flex items-center justify-between gap-3">
                     <Link 
-                        href={`/?q=${encodeURIComponent(keywords.join(',') || '')}${search.query_params.state ? `&state=${search.query_params.state}` : ''}${search.query_params.city ? `&city=${search.query_params.city}` : ''}`} 
+                        href={`/?q=${encodeURIComponent(keywords.join(',') || '')}${states.length > 0 ? `&states=${encodeURIComponent(states.join(','))}` : ''}${cities.length > 0 ? `&cities=${encodeURIComponent(cities.join(','))}` : ''}`} 
                         className="flex-1 py-2.5 bg-slate-50 text-slate-700 rounded-lg text-xs font-bold tracking-widest uppercase text-center hover:bg-slate-100 transition-all flex items-center justify-center space-x-1 border border-slate-200"
                     >
                         <span>Live Bids</span>

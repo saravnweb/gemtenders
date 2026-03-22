@@ -9,6 +9,7 @@ const supabase = createClient(
 import path from "path";
 import fs from "fs";
 import { extractTenderData, generateSlug } from "@/lib/gemini";
+import { extractVerifiedCity } from "../locations";
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const pdf = require('pdf-parse');
@@ -61,10 +62,20 @@ function extractLocationFallback(text: string): { state: string | null; city: st
     else if (/\bM\.H\.\b|\bMH\b/i.test(text)) foundState = "Maharashtra";
   }
 
-  // Simple city heuristic: Look for address patterns
-  let foundCity = null;
+  // Simple city heuristic 1: Look for address patterns
+  // Simple city heuristic 1: Look for address patterns
   const cityMatch = text.match(/Address\s*:\s*[^\,]+\,\s*([A-Z][a-z\s]+)\b/);
-  if (cityMatch) foundCity = cityMatch[1].trim();
+  const m1 = cityMatch ? cityMatch[1].trim() : "";
+
+  // Heuristic 2: District field
+  const distMatch = text.match(/\bDistrict\b\s*[:\-]?\s*([^\n]+)/i);
+  const m2 = distMatch ? distMatch[1].trim() : "";
+
+  // Heuristic 3: Masked String (e.g. ***********MUMBAI)
+  const maskedCityMatch = text.match(/\*{5,}([A-Z][a-zA-Z\s]+)\b/);
+  const m3 = maskedCityMatch ? maskedCityMatch[1].trim() : "";
+
+  const foundCity = extractVerifiedCity(`${m1} ${m2} ${m3}`);
 
   return { state: foundState, city: foundCity };
 }

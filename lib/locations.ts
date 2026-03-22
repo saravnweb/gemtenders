@@ -1,3 +1,5 @@
+import { City } from 'country-state-city';
+
 export function normalizeState(state: string | null | undefined): string | null {
   if (!state || state.trim() === "") return null;
   const s = state.trim().toLowerCase().replace(/[\.\,]/g, '').replace(/\s+state$/, '');
@@ -55,4 +57,25 @@ export function normalizeCity(city: string | null | undefined): string | null {
    if (!city || city.trim() === "N/A" || city.trim() === "") return null;
    const c = city.trim();
    return c.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ').trim();
+}
+
+// ── Strict City Validation ──
+const INDIAN_CITIES = City.getCitiesOfCountry('IN') || [];
+// Sort by length so longer names like "Navi Mumbai" match before "Mumbai"
+const SORTED_CITIES = [...INDIAN_CITIES].sort((a, b) => b.name.length - a.name.length);
+
+export function extractVerifiedCity(text: string | null | undefined): string | null {
+  if (!text || text.trim() === "N/A" || text.trim() === "") return null;
+  const t = text.replace(/[\r\n]+/g, ' '); // Strip newlines so regex doesn't break
+  
+  for (const c of SORTED_CITIES) {
+    // Avoid matching tiny 2-letter tokens falsely
+    if (c.name.length <= 2) continue;
+    
+    const safeRegex = new RegExp('\\b' + c.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i');
+    if (safeRegex.test(t)) {
+      return c.name;
+    }
+  }
+  return null;
 }

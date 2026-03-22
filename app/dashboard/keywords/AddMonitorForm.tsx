@@ -1,31 +1,18 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { Plus, Search, Loader2, X, MapPin } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 
-const STATES = [
-  "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", 
-  "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh", 
-  "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", 
-  "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", 
-  "Uttarakhand", "West Bengal", "Delhi", "Puducherry", "Chandigarh", "Ladakh", "Jammu And Kashmir"
-].sort();
+
 
 export default function AddMonitorForm({ userId, membershipPlan, totalKeywords }: { userId: string, membershipPlan: string, totalKeywords: number }) {
     const [isAdding, setIsAdding] = useState(false);
     const [keyword, setKeyword] = useState('');
-    const [selectedStates, setSelectedStates] = useState<string[]>([]);
-    const [citiesInput, setCitiesInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [isPending, startTransition] = useTransition();
     const router = useRouter();
-
-    const toggleState = (state: string) => {
-        setSelectedStates(prev => 
-            prev.includes(state) ? prev.filter(s => s !== state) : [...prev, state]
-        );
-    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -34,8 +21,6 @@ export default function AddMonitorForm({ userId, membershipPlan, totalKeywords }
         }
 
         setIsLoading(true);
-        const cities = citiesInput.split(",").map(c => c.trim()).filter(Boolean);
-        
         const newKeywordsCount = keyword.split(',').filter(k => k.trim()).length;
         if (membershipPlan === 'free' && totalKeywords + newKeywordsCount > 10) {
             if (confirm(`Free plan allows up to 10 keywords across all monitors. You already have ${totalKeywords} keywords.\n\nWould you like to upgrade your plan now to add more?`)) {
@@ -45,8 +30,6 @@ export default function AddMonitorForm({ userId, membershipPlan, totalKeywords }
         }
 
         const query_params: any = { q: keyword.trim() };
-        if (selectedStates.length > 0) query_params.states = selectedStates;
-        if (cities.length > 0) query_params.cities = cities;
 
         const { error } = await supabase.from('saved_searches').insert({
             user_id: userId,
@@ -56,11 +39,11 @@ export default function AddMonitorForm({ userId, membershipPlan, totalKeywords }
         });
 
         if (!error) {
-            setKeyword('');
-            setSelectedStates([]);
-            setCitiesInput('');
-            setIsAdding(false);
-            router.refresh();
+            startTransition(() => {
+                router.refresh();
+                setKeyword('');
+                setIsAdding(false);
+            });
         } else {
             console.error("Failed to add monitor", error);
         }
@@ -102,47 +85,14 @@ export default function AddMonitorForm({ userId, membershipPlan, totalKeywords }
                              autoFocus
                          />
                        </div>
-
-                       <div>
-                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-1">
-                            <MapPin className="w-3.5 h-3.5" /> Specific States (Optional)
-                         </label>
-                         <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-3 bg-slate-50 border border-slate-200 rounded-xl shadow-inner no-scrollbar">
-                           {STATES.map(state => (
-                             <button
-                               type="button"
-                               key={state}
-                               onClick={() => toggleState(state)}
-                               className={`px-2 py-1 text-xs font-bold rounded-lg border transition-all ${
-                                 selectedStates.includes(state) 
-                                   ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/20' 
-                                   : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
-                               }`}
-                             >
-                               {state}
-                             </button>
-                           ))}
-                         </div>
-                       </div>
-
-                       <div>
-                         <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1 block">Specific Cities (Optional, comma-separated)</label>
-                         <input
-                             type="text"
-                             value={citiesInput}
-                             onChange={(e) => setCitiesInput(e.target.value)}
-                             placeholder="e.g., Mumbai, Pune"
-                             className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-blue-100 outline-none shadow-inner transition-all"
-                         />
-                       </div>
                     </div>
 
                     <button
                         type="submit"
-                        disabled={isLoading || !keyword.trim()}
+                        disabled={isLoading || isPending || !keyword.trim()}
                         className="w-full mt-2 px-6 py-3.5 bg-blue-600 text-white font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-blue-700 active:scale-[0.98] shadow-md shadow-blue-500/20 transition-all flex justify-center items-center gap-2 disabled:opacity-50"
                     >
-                        {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>Save Monitor Setup</span>}
+                        {isLoading || isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>Save Monitor Setup</span>}
                     </button>
                 </form>
             )}

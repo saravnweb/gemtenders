@@ -1,9 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { Zap, Search } from 'lucide-react';
+import { ChevronRight, Settings } from 'lucide-react';
 import Link from 'next/link';
-import MonitorCard from './MonitorCard';
-import AddMonitorForm from './AddMonitorForm';
+import KeywordsCard from './KeywordsCard';
+import LocationCard from './LocationCard';
 
 export default async function KeywordsPage() {
   const supabase = await createClient();
@@ -23,44 +23,96 @@ export default async function KeywordsPage() {
   const { data: profile } = await supabase
     .from('profiles')
     .select('membership_plan')
-    .eq('id', user!.id)
+    .eq('id', user.id)
     .single();
     
   const membershipPlan = profile?.membership_plan || 'free';
 
-  // Calculate total keywords tracked by this user
-  const totalKeywords = savedSearches?.reduce((acc: number, search: any) => {
-      const qs = search.query_params?.q;
-      if (!qs) return acc;
-      const kws = qs.split(',').filter(Boolean);
-      return acc + kws.length;
-  }, 0) || 0;
+  // Master Configuration Logic
+  let masterConfig = null;
+  if (savedSearches && savedSearches.length > 0) {
+      if (savedSearches.length === 1) {
+          masterConfig = savedSearches[0];
+      } else {
+          // Merge all legacy monitors into the most recent one
+          let allKeywords: string[] = [];
+          let allStates: string[] = [];
+          let allCities: string[] = [];
+          
+          savedSearches.forEach((search: any) => {
+              if (search.query_params?.q) {
+                  allKeywords = [...allKeywords, ...search.query_params.q.split(',').map((s: string) => s.trim()).filter(Boolean)];
+              }
+              if (search.query_params?.states) {
+                  allStates = [...allStates, ...search.query_params.states];
+              }
+              if (search.query_params?.cities) {
+                  allCities = [...allCities, ...search.query_params.cities];
+              }
+          });
+          
+          // Deduplicate
+          allKeywords = Array.from(new Set(allKeywords));
+          allStates = Array.from(new Set(allStates));
+          allCities = Array.from(new Set(allCities));
+          
+          masterConfig = savedSearches[0];
+          const newQueryParams = { q: allKeywords.join(','), states: allStates, cities: allCities };
+          
+          // Update the newest one
+          await supabase.from('saved_searches').update({
+              name: "Unified Alert",
+              query_params: newQueryParams
+          }).eq('id', masterConfig.id);
+          
+          // Delete all older ones
+          const idsToDelete = savedSearches.slice(1).map((s: any) => s.id);
+          await supabase.from('saved_searches').delete().in('id', idsToDelete);
+          
+          masterConfig.query_params = newQueryParams;
+          masterConfig.name = "Unified Alert";
+      }
+  } else {
+      // Create a default master config for new users
+      const { data: newConfig } = await supabase.from('saved_searches').insert({
+          user_id: user.id,
+          name: "Unified Alert",
+          query_params: { q: '', states: [], cities: [] },
+          is_alert_enabled: true
+      }).select().single();
+      masterConfig = newConfig;
+  }
+
+  const queryParams = masterConfig?.query_params || { q: '', states: [], cities: [] };
+  const keywordsList = queryParams.q ? queryParams.q.split(',').filter(Boolean) : [];
+  const totalKeywords = keywordsList.length;
+
+  const liveBidsUrl = `/?q=${encodeURIComponent(keywordsList.join(',') || '')}${queryParams.states?.length > 0 ? `&states=${encodeURIComponent(queryParams.states.join(','))}` : ''}${queryParams.cities?.length > 0 ? `&cities=${encodeURIComponent(queryParams.cities.join(','))}` : ''}`;
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-6">
         <div>
-          <h1 className="text-2xl font-bold text-fresh-sky-950 tracking-tight">Saved Keywords</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Automatic tracking for matching bids.</p>
+          <h1 className="text-2xl font-bold text-fresh-sky-950 tracking-tight flex items-center gap-2">
+            <Settings className="w-6 h-6 text-blue-600" />
+            Alert Preferences
+          </h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Configure keywords and locations for automatic tracking and daily emails.</p>
         </div>
-        <AddMonitorForm userId={user!.id} membershipPlan={membershipPlan} totalKeywords={totalKeywords} />
+        
+        <Link 
+            href={liveBidsUrl} 
+            className="px-6 py-3 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-xl text-sm font-bold tracking-widest uppercase hover:bg-blue-100 dark:hover:bg-blue-800 transition-all flex items-center justify-center space-x-2 border border-blue-200 dark:border-blue-800 shadow-sm"
+        >
+            <span>View Matching Bids</span>
+            <ChevronRight className="w-4 h-4" />
+        </Link>
       </div>
 
-      {!savedSearches || savedSearches.length === 0 ? (
-        <div className="bg-white dark:bg-zinc-900 border-2 border-dashed border-slate-200 dark:border-zinc-700 rounded-xl p-16 text-center flex flex-col items-center">
-          <div className="w-16 h-16 bg-slate-50 dark:bg-zinc-950 rounded-xl flex items-center justify-center mb-6">
-             <Zap className="w-8 h-8 text-slate-300" />
-          </div>
-          <h2 className="text-lg font-bold text-fresh-sky-950 mb-2">No active keywords</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 max-w-sm mb-8 font-medium">Click "Add Keyword" above to add keywords, or save a search on the home page to track complex filters.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {savedSearches.map((search: any) => (
-            <MonitorCard key={search.id} search={search} membershipPlan={membershipPlan} totalKeywords={totalKeywords} />
-          ))}
-        </div>
-      )}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
+         <KeywordsCard search={masterConfig} membershipPlan={membershipPlan} totalKeywords={totalKeywords} />
+         <LocationCard search={masterConfig} membershipPlan={membershipPlan} />
+      </div>
     </div>
   );
 }

@@ -11,8 +11,8 @@ export async function generateSitemaps() {
     .not("slug", "is", null);
 
   const total = count || 0;
-  // Route handlers and sitemaps can safely return up to 50000 entries
-  const limit = 50000;
+  // Supabase Rest API has a default limit of 1000 rows
+  const limit = 1000;
   const numSitemaps = Math.max(1, Math.ceil(total / limit));
   
   return Array.from({ length: numSitemaps }, (_, i) => ({ id: i }));
@@ -24,7 +24,7 @@ export default async function sitemap(props: {
   // Next 15+ passes params as promises sometimes, and `id` could be a Promise or string
   const rawId = await (props.id ?? 0);
   const resolvedId = Number(rawId);
-  const limit = 50000;
+  const limit = 1000;
   const start = resolvedId * limit;
   const end = start + limit - 1;
 

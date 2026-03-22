@@ -266,6 +266,7 @@ export default function TendersClientWrapper(props: {
   initialQ: string;
   initialStates: string[];
   initialCategory?: string;
+  initialTotalCount?: number;
 }) {
   return <TendersClient {...props} />;
 }
@@ -295,11 +296,13 @@ function TendersClient({
   initialQ,
   initialStates,
   initialCategory,
+  initialTotalCount,
 }: {
   initialTenders: any[];
   initialQ: string;
   initialStates: string[];
   initialCategory?: string;
+  initialTotalCount?: number;
 }) {
   const searchParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : new URLSearchParams();
 
@@ -309,7 +312,7 @@ function TendersClient({
   const [loadingMore, setLoadingMore]           = useState(false);
   const [page, setPage]                         = useState(0);
   const [hasMore, setHasMore]                   = useState(initialTenders.length === PAGE_SIZE);
-  const [totalCount, setTotalCount]             = useState<number | null>(null);
+  const [totalCount, setTotalCount]             = useState<number | null>(initialTotalCount ?? null);
   const [forYouAllTenders, setForYouAllTenders] = useState<any[]>([]);
   const [forYouLoading, setForYouLoading]       = useState(false);
 
@@ -365,6 +368,17 @@ function TendersClient({
       if (c.length > 0) setSelectedCities(c);
       else if (prefCities.length > 0) setSelectedCities(prefCities);
     } catch {}
+
+    // Instantly remove any tenders that have precisely expired but were kept around by SSR cache
+    const now = Date.now();
+    setTenders(prev => {
+      const active = prev.filter(t => {
+        if (!t.end_date) return true;
+        return new Date(t.end_date).getTime() > now;
+      });
+      return active.length !== prev.length ? active : prev;
+    });
+
   }, []);
 
   // ── Persist location preferences ──
@@ -714,13 +728,13 @@ function TendersClient({
                   ? `${totalCount.toLocaleString()} results`
                   : `${displayTenders.length}${hasMore ? "+" : ""} results`}
             </div>
-            <div className="flex items-center bg-slate-50 dark:bg-slate-900 sm:bg-transparent px-2 sm:px-0 py-1 sm:py-0 rounded font-medium">
-              <span className="text-xs sm:text-xs text-slate-600 dark:text-slate-400 mr-1 sm:mr-1.5 hidden sm:inline">Sort:</span>
+            <div className="flex items-center space-x-2 bg-slate-50 dark:bg-slate-900 sm:bg-transparent px-2 sm:px-0 py-1 sm:py-0 rounded font-medium">
+              <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Sort by :</span>
               <select
                 aria-label="Sort order"
                 value={sortOrder}
                 onChange={(e) => setSortOrder(e.target.value as "newest" | "ending_soon")}
-                className="text-xs sm:text-sm bg-transparent border-none outline-none cursor-pointer text-slate-900 dark:text-slate-100 font-bold min-w-max p-0 pr-1 appearance-none"
+                className="text-xs sm:text-sm bg-transparent border-none outline-none cursor-pointer text-slate-900 dark:text-slate-100 font-bold p-0"
               >
                 <option value="newest">Newest First</option>
                 <option value="ending_soon">Ending Soon</option>
@@ -1072,6 +1086,19 @@ function TenderCard({
   const departmentDisplay = formatDepartmentInfo(tender.ministry_name, tender.department_name || tender.department, tender.organisation_name);
   const category = getCategory(tender.title, tender.ai_summary);
 
+  let displayInsight = tender.ai_summary;
+  let hasValidInsight = !!tender.ai_summary;
+  try {
+    if (tender.ai_summary && tender.ai_summary.startsWith('{')) {
+      const parsed = JSON.parse(tender.ai_summary);
+      if (parsed.ai_insight) {
+        displayInsight = parsed.ai_insight;
+      } else {
+        hasValidInsight = false; // Hide the insight box if it's JSON but no insight generated yet
+      }
+    }
+  } catch(e) { /* fallback to old raw string */ }
+
   const formatDate = (d: string) => {
     if (!d) return "N/A";
     let date = new Date(d);
@@ -1130,14 +1157,14 @@ function TenderCard({
       </td>
 
       {/* AI Insight */}
-      {tender.ai_summary && (
+      {hasValidInsight && (
         <td role="cell" className="mb-3 p-2.5 bg-blue-50/50 dark:bg-blue-900/20 rounded-lg border border-blue-50 dark:border-blue-900 relative z-10 w-full">
           <div className="flex items-center space-x-1 mb-1 opacity-60">
             <Zap className="w-2.5 h-2.5 text-blue-500" />
-            <span className="text-[9px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-tighter">Insight</span>
+            <span className="text-[9px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-tighter">AI Insight</span>
           </div>
           <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed italic">
-            "<HighlightedText text={tender.ai_summary} highlightTerms={highlightTerms} />"
+            "<HighlightedText text={displayInsight} highlightTerms={highlightTerms} />"
           </p>
         </td>
       )}

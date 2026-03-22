@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Zap, User, LogOut, Menu, X, LayoutDashboard, Bookmark, CreditCard, ChevronRight, Bell, Sun, Moon } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Zap, User, LogOut, Menu, X, LayoutDashboard, Bookmark, CreditCard, ChevronRight, Bell, Sun, Moon, Inbox } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import { useTheme } from "next-themes";
 import { supabase } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
 
 export default function Navbar() {
   const [user, setUser] = useState<any>(null);
@@ -13,7 +14,21 @@ export default function Navbar() {
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const notificationRef = useRef<HTMLDivElement>(null);
   const { theme, setTheme } = useTheme();
+  const router = useRouter();
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+        setIsNotificationsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => setMounted(true), []);
 
@@ -38,6 +53,15 @@ export default function Navbar() {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
       setLoading(false);
+      
+      if (user) {
+         fetch('/api/notifications', { cache: 'no-store' })
+           .then(res => res.json())
+           .then(data => {
+             if (data.notifications) setNotifications(data.notifications);
+           })
+           .catch(console.error);
+      }
     };
 
     fetchUser();
@@ -103,11 +127,65 @@ export default function Navbar() {
                 </button>
               )}
 
-              {/* Notification Icon - Right Aligned (Always Visible) */}
-              <button className="p-2 text-fresh-sky-700 dark:text-fresh-sky-300 hover:bg-fresh-sky-50 dark:hover:bg-fresh-sky-900/30 rounded-full transition-colors relative group" aria-label="Notifications">
-                <Bell className="w-5 h-5 sm:w-6 sm:h-6 transition-transform group-hover:rotate-12" />
-                <span className="absolute top-2 right-2 w-2 h-2 bg-atomic-tangerine-600 rounded-full border border-white dark:border-zinc-950"></span>
-              </button>
+              {/* Notification Icon and Dropdown */}
+              {user && (
+                <div className="relative" ref={notificationRef}>
+                  <button 
+                    onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+                    className={`p-2 rounded-full transition-colors relative group ${isNotificationsOpen ? 'bg-fresh-sky-100 dark:bg-zinc-800 text-atomic-tangerine-600' : 'text-fresh-sky-700 dark:text-fresh-sky-300 hover:bg-fresh-sky-50 dark:hover:bg-fresh-sky-900/30'}`} 
+                    aria-label="Notifications"
+                  >
+                    <Bell className="w-5 h-5 sm:w-6 sm:h-6 transition-transform group-hover:rotate-12" />
+                    {notifications.some(n => !n.is_read) && (
+                      <span className="absolute top-2 right-2 w-2 h-2 bg-atomic-tangerine-600 rounded-full border border-white dark:border-zinc-950"></span>
+                    )}
+                  </button>
+
+                  {isNotificationsOpen && (
+                    <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800 rounded-2xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-200">
+                      <div className="p-4 border-b border-slate-50 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-900/50 flex items-center justify-between">
+                        <span className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-white">Alerts</span>
+                        <span className="bg-atomic-tangerine-100 text-atomic-tangerine-700 text-[10px] font-bold px-2 py-0.5 rounded-full">{notifications.filter(n => !n.is_read).length} New</span>
+                      </div>
+                      <div className="max-h-[300px] overflow-y-auto">
+                        {notifications.length === 0 ? (
+                          <div className="p-8 text-center flex flex-col items-center justify-center">
+                            <Inbox className="w-8 h-8 text-slate-300 mb-2" />
+                            <p className="text-sm font-medium text-slate-500">No new alerts.</p>
+                          </div>
+                        ) : (
+                          <div className="divide-y divide-slate-50 dark:divide-zinc-800/50">
+                            {notifications.map((notif: any) => (
+                              <button
+                                key={notif.id}
+                                onClick={async () => {
+                                  if (!notif.is_read) {
+                                    setNotifications(current => current.map(n => n.id === notif.id ? { ...n, is_read: true } : n));
+                                    await fetch('/api/notifications', { method: 'POST', body: JSON.stringify({ id: notif.id }) });
+                                  }
+                                  setIsNotificationsOpen(false);
+                                  if (notif.link) router.push(notif.link);
+                                }}
+                                className={`w-full text-left p-4 hover:bg-slate-50 dark:hover:bg-zinc-800/50 transition-colors flex flex-col gap-1 ${notif.is_read ? 'opacity-60' : 'bg-blue-50/30 dark:bg-blue-900/10'}`}
+                              >
+                                <div className="flex items-start justify-between gap-2">
+                                  <span className="text-xs font-bold text-slate-900 dark:text-white line-clamp-1">{notif.title}</span>
+                                  {!notif.is_read && <span className="w-1.5 h-1.5 shrink-0 bg-blue-500 rounded-full mt-1.5"></span>}
+                                </div>
+                                <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">{notif.message}</p>
+                                <span className="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-wider">{new Date(notif.created_at).toLocaleDateString()}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-2 border-t border-slate-50 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-900/50 text-center">
+                        <Link href="/dashboard" onClick={() => setIsNotificationsOpen(false)} className="text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:text-blue-600 transition-colors">See all matches in Dashboard</Link>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Desktop Nav */}
               <nav className="hidden md:flex items-center space-x-6">

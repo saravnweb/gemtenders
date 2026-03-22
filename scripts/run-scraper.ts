@@ -7,9 +7,13 @@ async function run() {
   const args = process.argv.slice(2);
   const lightMode = args.includes('--light');
   
-  // Find numeric argument for pages or default to 5
+  // Find numeric argument for pages or default to unlimited
   const pagesArg = args.find(a => a.startsWith('--pages='));
-  const maxPages = pagesArg ? parseInt(pagesArg.split('=')[1], 10) : 5;
+  let maxPages = Infinity;
+  if (pagesArg) {
+    const val = pagesArg.split('=')[1];
+    maxPages = (val.toLowerCase() === 'unlimited' || val.toLowerCase() === 'all') ? Infinity : parseInt(val, 10);
+  }
 
   const startArg = args.find(a => a.startsWith('--start='));
   const startPage = startArg ? parseInt(startArg.split('=')[1], 10) : 1;

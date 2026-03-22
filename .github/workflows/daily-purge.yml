@@ -1,0 +1,33 @@
+name: Daily GeM Tenders DB Purge
+
+on:
+  schedule:
+    # 18:30 UTC = 00:00 IST (UTC+5:30) exact midnight
+    - cron: '30 18 * * *'
+  workflow_dispatch:
+
+jobs:
+  purge:
+    name: Purge Expired Tenders
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Purge Script
+        run: npx tsx scripts/purge-old.ts

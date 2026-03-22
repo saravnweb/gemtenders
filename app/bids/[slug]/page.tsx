@@ -1,6 +1,6 @@
 import {
   ArrowLeft, Search, Calendar, MapPin, Building2, Package,
-  FileText, ShieldCheck, AlertCircle, Clock, 
+  FileText, ShieldCheck, AlertCircle, Clock, Briefcase, BookOpen, Users, DollarSign, ClipboardList, IndianRupee,
   Download, FileDigit, Landmark, FileSpreadsheet, Shield, Zap, Info,
   CheckCircle2, Building, Layers, Activity, FileCheck, ExternalLink as LinkIcon,
   ChevronRight, Home
@@ -10,9 +10,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import DownloadButtons from "./DownloadButtons";
 import RevealBidNumber from "./RevealBidNumber";
-
-export const revalidate = 3600; // Cache for 1 hour
-
+export const revalidate = 0; // Cache permanently disabled temporarily for testing
 export async function generateStaticParams() {
   const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/tenders?select=slug&order=start_date.desc&limit=50`, {
     headers: {
@@ -152,13 +150,33 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
       apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string,
       Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`
     },
-    next: { revalidate: 3600 }
+    cache: 'no-store'
   });
   const data = await res.json();
   const tender = data && data.length > 0 ? data[0] : null;
 
   if (!tender) {
     notFound();
+  }
+
+  let parsedAiSummary: any = null;
+  let aiInsight: string | null = null;
+  
+  if (tender.ai_summary && typeof tender.ai_summary === 'string' && tender.ai_summary.startsWith('{')) {
+    try {
+      const rawParsed = JSON.parse(tender.ai_summary);
+      parsedAiSummary = {};
+      for (const [k, v] of Object.entries(rawParsed)) {
+        if (!v || typeof v !== 'string') continue;
+        const normalizedKey = k.replace(/\n/g, ' ').toUpperCase().trim();
+        parsedAiSummary[normalizedKey] = v.trim();
+      }
+
+      if (parsedAiSummary.AI_INSIGHT) {
+        aiInsight = parsedAiSummary.AI_INSIGHT;
+        delete parsedAiSummary.AI_INSIGHT;
+      }
+    } catch (e) {}
   }
 
   const isClosingSoon = new Date(tender.end_date).getTime() - Date.now() < 86400000;
@@ -349,115 +367,165 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
           {/* Main Content Area */}
           <div className="lg:col-span-8 space-y-8 order-2 lg:order-1">
 
-            {/* AI Summary Highlight */}
-            {tender.ai_summary && (
-              <div className="relative p-px rounded-3xl bg-linear-to-br from-blue-300 via-indigo-300 to-purple-300">
-                <div className="bg-white dark:bg-slate-900 rounded-[23px] p-6 lg:p-8 h-full">
-                  <div className="flex items-center space-x-2 mb-4">
-                    <div className="bg-linear-to-r from-blue-500 to-indigo-600 p-1.5 rounded-lg text-white shadow-md">
-                      <Zap className="w-4 h-4 fill-white shrink-0" />
-                    </div>
-                    <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 tracking-tight">Smart Summary</h3>
+            {/* AI Executive Summary Block */}
+            {aiInsight && (
+              <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700 rounded-3xl overflow-hidden shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)]">
+               <div className="bg-slate-50/80 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700 px-6 py-4 flex items-center justify-between">
+                  <div className="flex items-center space-x-2.5">
+                    <Zap className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
+                    <h3 className="text-base font-bold text-slate-800 dark:text-slate-200 tracking-tight">AI Executive Summary</h3>
                   </div>
-                  <p className="text-[15px] sm:text-base text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-                    {tender.ai_summary}
+                </div>
+                <div className="p-6 sm:p-8">
+                  <p className="text-[14px] sm:text-[15px] font-medium text-slate-700 dark:text-slate-300 leading-relaxed">
+                    {aiInsight}
                   </p>
                 </div>
               </div>
             )}
 
-            {/* Comprehensive Detail Grid */}
+            {/* 1. Key Dates & Quantities */}
             <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700 rounded-3xl overflow-hidden shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)]">
-              <div className="bg-slate-50/80 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700 px-6 py-4 flex items-center justify-between">
-                <div className="flex items-center space-x-2.5">
-                  <FileText className="w-5 h-5 text-slate-500 dark:text-slate-400" />
-                  <h3 className="text-base font-bold text-slate-800 dark:text-slate-200 tracking-tight">
-                    Bid Parameters
-                  </h3>
-                </div>
+              <div className="bg-slate-50/80 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700 px-6 py-4 flex items-center">
+                <Clock className="w-5 h-5 text-indigo-500 mr-2.5" />
+                <h3 className="text-base font-bold text-slate-800 dark:text-slate-200 tracking-tight">Key Dates & Quantities</h3>
               </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 divide-slate-100 dark:divide-slate-700">
                 {[
-                  { icon: Clock, label: "Bid Start Date/Time", val: tender.start_date ? new Date(tender.start_date).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : "N/A" },
-                  { icon: Clock, label: "Bid End Date/Time", val: tender.end_date ? new Date(tender.end_date).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : "N/A" },
-                  { icon: Clock, label: "Bid Opening Date/Time", val: tender.opening_date ? new Date(tender.opening_date).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : "N/A" },
-                  { icon: FileCheck, label: "Bid Offer Validity", val: "120 Days" },
-                  { icon: Package, label: "Total Quantity", val: tender.quantity || "N/A" },
-                  { icon: Layers, label: "Item Category", val: tender.title ? tender.title.substring(0, 100) + (tender.title.length > 100 ? '...' : '') : "N/A" },
-                  { icon: Search, label: "GeMARPTS Result", val: tender.gemarpts_result || "N/A", highlighted: true },
+                  { icon: Clock, label: "Bid Start Date/Time", val: tender.start_date ? new Date(tender.start_date).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : "Not Specified" },
+                  { icon: Clock, label: "Bid End Date/Time", val: tender.end_date ? new Date(tender.end_date).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : "Not Specified" },
+                  { icon: Clock, label: "Bid Opening Date/Time", val: tender.opening_date ? new Date(tender.opening_date).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : "Not Specified" },
+                  { icon: FileCheck, label: "Bid Offer Validity / Contract Period", val: parsedAiSummary?.["CONTRACT PERIOD"]?.replace(/\n/g, ' ') || "120 Days" },
+                  { icon: Package, label: "Total Quantity", val: parsedAiSummary?.["QUANTITY"]?.replace(/\n/g, ' ') || tender.quantity || "Not Specified" }
                 ].map((row, i) => (
-                  <div key={i} className={`p-5 flex items-start space-x-4 hover:bg-slate-50/50 dark:hover:bg-slate-800 transition-colors ${i % 2 !== 0 ? 'md:border-l md:border-slate-100 dark:md:border-slate-700' : ''} ${i > 1 ? 'md:border-t md:border-slate-100 dark:md:border-slate-700' : ''}`}>
+                  <div key={i} className={`p-5 flex items-start space-x-4 hover:bg-slate-50/50 dark:hover:bg-slate-800 transition-colors ${i % 2 !== 0 ? 'md:border-l md:border-slate-100 dark:md:border-slate-700' : ''} ${i > 1 && i !== 2 ? 'md:border-t md:border-slate-100 dark:md:border-slate-700' : ''}`}>
                     <div className="mt-0.5 w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 text-slate-600 dark:text-slate-400">
                       <row.icon className="w-4 h-4" />
                     </div>
-                    <div>
-                      <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
-                        {row.label}
-                      </p>
-                      <p className={`text-sm font-medium leading-snug ${row.highlighted ? 'text-indigo-700' : 'text-slate-800 dark:text-slate-200'}`}>
-                        {row.val}
-                      </p>
+                    <div className="min-w-0 pr-2">
+                       <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">{row.label}</p>
+                      <p className="text-sm font-medium leading-snug whitespace-pre-wrap text-slate-800 dark:text-slate-200">{row.val}</p>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Eligibility & Requirements */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700 rounded-3xl overflow-hidden shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)] p-6 sm:p-8">
-               <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-6 flex items-center">
-                 <ShieldCheck className="w-5 h-5 mr-2 text-indigo-500" />
-                 Eligibility & Requirements
-               </h3>
-
-               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-                  <div className={`flex items-center p-4 rounded-2xl border ${tender.eligibility_msme ? 'bg-indigo-50/50 border-indigo-100' : 'bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700'}`}>
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center mr-4 shrink-0 ${tender.eligibility_msme ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400'}`}>
-                      <Building className="w-6 h-6" />
+            {/* 2. Tender Details */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700 rounded-3xl overflow-hidden shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)]">
+              <div className="bg-slate-50/80 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700 px-6 py-4 flex items-center">
+                <FileText className="w-5 h-5 text-indigo-500 mr-2.5" />
+                <h3 className="text-base font-bold text-slate-800 dark:text-slate-200 tracking-tight">Tender Details</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 divide-slate-100 dark:divide-slate-700">
+                {[
+                  { icon: Layers, label: "Item Category", val: parsedAiSummary?.["ITEM CATEGORY"]?.replace(/\n/g, ' ') || (tender.title ? tender.title.substring(0, 100) + (tender.title.length > 100 ? '...' : '') : "Not Specified") },
+                  { icon: IndianRupee, label: "Estimated Bid Value", val: parsedAiSummary?.["ESTIMATED BID VALUE"]?.replace(/\n/g, ' ') || "Not Specified" },
+                  { icon: ShieldCheck, label: "ePBG Detail", val: parsedAiSummary?.["EPBG DETAIL"]?.replace(/\n/g, ' ') || "Not Specified" }
+                ].map((row, i) => (
+                  <div key={i} className={`p-5 flex items-start space-x-4 hover:bg-slate-50/50 dark:hover:bg-slate-800 transition-colors ${i % 2 !== 0 ? 'md:border-l md:border-slate-100 dark:md:border-slate-700' : ''} ${i > 1 ? 'md:border-t md:border-slate-100 dark:md:border-slate-700' : ''}`}>
+                    <div className="mt-0.5 w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 text-slate-600 dark:text-slate-400">
+                      <row.icon className="w-4 h-4" />
                     </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-0.5">MSE Preference</h4>
-                      <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">{tender.eligibility_msme ? 'Applicable' : 'Not Applicable'}</p>
-                    </div>
-                  </div>
-
-                  <div className={`flex items-center p-4 rounded-2xl border ${tender.eligibility_mii ? 'bg-emerald-50/50 border-emerald-100' : 'bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700'}`}>
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center mr-4 shrink-0 ${tender.eligibility_mii ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400'}`}>
-                      <Shield className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-0.5">MII Preference</h4>
-                      <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">{tender.eligibility_mii ? 'Applicable' : 'Not Applicable'}</p>
+                    <div className="min-w-0 pr-2">
+                       <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">{row.label}</p>
+                      <p className="text-sm font-medium leading-snug whitespace-pre-wrap text-slate-800 dark:text-slate-200">{row.val}</p>
                     </div>
                   </div>
-               </div>
+                ))}
+              </div>
+            </div>
 
-               <div className="space-y-4">
-                  <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
-                    <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Relaxations</h4>
-                    <p className="text-sm text-slate-700 dark:text-slate-300 font-medium flex items-center">
-                      <CheckCircle2 className="w-4 h-4 mr-2 text-indigo-500" />
-                      Startup Relaxation: <span className="text-indigo-700 ml-1">Yes (Exp/Turnover)</span>
-                    </p>
-                    <p className="text-sm text-slate-700 dark:text-slate-300 font-medium flex items-center mt-2">
-                      <CheckCircle2 className="w-4 h-4 mr-2 text-indigo-500" />
-                      MSE Turnover/Exp: <span className="text-indigo-700 ml-1">{tender.mse_turnover_relaxation || 'N/A'}</span>
-                    </p>
+            {/* 3. Qualifications & Experience */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700 rounded-3xl overflow-hidden shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)]">
+              <div className="bg-slate-50/80 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700 px-6 py-4 flex items-center">
+                <Briefcase className="w-5 h-5 text-indigo-500 mr-2.5" />
+                <h3 className="text-base font-bold text-slate-800 dark:text-slate-200 tracking-tight">Qualifications & Experience</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 divide-slate-100 dark:divide-slate-700">
+                {[
+                  { icon: Briefcase, label: "Years of Past Experience Required", val: parsedAiSummary?.["YEARS OF PAST EXPERIENCE REQUIRED FOR SAME/SIMILAR SERVICE"]?.replace(/\n/g, ' ') || "Not Specified" },
+                  { icon: BookOpen, label: "Past Experience of Similar Services", val: parsedAiSummary?.["PAST EXPERIENCE OF SIMILAR SERVICES REQUIRED"]?.replace(/\n/g, ' ') || "Not Specified" },
+                  { icon: FileSpreadsheet, label: "Minimum Average Annual Turnover of Bidder", val: parsedAiSummary?.["MINIMUM AVERAGE ANNUAL TURNOVER OF THE BIDDER"]?.replace(/\n/g, ' ') || "Not Specified" },
+                  { icon: ClipboardList, label: "Additional Qualification / Data Required", val: parsedAiSummary?.["ADDITIONAL QUALIFICATION/DATA REQUIRED"]?.replace(/\n/g, ' ') || "Not Specified" }
+                ].map((row, i) => (
+                  <div key={i} className={`p-5 flex items-start space-x-4 hover:bg-slate-50/50 dark:hover:bg-slate-800 transition-colors ${i % 2 !== 0 ? 'md:border-l md:border-slate-100 dark:md:border-slate-700' : ''} ${i > 1 ? 'md:border-t md:border-slate-100 dark:md:border-slate-700' : ''}`}>
+                    <div className="mt-0.5 w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 text-slate-600 dark:text-slate-400">
+                      <row.icon className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0 pr-2">
+                       <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">{row.label}</p>
+                      <p className="text-sm font-medium leading-snug whitespace-pre-wrap text-slate-800 dark:text-slate-200">{row.val}</p>
+                    </div>
                   </div>
+                ))}
+              </div>
+            </div>
 
-                  <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
-                    <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Documents Required</h4>
-                    <ul className="text-sm text-slate-700 dark:text-slate-300 font-medium space-y-2">
-                      {(tender.documents_required || ["Experience Criteria", "Past Performance", "Bidder Turnover", "ATC Certificate"]).map((doc: string, idx: number) => (
-                        <li key={idx} className="flex flex-start">
-                          <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500 mt-1.5 mr-2.5 shrink-0" />
-                          {doc}
-                        </li>
-                      ))}
-                    </ul>
+            {/* 4. Preferences & Relaxations */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700 rounded-3xl overflow-hidden shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)]">
+              <div className="bg-slate-50/80 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700 px-6 py-4 flex items-center">
+                <ShieldCheck className="w-5 h-5 text-indigo-500 mr-2.5" />
+                <h3 className="text-base font-bold text-slate-800 dark:text-slate-200 tracking-tight">Preferences & Relaxations</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 divide-slate-100 dark:divide-slate-700">
+                {[
+                  { icon: Building, label: "MSE Preference", val: tender.eligibility_msme ? 'Applicable' : (parsedAiSummary?.["MSE PURCHASE PREFERENCE"]?.replace(/\n/g, ' ') || 'Not Applicable') },
+                  { icon: Shield, label: "MII Preference", val: tender.eligibility_mii ? 'Applicable' : (parsedAiSummary?.["MII COMPLIANCE"]?.replace(/\n/g, ' ') || 'Not Applicable') },
+                  { icon: CheckCircle2, label: "Startup Relaxation", val: (tender.startup_relaxation || tender.startup_turnover_relaxation) ? [tender.startup_relaxation, tender.startup_turnover_relaxation].filter(Boolean).join(" / ") : (parsedAiSummary?.["STARTUP RELAXATION FOR YEARS OF EXPERIENCE AND TURNOVER"]?.replace(/\n/g, ' ') || "No (Exp/Turnover)") },
+                  { icon: CheckCircle2, label: "MSE Turnover/Exp", val: (tender.mse_relaxation || tender.mse_turnover_relaxation) ? [tender.mse_relaxation, tender.mse_turnover_relaxation].filter(Boolean).join(" / ") : (parsedAiSummary?.["MSE RELAXATION FOR YEARS OF EXPERIENCE AND TURNOVER"]?.replace(/\n/g, ' ') || tender.mse_turnover_relaxation || 'Not Specified') },
+                  { icon: ClipboardList, label: "Documents Required from Seller", colSpan2: true, val: (() => {
+                      let docsArray = Array.isArray(tender.documents_required) && tender.documents_required.length > 0
+                          ? tender.documents_required
+                          : ["Experience Criteria", "Past Performance", "Bidder Turnover", "ATC Certificate"];
+                      
+                      // Fallback to parsed AI summary parameter if not present in native DB array
+                      if ((!Array.isArray(tender.documents_required) || tender.documents_required.length === 0) && parsedAiSummary?.["DOCUMENT REQUIRED FROM SELLER"]) {
+                         let docStr = parsedAiSummary["DOCUMENT REQUIRED FROM SELLER"].replace(/In case any bidder is seeking exemption.*/i, '').trim();
+                         if (docStr.includes(',')) docsArray = docStr.split(',');
+                         else if (docStr.includes('\n')) docsArray = docStr.split('\n');
+                         else docsArray = [docStr];
+                      }
+                      
+                      return docsArray.map((doc: string) => `• ${doc.trim()}`).join('\n');
+                    })() 
+                  }
+                ].map((row, i) => (
+                  <div key={i} className={`p-5 flex items-start space-x-4 hover:bg-slate-50/50 dark:hover:bg-slate-800 transition-colors ${!row.colSpan2 && i % 2 !== 0 ? 'md:border-l md:border-slate-100 dark:md:border-slate-700' : ''} ${i > 1 ? 'md:border-t md:border-slate-100 dark:md:border-slate-700' : ''} ${row.colSpan2 ? 'md:col-span-2' : ''}`}>
+                    <div className="mt-0.5 w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 text-slate-600 dark:text-slate-400">
+                      <row.icon className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0 pr-2">
+                       <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">{row.label}</p>
+                      <p className="text-sm font-medium leading-snug whitespace-pre-wrap text-slate-800 dark:text-slate-200">{row.val}</p>
+                    </div>
                   </div>
-               </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 5. Other */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700 rounded-3xl overflow-hidden shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)]">
+              <div className="bg-slate-50/80 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700 px-6 py-4 flex items-center">
+                <FileCheck className="w-5 h-5 text-indigo-500 mr-2.5" />
+                <h3 className="text-base font-bold text-slate-800 dark:text-slate-200 tracking-tight">Other Details</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 divide-slate-100 dark:divide-slate-700">
+                {[
+                  { icon: Users, label: "Consignees / Reporting Officer", val: (parsedAiSummary?.["CONSIGNEES/REPORTING OFFICER AND QUANTITY"] || parsedAiSummary?.["CONSIGNEES/REPORTING OFFICER"])?.replace(/\n/g, ' ') || "Not Specified" },
+                  { icon: Search, label: "GeMARPTS Result", val: tender.gemarpts_result || "Not Specified", highlighted: true }
+                ].map((row, i) => (
+                  <div key={i} className={`p-5 flex items-start space-x-4 hover:bg-slate-50/50 dark:hover:bg-slate-800 transition-colors ${i % 2 !== 0 ? 'md:border-l md:border-slate-100 dark:md:border-slate-700' : ''} ${i > 1 ? 'md:border-t md:border-slate-100 dark:md:border-slate-700' : ''}`}>
+                    <div className="mt-0.5 w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 text-slate-600 dark:text-slate-400">
+                      <row.icon className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0 pr-2">
+                       <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">{row.label}</p>
+                      <p className={`text-sm font-medium leading-snug whitespace-pre-wrap ${row.highlighted ? 'text-indigo-700' : 'text-slate-800 dark:text-slate-200'}`}>{row.val}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Bottom Actions Section */}
@@ -509,18 +577,6 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
                         <span className="text-xs uppercase font-bold text-red-500 tracking-wide mt-1 block">Act Fast</span>
                       )}
                     </div>
-                  </div>
-
-                  <div className="w-full h-px bg-slate-100 dark:bg-slate-700 hidden lg:block" />
-
-                  {/* Actions */}
-                  <div className="hidden lg:block">
-                     <DownloadButtons 
-                        pdfUrl={tender.pdf_url} 
-                        detailsUrl={tender.details_url} 
-                        slug={slug} 
-                        isMobile={false} 
-                     />
                   </div>
                 </div>
               </div>
