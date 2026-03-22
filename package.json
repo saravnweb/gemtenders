@@ -7,7 +7,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint .",
+    "lint": "next lint",
     "crawl": "tsx scripts/run-scraper.ts",
     "parse": "tsx scripts/scraper/parser.ts",
     "enrich": "tsx scripts/enrich-tenders.ts",

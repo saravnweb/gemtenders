@@ -42,8 +42,8 @@ export default function Navbar() {
         }
       });
       if (error) throw error;
-    } catch (err: any) {
-      console.error("Sign in error:", err.message);
+    } catch (e: any) {
+      console.error("Sign in error:", e.message);
       setIsSigningIn(false);
     }
   };

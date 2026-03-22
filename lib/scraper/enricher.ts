@@ -4,7 +4,7 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
-import { extractTenderData } from '../gemini';
+import { extractTenderDataOllama as extractTenderData } from '../ollama';
 import { triggerKeywordNotifications } from '../notifications';
 import { chromium } from 'playwright';
 import path from 'path';

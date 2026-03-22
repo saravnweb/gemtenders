@@ -95,9 +95,9 @@ export default function SubscriptionsPage() {
       const rzp = new (window as any).Razorpay(options);
       rzp.open();
 
-    } catch (err: any) {
-      console.error(err);
-      alert(`Failed to initialize checkout: ${err.message || 'Unknown error. Check console.'}`);
+    } catch (e: any) {
+      console.error(e);
+      alert(`Failed to initialize checkout: ${e.message || 'Unknown error. Check console.'}`);
     } finally {
       setLoading(false);
     }

@@ -9,8 +9,8 @@ export async function downloadPdfTextFromUrl(url: string): Promise<string> {
     const result = await parser.getText();
     await parser.destroy();
     return result.text;
-  } catch (error: any) {
-    console.warn("PDF Download/Parse Failed (skipping text extraction):", error.message);
+  } catch (e: any) {
+    console.warn("PDF Download/Parse Failed (skipping text extraction):", e.message);
     return "";
   }
 }
@@ -34,8 +34,8 @@ export async function uploadPdfToSupabase(pdfUrl: string, bidNumber: string): Pr
       .getPublicUrl(data.path);
 
     return publicUrlData.publicUrl;
-  } catch (error: any) {
-    console.warn("Supabase Storage Upload Skip/Fail:", error.message);
+  } catch (e: any) {
+    console.warn("Supabase Storage Upload Skip/Fail:", e.message);
     return null;
   }
 }

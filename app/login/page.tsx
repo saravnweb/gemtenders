@@ -20,8 +20,8 @@ export default function LoginPage() {
         }
       });
       if (error) throw error;
-    } catch (err: any) {
-      setError(err.message || "An unexpected error occurred. Please try again.");
+    } catch (e: any) {
+      setError(e.message || "An unexpected error occurred. Please try again.");
       setLoading(false);
     }
   };

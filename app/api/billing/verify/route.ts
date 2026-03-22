@@ -41,8 +41,8 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ success: true });
-  } catch (err: any) {
-    console.error("Razorpay verification error:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (e: any) {
+    console.error("Razorpay verification error:", e);
+    return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }

@@ -7,6 +7,10 @@ const genAI = new GoogleGenerativeAI(apiKey);
 // Helper function for delay
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
+// Global rate limiter to ensure we never hit Google's 15 RPM Free Cap
+let lastCallTime = 0;
+const MIN_DELAY_MS = 4300; // 4.3 seconds between every single request (~13.9 RPM max)
+
 export async function extractTenderData(pdfText: string) {
   const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
@@ -117,11 +121,18 @@ export async function extractTenderData(pdfText: string) {
   let retries = 5;
   let delay = 65000; // start at 65s so a full 1-minute rate-limit window resets
 
-  // FREE TIER RATE LIMITER: 15 RPM = 1 req/4s. Use 6s (~10 RPM) for headroom.
-  await sleep(6000);
-
   while (retries > 0) {
     try {
+      // Enforce strictly inside the loop so retries also obey the queue
+      const now = Date.now();
+      if (now - lastCallTime < MIN_DELAY_MS) {
+        const queueWait = MIN_DELAY_MS - (now - lastCallTime);
+        lastCallTime = lastCallTime + MIN_DELAY_MS;
+        await sleep(queueWait);
+      } else {
+        lastCallTime = Date.now();
+      }
+
       console.log(`>>> [AI] Calling Gemini (Model: gemini-2.5-flash)...`);
       const result = await model.generateContent(prompt);
       const response = result.response;

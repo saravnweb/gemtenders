@@ -43,8 +43,8 @@ export async function POST(req: Request) {
       currency: order.currency,
       amount: order.amount,
     });
-  } catch (error: any) {
-    console.error('Error creating Razorpay order:', error);
+  } catch (e: any) {
+    console.error('Error creating Razorpay order:', e);
     return NextResponse.json(
       { error: 'Could not initialize payment' },
       { status: 500 }

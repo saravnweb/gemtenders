@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState } from 'react';
+import Link from 'next/link';
 import { supabase } from "@/lib/supabase";
 import { UserPlus } from "lucide-react";
 import Image from "next/image";
@@ -20,8 +21,8 @@ export default function SignupPage() {
         }
       });
       if (error) throw error;
-    } catch (err: any) {
-      setError(err.message || "An unexpected error occurred. Please try again.");
+    } catch (e: any) {
+      setError(e.message || "An unexpected error occurred. Please try again.");
       setLoading(false);
     }
   };
@@ -63,7 +64,7 @@ export default function SignupPage() {
         </div>
 
         <p className="mt-8 text-center text-xs text-fresh-sky-600 leading-relaxed px-4">
-          Already have an account? <span onClick={() => window.location.href='/login'} className="text-atomic-tangerine-700 font-bold cursor-pointer hover:underline underline-offset-4 decoration-2">Sign in here</span>
+          <Link href='/login' className="text-atomic-tangerine-700 font-bold hover:underline underline-offset-4 decoration-2">Sign in here</Link>
         </p>
 
         <p className="mt-8 text-center text-xs text-fresh-sky-500 leading-relaxed px-4">

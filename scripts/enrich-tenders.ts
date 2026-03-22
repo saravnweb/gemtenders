@@ -135,7 +135,7 @@ async function enrichTenders() {
     ])
   );
 
-  const { extractTenderData } = await import('../lib/gemini');
+  const { extractTenderDataOllama: extractTenderData } = await import('../lib/ollama');
   const { triggerKeywordNotifications } = await import('../lib/notifications');
 
 

@@ -42,9 +42,9 @@ export async function POST(req: Request) {
     const result = await model.generateContent(prompt);
     
     return NextResponse.json({ summary: result.response.text() });
-  } catch (err: any) {
-    console.error('Summarize API Error:', err.message);
-    const msg = err.message || '';
+  } catch (e: any) {
+    console.error('Summarize API Error:', e.message);
+    const msg = e.message || '';
     if (msg.includes('429') || msg.includes('quota')) {
       return NextResponse.json({ error: 'The AI summarization service has temporarily exceeded its daily capacity limits. Please try again tomorrow.' }, { status: 429 });
     }

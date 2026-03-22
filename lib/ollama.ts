@@ -163,8 +163,8 @@ export async function extractTenderDataOllama(pdfText: string) {
       }
     }
     return parsedData;
-  } catch (error: any) {
-    console.log(">>> [AI] Ollama Failed:", error.message || error);
+  } catch (e: any) {
+    console.log(">>> [AI] Ollama Failed:", e.message || e);
     return null;
   }
 }
