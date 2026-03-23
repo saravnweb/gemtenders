@@ -4,11 +4,10 @@ import { useState, useEffect, useRef, useCallback, useMemo, Suspense } from "rea
 import { supabase } from "@/lib/supabase";
 import {
   Search, Download, Clock, Zap, FileText, Bookmark, Info, RefreshCw,
-  MapPin, Filter, X, ChevronDown, Shield, Bell, CheckCircle, Loader2,
-  Share2, Archive
+  X, ChevronDown, Bell, CheckCircle, Loader2, Share2
 } from "lucide-react";
 import Link from "next/link";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const PAGE_SIZE = 21;
@@ -373,7 +372,6 @@ function TendersClient({
   const [miiOnly, setMiiOnly]                   = useState(false);
   const [activeTab, setActiveTab]               = useState<"all" | "foryou" | "archived">("all");
   const [sortOrder, setSortOrder]               = useState<"newest" | "ending_soon">("newest");
-  const [showFilters, setShowFilters]           = useState(false);
 
   // ── User / auth state ──
   const [user, setUser]                     = useState<any>(null);
@@ -447,12 +445,6 @@ function TendersClient({
     if (selectedCities.length > 0) localStorage.setItem("preferredCities", JSON.stringify(selectedCities));
     else localStorage.removeItem("preferredCities");
   }, [selectedCities]);
-
-  // ── Body scroll lock when filters open ──
-  useEffect(() => {
-    document.body.style.overflow = showFilters ? "hidden" : "unset";
-    return () => { document.body.style.overflow = "unset"; };
-  }, [showFilters]);
 
   // ── Auth + saved data ──
   useEffect(() => {
@@ -533,6 +525,8 @@ function TendersClient({
 
   // ── Load cities when states selected ──
   useEffect(() => {
+    // Auto-load states list if states were pre-selected (URL / localStorage)
+    if (selectedStates.length > 0 && !statesLoaded) { loadStates(); return; }
     if (!statesLoaded) return;
     if (selectedStates.length === 0) {
       setCities([]);
@@ -725,75 +719,156 @@ function TendersClient({
     <div className="min-h-screen bg-fresh-sky-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 font-sans">
       <main id="main-content" className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
 
-        {/* ── Hero / Search ── */}
-        <div className="mb-4 sm:mb-8 relative z-10 w-full">
-          <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 lg:items-end justify-between">
-            <div className="flex-1 w-full">
-              <div className="flex items-center space-x-2 mb-1.5 sm:mb-3">
-                <span className="relative flex h-1.5 w-1.5 sm:h-2 sm:w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 sm:h-2 sm:w-2 bg-green-500" />
-                </span>
-                <span className="text-xs sm:text-xs text-blue-600 dark:text-blue-400 font-bold tracking-wide uppercase">Live Updates</span>
-              </div>
-              <h2 className="font-bricolage text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight mb-1 sm:mb-2">
-                Find Your Next Tender
-              </h2>
-
-              <div className="mt-2 sm:mt-4 flex flex-row gap-2 sm:gap-3 max-w-3xl w-full">
-                <div className="relative flex-1 min-w-0">
-                  <label htmlFor="tender-search" className="sr-only">Search tenders by keywords or bid number</label>
-                  <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-slate-600 dark:text-slate-400" aria-hidden="true" />
-                  <input
-                    id="tender-search"
-                    type="text"
-                    placeholder="Search by keywords, bid number..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl sm:rounded-2xl py-2.5 sm:py-3.5 pl-9 sm:pl-12 pr-[80px] sm:pr-[120px] text-xs sm:text-sm text-slate-700 dark:text-slate-300 placeholder:text-slate-600 dark:placeholder:text-slate-600 focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none leading-normal"
-                  />
-                  <div className="absolute right-1 sm:right-1.5 top-1/2 -translate-y-1/2 flex items-center">
-                    {searchQuery && (
-                      <button aria-label="Clear Search" onClick={() => setSearchQuery("")} className="text-slate-600 hover:text-slate-600 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 p-1 sm:p-1.5 rounded-full transition-colors mr-1 sm:mr-1.5">
-                        <X className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                      </button>
-                    )}
-                    <button aria-label="Search" className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold shadow-sm transition-all flex items-center justify-center">
-                      <span className="hidden sm:inline">Search</span>
-                      <Search className="w-3.5 h-3.5 sm:hidden" />
-                    </button>
-                  </div>
-                </div>
-                <button
-                  aria-label="Toggle Filters"
-                  aria-expanded={showFilters}
-                  aria-controls="filters-drawer"
-                  onClick={() => { setShowFilters(!showFilters); if (!showFilters) loadStates(); }}
-                  className={`shrink-0 px-4 sm:px-5 py-3 sm:py-3.5 rounded-xl sm:rounded-2xl border transition-all flex items-center justify-center space-x-1.5 sm:space-x-2 font-bold text-xs sm:text-sm ${showFilters ? "bg-slate-800 text-white border-slate-800 shadow-md" : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 shadow-sm"}`}
-                >
-                  <Filter className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${showFilters ? "text-white" : "text-slate-500 dark:text-slate-400"}`} />
-                  <span className="hidden sm:inline">Filters</span>
-                  {!showFilters && hasActiveFilters && <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-blue-500 sm:ml-1" />}
-                </button>
-              </div>
-
-              {(searchQuery.trim() || hasActiveFilters) && (
-                <div className="mt-3 sm:mt-4 flex items-center space-x-3 animate-in fade-in duration-300">
-                  <button
-                    onClick={handleSaveSearch}
-                    disabled={isSavingSearch || saveSuccess}
-                    className={`flex items-center space-x-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all shadow-sm ${saveSuccess ? "bg-green-500 text-white shadow-green-100" : "bg-slate-900 text-white hover:bg-black active:scale-[0.98]"}`}
-                  >
-                    {isSavingSearch ? <Loader2 className="w-3 h-3 animate-spin" /> : saveSuccess ? <CheckCircle className="w-3 h-3" /> : <Bell className="w-3 h-3" />}
-                    <span>{saveSuccess ? "Saved!" : "Add to Keywords"}</span>
-                  </button>
-                  <p className="text-xs sm:text-xs text-slate-600 dark:text-slate-400 hidden sm:block">
-                    Get notified when new tenders match these filters.
-                  </p>
-                </div>
-              )}
-            </div>
+        {/* ── Hero ── */}
+        <div className="mb-4 sm:mb-6">
+          {/* Live indicator + heading */}
+          <div className="flex items-center space-x-2 mb-1.5 sm:mb-2">
+            <span className="relative flex h-1.5 w-1.5 sm:h-2 sm:w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 sm:h-2 sm:w-2 bg-green-500" />
+            </span>
+            <span className="text-xs text-blue-600 dark:text-blue-400 font-bold tracking-wide uppercase">Live Updates</span>
           </div>
+          <h2 className="font-bricolage text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight mb-3 sm:mb-4">
+            Find Your Next Tender
+          </h2>
+
+          {/* Search bar */}
+          <div className="relative max-w-3xl">
+            <label htmlFor="tender-search" className="sr-only">Search tenders by keywords or bid number</label>
+            <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-slate-400 pointer-events-none" aria-hidden="true" />
+            <input
+              id="tender-search"
+              type="text"
+              placeholder="Search by keywords, bid number, ministry..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  if (debounceTimer.current) clearTimeout(debounceTimer.current);
+                  setSearchQuery((e.target as HTMLInputElement).value);
+                }
+              }}
+              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl py-3 sm:py-3.5 pl-9 sm:pl-12 pr-10 text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm"
+            />
+            {searchQuery && (
+              <button
+                aria-label="Clear search"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Inline filter bar */}
+          <div className="mt-3 flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 max-w-3xl">
+            <FilterDropdown
+              label="State"
+              items={states}
+              selected={selectedStates}
+              mode="multi"
+              onToggle={(v) => setSelectedStates((p) => p.includes(v) ? p.filter((x) => x !== v) : [...p, v])}
+              onClear={() => { setSelectedStates([]); setSelectedCities([]); }}
+              onOpen={loadStates}
+              loading={!statesLoaded && states.length === 0}
+              searchPlaceholder="Search states…"
+            />
+            <FilterDropdown
+              label="City"
+              items={cities}
+              selected={selectedCities}
+              mode="multi"
+              onToggle={(v) => setSelectedCities((p) => p.includes(v) ? p.filter((x) => x !== v) : [...p, v])}
+              onClear={() => setSelectedCities([])}
+              disabled={selectedStates.length === 0}
+              searchPlaceholder="Search cities…"
+            />
+            <FilterDropdown
+              label="Ministry"
+              items={ministries}
+              selected={selectedMinistries}
+              mode="multi"
+              onToggle={(v) => setSelectedMinistries((p) => p.includes(v) ? p.filter((x) => x !== v) : [...p, v])}
+              onClear={() => setSelectedMinistries([])}
+              onOpen={loadMinistries}
+              loading={!ministriesLoaded && ministries.length === 0}
+              searchPlaceholder="Search ministries…"
+            />
+            <FilterDropdown
+              label="Organisation"
+              items={orgs}
+              selected={selectedOrgs}
+              mode="multi"
+              onToggle={(v) => setSelectedOrgs((p) => p.includes(v) ? p.filter((x) => x !== v) : [...p, v])}
+              onClear={() => setSelectedOrgs([])}
+              onOpen={loadOrgs}
+              loading={!orgsLoaded && orgs.length === 0}
+              searchPlaceholder="Search organisations…"
+            />
+            <FilterDropdown
+              label="Category"
+              items={CATEGORIES.map((c) => ({ label: `${c.icon} ${c.label}`, value: c.id }))}
+              selected={selectedCategory ? [selectedCategory] : []}
+              mode="single"
+              onSelect={(v) => setSelectedCategory(selectedCategory === v ? null : v)}
+              onClear={() => setSelectedCategory(null)}
+              searchable={false}
+            />
+            <FilterDropdown
+              label="EMD"
+              items={[
+                { label: "EMD Free",        value: "free" },
+                { label: "Below ₹1 Lakh",   value: "<1L"  },
+                { label: "₹1 Lakh – ₹5 Lakh", value: "1-5L" },
+                { label: "Above ₹5 Lakh",   value: ">5L"  },
+              ]}
+              selected={emdFilter !== "all" ? [emdFilter] : []}
+              mode="single"
+              onSelect={(v) => setEmdFilter(emdFilter === v ? "all" : v)}
+              onClear={() => setEmdFilter("all")}
+              searchable={false}
+            />
+            <FilterDropdown
+              label="Closing"
+              items={[
+                { label: "Ending Today", value: "today" },
+                { label: "This Week",    value: "week"  },
+              ]}
+              selected={dateFilter !== "all" ? [dateFilter] : []}
+              mode="single"
+              onSelect={(v) => setDateFilter(dateFilter === v ? "all" : v)}
+              onClear={() => setDateFilter("all")}
+              searchable={false}
+            />
+            {/* MSME / MII toggles */}
+            <TogglePill
+              label="MSME"
+              active={msmeOnly}
+              onClick={() => { if (isPremium) setMsmeOnly(!msmeOnly); else window.location.href = user ? "/dashboard/subscriptions" : "/login"; }}
+            />
+            <TogglePill
+              label="MII"
+              active={miiOnly}
+              onClick={() => { if (isPremium) setMiiOnly(!miiOnly); else window.location.href = user ? "/dashboard/subscriptions" : "/login"; }}
+            />
+          </div>
+
+          {/* Save search — shown when query or filters are active */}
+          {(searchQuery.trim() || hasActiveFilters) && (
+            <div className="mt-3 flex items-center gap-3 animate-in fade-in duration-200">
+              <button
+                onClick={handleSaveSearch}
+                disabled={isSavingSearch || saveSuccess}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${saveSuccess ? "bg-green-500 text-white" : "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:bg-black dark:hover:bg-white active:scale-[0.98]"}`}
+              >
+                {isSavingSearch ? <Loader2 className="w-3 h-3 animate-spin" /> : saveSuccess ? <CheckCircle className="w-3 h-3" /> : <Bell className="w-3 h-3" />}
+                <span>{saveSuccess ? "Saved!" : "Add to Keywords"}</span>
+              </button>
+              <span className="text-xs text-slate-500 dark:text-slate-400 hidden sm:inline">Get notified when new tenders match.</span>
+            </div>
+          )}
         </div>
 
         {/* ── Tabs ── */}
@@ -888,174 +963,6 @@ function TendersClient({
           </div>
         )}
 
-        {/* ── Filter Drawer ── */}
-        {showFilters && (
-          <div className="fixed inset-0 z-100 flex justify-end">
-            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm cursor-pointer" onClick={() => setShowFilters(false)} aria-hidden="true" />
-            <div id="filters-drawer" role="dialog" aria-modal="true" aria-label="Filters" className="relative w-full max-w-md bg-white dark:bg-slate-900 h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-300 ease-out">
-              <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-white dark:bg-slate-900 shrink-0">
-                <div>
-                  <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Filters</h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Refine your tender search</p>
-                </div>
-                <button aria-label="Close filters" onClick={() => setShowFilters(false)} className="p-2 text-slate-600 hover:text-slate-900 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-100 dark:border-slate-700 transition-all active:scale-95">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar">
-                {/* Advanced Search */}
-                <div className="space-y-3 relative">
-                  <label htmlFor="advanced-search-input" className="text-xs font-black text-slate-600 uppercase tracking-widest flex items-center">
-                    <Zap className="w-3.5 h-3.5 mr-2 text-blue-500" aria-hidden="true" /> Advanced Search
-                  </label>
-                  <div className="relative">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 dark:text-slate-600" aria-hidden="true" />
-                    <input
-                      id="advanced-search-input"
-                      type="text"
-                      disabled={!isPremium}
-                      placeholder={isPremium ? "Keywords in AI summary..." : "Premium feature..."}
-                      value={descriptionQuery}
-                      onChange={(e) => setDescriptionQuery(e.target.value)}
-                      className={`w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-3 pl-11 pr-4 text-sm text-slate-700 dark:text-slate-300 placeholder:text-slate-600 focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-blue-100 transition-all outline-none ${!isPremium ? "opacity-50 cursor-not-allowed" : ""}`}
-                    />
-                    {!isPremium && (
-                      <Link href={user ? "/dashboard/subscriptions" : "/login"} className="absolute right-3 top-1/2 -translate-y-1/2 px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-bold rounded flex items-center hover:bg-amber-200 transition-colors">
-                        <Zap className="w-3 h-3 mr-1" /> Unlock
-                      </Link>
-                    )}
-                  </div>
-                  <p className="text-xs text-slate-600 leading-relaxed italic">Searches deep within technical specifications extracted from PDFs.</p>
-                </div>
-
-                {/* State Filter */}
-                <fieldset className="space-y-4">
-                  <legend className="text-xs font-black text-slate-600 uppercase tracking-widest flex items-center">
-                    <MapPin className="w-3.5 h-3.5 mr-2" aria-hidden="true" /> State / Location
-                  </legend>
-                  {!statesLoaded ? (
-                    <div className="grid grid-cols-2 gap-2">
-                      {Array.from({ length: 6 }).map((_, i) => (
-                        <div key={i} className="h-10 bg-slate-100 dark:bg-slate-800 rounded-xl animate-pulse" />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-2">
-                      <button aria-pressed={selectedStates.length === 0} onClick={() => { setSelectedStates([]); setSelectedCities([]); }} className={`px-3 py-2.5 rounded-xl text-xs font-bold transition-all border ${selectedStates.length === 0 ? "bg-blue-600 border-blue-600 text-white shadow-md" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-blue-200"}`}>
-                        All States
-                      </button>
-                      {states.map((state) => (
-                        <button
-                          key={state}
-                          aria-pressed={selectedStates.includes(state)}
-                          onClick={() => setSelectedStates((p) => p.includes(state) ? p.filter((s) => s !== state) : [...p, state])}
-                          className={`px-3 py-2.5 rounded-xl text-xs font-bold border transition-all truncate text-left ${selectedStates.includes(state) ? "bg-blue-600 border-blue-600 text-white shadow-md" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-blue-200"}`}
-                        >
-                          {state}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </fieldset>
-
-                {/* City Filter */}
-                {cities.length > 0 && (
-                  <fieldset className="space-y-4">
-                    <legend className="text-xs font-black text-slate-600 uppercase tracking-widest flex items-center">
-                      <MapPin className="w-3.5 h-3.5 mr-2" aria-hidden="true" /> City
-                    </legend>
-                    <div className="grid grid-cols-2 gap-2 max-h-[200px] overflow-y-auto no-scrollbar">
-                      <button aria-pressed={selectedCities.length === 0} onClick={() => setSelectedCities([])} className={`px-3 py-2.5 rounded-xl text-xs font-bold transition-all border ${selectedCities.length === 0 ? "bg-blue-600 border-blue-600 text-white shadow-md" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 hover:border-blue-200"}`}>
-                        All Cities
-                      </button>
-                      {cities.map((city) => (
-                        <button key={city} aria-pressed={selectedCities.includes(city)} onClick={() => setSelectedCities((p) => p.includes(city) ? p.filter((c) => c !== city) : [...p, city])} className={`px-3 py-2.5 rounded-xl text-xs font-bold border transition-all truncate text-left ${selectedCities.includes(city) ? "bg-blue-600 border-blue-600 text-white shadow-md" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 hover:border-blue-200"}`}>
-                          {city}
-                        </button>
-                      ))}
-                    </div>
-                  </fieldset>
-                )}
-
-                {/* EMD Filter */}
-                <fieldset className="space-y-4">
-                  <legend className="text-xs font-black text-slate-600 uppercase tracking-widest flex items-center">
-                    <Zap className="w-3.5 h-3.5 mr-2 text-amber-500" aria-hidden="true" /> EMD Amount
-                  </legend>
-                  <div className="grid grid-cols-1 gap-2">
-                    {[
-                      { label: "All Amounts", value: "all" }, { label: "EMD Free", value: "free" },
-                      { label: "Below ₹1 Lakh", value: "<1L" }, { label: "₹1 Lakh – ₹5 Lakh", value: "1-5L" },
-                      { label: "Above ₹5 Lakh", value: ">5L" },
-                    ].map((o) => (
-                      <button key={o.value} aria-pressed={emdFilter === o.value} onClick={() => setEmdFilter(o.value)} className={`px-4 py-3 rounded-xl text-sm font-bold text-left transition-all border ${emdFilter === o.value ? "bg-blue-600 border-blue-600 text-white shadow-md" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 hover:border-blue-200"}`}>
-                        {o.label}
-                      </button>
-                    ))}
-                  </div>
-                </fieldset>
-
-                {/* Date Filter */}
-                <fieldset className="space-y-4">
-                  <legend className="text-xs font-black text-slate-600 uppercase tracking-widest flex items-center">
-                    <Clock className="w-3.5 h-3.5 mr-2" aria-hidden="true" /> Closing Date
-                  </legend>
-                  <div className="grid grid-cols-1 gap-2">
-                    {[
-                      { label: "Anytime", value: "all" }, { label: "Ending Today", value: "today" },
-                      { label: "Ending This Week", value: "week" },
-                    ].map((o) => (
-                      <button key={o.value} aria-pressed={dateFilter === o.value} onClick={() => setDateFilter(o.value)} className={`px-4 py-3 rounded-xl text-sm font-bold text-left transition-all border ${dateFilter === o.value ? "bg-blue-600 border-blue-600 text-white shadow-md" : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 hover:border-blue-200"}`}>
-                        {o.label}
-                      </button>
-                    ))}
-                  </div>
-                </fieldset>
-
-                {/* Preferences */}
-                <fieldset className="space-y-4 pb-10">
-                  <legend className="text-xs font-black text-slate-600 uppercase tracking-widest flex items-center justify-between w-full">
-                    <span className="flex items-center"><Shield className="w-3.5 h-3.5 mr-2" aria-hidden="true" /> Preferences</span>
-                    {!isPremium && <span className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 text-[9px] px-1.5 py-0.5 rounded font-bold">PREMIUM</span>}
-                  </legend>
-                  <div className="space-y-3 relative">
-                    {!isPremium && (
-                      <div className="absolute inset-0 z-10 bg-white/40 dark:bg-slate-900/60 backdrop-blur-[1px] rounded-xl flex items-center justify-center">
-                        <Link href={user ? "/dashboard/subscriptions" : "/login"} className="bg-amber-500 text-white shadow-lg text-xs font-bold px-4 py-2 rounded-lg flex items-center hover:bg-amber-600 transition-colors">
-                          <Zap className="w-3.5 h-3.5 mr-1.5" /> Unlock Advanced Filters
-                        </Link>
-                      </div>
-                    )}
-                    <ToggleButton label="MSME Eligibility Only" checked={msmeOnly} onChange={(v) => isPremium && setMsmeOnly(v)} color="blue" />
-                    <ToggleButton label="MII Preference Only"   checked={miiOnly}  onChange={(v) => isPremium && setMiiOnly(v)}  color="amber" />
-                  </div>
-                </fieldset>
-              </div>
-
-              {/* Drawer Footer */}
-              <div className="p-6 border-t border-slate-100 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-sm shrink-0">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-xs text-slate-500 font-medium">
-                    <span className="font-bold text-slate-900 dark:text-slate-100">{loading ? "…" : displayTenders.length}</span> results found
-                  </span>
-                  <button onClick={() => { setSelectedStates([]); setSelectedCities([]); setSelectedMinistries([]); setSelectedOrgs([]); setEmdFilter("all"); setDateFilter("all"); setMsmeOnly(false); setMiiOnly(false); setDescriptionQuery(""); setSelectedCategory(null); }} className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700">
-                    Reset All
-                  </button>
-                </div>
-                <div className="grid grid-cols-1 gap-3">
-                  <button onClick={() => setShowFilters(false)} className="w-full py-4 bg-slate-900 dark:bg-slate-700 text-white rounded-2xl font-bold text-sm shadow-xl active:scale-[0.98] transition-all">
-                    Show {loading ? "…" : displayTenders.length} Bids
-                  </button>
-                  <button onClick={handleSaveSearch} disabled={isSavingSearch || saveSuccess} className={`w-full py-4 flex items-center justify-center space-x-2 rounded-2xl font-bold text-sm transition-all border-2 ${saveSuccess ? "bg-green-500 border-green-500 text-white" : "bg-white dark:bg-slate-800 border-blue-600 dark:border-blue-500 text-blue-600 hover:bg-blue-50 active:scale-[0.98]"}`}>
-                    {isSavingSearch ? <Loader2 className="w-4 h-4 animate-spin" /> : saveSuccess ? <CheckCircle className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
-                    <span>{saveSuccess ? "Saved!" : "Add to Keywords"}</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* ── Tender Grid ── */}
         {loading ? (
@@ -1150,18 +1057,6 @@ function FilterTag({ label, onRemove, color = "blue" }: { label: string; onRemov
   );
 }
 
-function ToggleButton({ label, checked, onChange, color }: { label: string; checked: boolean; onChange: (v: boolean) => void; color: "blue" | "amber" }) {
-  const trackOn = color === "amber" ? "bg-amber-500" : "bg-blue-600";
-  const bgOn    = color === "amber" ? "bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800" : "bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700";
-  return (
-    <button role="switch" aria-checked={checked} onClick={() => onChange(!checked)} className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${checked ? bgOn : "bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 hover:border-slate-200"}`}>
-      <span id={`toggle-label-${label.replace(/\s+/g, '-').toLowerCase()}`} className="text-sm font-bold text-slate-700 dark:text-slate-300">{label}</span>
-      <div className={`w-10 h-6 rounded-full p-1 transition-all ${checked ? trackOn : "bg-slate-200 dark:bg-slate-700"}`}>
-        <div className={`w-4 h-4 bg-white rounded-full transition-transform ${checked ? "translate-x-4" : "translate-x-0"}`} />
-      </div>
-    </button>
-  );
-}
 
 // ─── Highlighted text ─────────────────────────────────────────────────────────
 function HighlightedText({ text, highlightTerms }: { text: string; highlightTerms: string[] }) {
@@ -1393,5 +1288,198 @@ function TenderCard({
         </button>
       </td>
     </tr>
+  );
+}
+
+// ─── FilterDropdown ────────────────────────────────────────────────────────────
+type FDItem = string | { label: string; value: string };
+
+function fdValue(item: FDItem) { return typeof item === "string" ? item : item.value; }
+function fdLabel(item: FDItem) { return typeof item === "string" ? item : item.label; }
+
+function FilterDropdown({
+  label,
+  items,
+  selected,
+  mode = "multi",
+  onToggle,
+  onSelect,
+  onClear,
+  onOpen,
+  loading = false,
+  disabled = false,
+  searchable = true,
+  searchPlaceholder = "Search…",
+}: {
+  label: string;
+  items: FDItem[];
+  selected: string[];
+  mode?: "multi" | "single";
+  onToggle?: (v: string) => void;
+  onSelect?: (v: string) => void;
+  onClear: () => void;
+  onOpen?: () => void;
+  loading?: boolean;
+  disabled?: boolean;
+  searchable?: boolean;
+  searchPlaceholder?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const ref = useRef<HTMLDivElement>(null);
+  const opened = useRef(false);
+
+  useEffect(() => {
+    if (!open) return;
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    function handler(e: KeyboardEvent) { if (e.key === "Escape") setOpen(false); }
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [open]);
+
+  function handleToggle() {
+    if (disabled) return;
+    if (!open && !opened.current) { opened.current = true; onOpen?.(); }
+    setOpen((v) => !v);
+    setQuery("");
+  }
+
+  const filtered = query.trim()
+    ? items.filter((i) => fdLabel(i).toLowerCase().includes(query.toLowerCase()))
+    : items;
+
+  const isActive = selected.length > 0;
+  const buttonLabel = isActive
+    ? selected.length === 1
+      ? (items.find((i) => fdValue(i) === selected[0]) ? fdLabel(items.find((i) => fdValue(i) === selected[0])!) : selected[0])
+      : `${label} (${selected.length})`
+    : label;
+
+  return (
+    <div ref={ref} className="relative shrink-0">
+      {/* Trigger button */}
+      <button
+        onClick={handleToggle}
+        disabled={disabled}
+        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-all whitespace-nowrap ${
+          disabled
+            ? "opacity-40 cursor-not-allowed bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-400"
+            : isActive
+              ? "bg-blue-600 text-white border-blue-600 shadow-sm pr-1.5"
+              : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600"
+        }`}
+      >
+        <span className="max-w-[120px] truncate">{buttonLabel}</span>
+        {isActive ? (
+          <span
+            role="button"
+            tabIndex={0}
+            aria-label={`Clear ${label}`}
+            onClick={(e) => { e.stopPropagation(); onClear(); }}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); onClear(); } }}
+            className="ml-0.5 p-0.5 rounded-full hover:bg-blue-500 transition-colors"
+          >
+            <X className="w-3 h-3" />
+          </span>
+        ) : (
+          <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`} />
+        )}
+      </button>
+
+      {/* Dropdown panel */}
+      {open && (
+        <div className="absolute top-full left-0 mt-1.5 z-50 w-60 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl overflow-hidden">
+          {searchable && (
+            <div className="p-2 border-b border-slate-100 dark:border-slate-800">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                <input
+                  autoFocus
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder={searchPlaceholder}
+                  className="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 dark:text-slate-300 placeholder:text-slate-400"
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="max-h-60 overflow-y-auto no-scrollbar">
+            {loading ? (
+              <div className="py-8 text-center text-xs text-slate-400">Loading…</div>
+            ) : filtered.length === 0 ? (
+              <div className="py-8 text-center text-xs text-slate-400">No results</div>
+            ) : filtered.map((item) => {
+              const val = fdValue(item);
+              const lbl = fdLabel(item);
+              const checked = selected.includes(val);
+              return (
+                <button
+                  key={val}
+                  onClick={() => {
+                    if (mode === "single") {
+                      onSelect?.(val);
+                      setOpen(false);
+                    } else {
+                      onToggle?.(val);
+                    }
+                  }}
+                  className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-xs text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800 ${
+                    checked ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-bold" : "text-slate-700 dark:text-slate-300"
+                  }`}
+                >
+                  {mode === "multi" ? (
+                    <span className={`w-3.5 h-3.5 shrink-0 rounded border flex items-center justify-center transition-colors ${checked ? "bg-blue-600 border-blue-600" : "border-slate-300 dark:border-slate-600"}`}>
+                      {checked && <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 10 10"><path d="M1.5 5l2.5 2.5 4.5-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                    </span>
+                  ) : (
+                    <span className={`w-3.5 h-3.5 shrink-0 rounded-full border flex items-center justify-center transition-colors ${checked ? "border-blue-600" : "border-slate-300 dark:border-slate-600"}`}>
+                      {checked && <span className="w-2 h-2 rounded-full bg-blue-600 block" />}
+                    </span>
+                  )}
+                  <span className="truncate">{lbl}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {selected.length > 0 && (
+            <div className="p-2 border-t border-slate-100 dark:border-slate-800">
+              <button
+                onClick={() => { onClear(); setOpen(false); }}
+                className="w-full py-1.5 text-xs font-bold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              >
+                Clear {label}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── TogglePill ────────────────────────────────────────────────────────────────
+function TogglePill({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`shrink-0 px-3 py-2 rounded-xl text-xs font-bold border transition-all whitespace-nowrap ${
+        active
+          ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600"
+      }`}
+    >
+      {label}
+    </button>
   );
 }

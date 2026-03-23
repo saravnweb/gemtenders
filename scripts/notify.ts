@@ -3,7 +3,6 @@ dotenv.config({ path: '.env.local' });
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL) dotenv.config({ path: '.env' });
 
 import { createClient } from '@supabase/supabase-js';
-import { triggerKeywordNotifications } from '../lib/notifications';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -16,6 +15,8 @@ const DRY_RUN = args.includes('--dry-run');
 const BATCH   = 100;
 
 async function runNotifications() {
+  const { triggerKeywordNotifications } = await import('../lib/notifications');
+
   console.log(`\n>>> [NOTIFY] Starting notification run.`);
   console.log(`    Limit: ${LIMIT} | Dry-run: ${DRY_RUN}\n`);
 

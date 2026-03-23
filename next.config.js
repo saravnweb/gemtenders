@@ -21,7 +21,7 @@ const nextConfig = {
             {
                 source: "/:path*",
                 headers: [
-                    { key: "Content-Security-Policy", value: `default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com; style-src 'self' 'unsafe-inline' https://accounts.google.com; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://*.supabase.co https://accounts.google.com${isDev ? ' ws://localhost:* ws://127.0.0.1:*' : ''}; frame-src https://accounts.google.com;` },
+                    { key: "Content-Security-Policy", value: `default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://checkout.razorpay.com; style-src 'self' 'unsafe-inline' https://accounts.google.com; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://*.supabase.co https://accounts.google.com https://api.razorpay.com https://lumberjack.razorpay.com${isDev ? ' ws://localhost:* ws://127.0.0.1:*' : ''}; frame-src https://accounts.google.com https://api.razorpay.com https://checkout.razorpay.com;` },
                     { key: "X-Content-Type-Options", value: "nosniff" },
                     { key: "X-Frame-Options", value: "DENY" },
                     { key: "X-XSS-Protection", value: "1; mode=block" },
