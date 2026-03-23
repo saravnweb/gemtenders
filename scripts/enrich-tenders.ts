@@ -219,11 +219,11 @@ async function enrichTenders() {
         update.title = aiData.tender_title;
       }
       let parsedEndDate: string | null = null;
-      if (aiData?.dates?.bid_opening_date)  update.opening_date = parseGeMDate(aiData.dates.bid_opening_date) || aiData.dates.bid_opening_date;
-      if (aiData?.dates?.bid_start_date)    update.start_date   = parseGeMDate(aiData.dates.bid_start_date) || aiData.dates.bid_start_date;
+      if (aiData?.dates?.bid_opening_date)  { const d = parseGeMDate(aiData.dates.bid_opening_date); if (d) update.opening_date = d; }
+      if (aiData?.dates?.bid_start_date)    { const d = parseGeMDate(aiData.dates.bid_start_date);   if (d) update.start_date   = d; }
       if (aiData?.dates?.bid_end_date) {
-         parsedEndDate = parseGeMDate(aiData.dates.bid_end_date) || aiData.dates.bid_end_date;
-         update.end_date = parsedEndDate;
+         parsedEndDate = parseGeMDate(aiData.dates.bid_end_date) ?? null;
+         if (parsedEndDate) update.end_date = parsedEndDate;
       }
 
       // If the AI discovered this tender is already expired, delete it!

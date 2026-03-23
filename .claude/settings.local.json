@@ -28,7 +28,10 @@
       "WebFetch(domain:inference-docs.cerebras.ai)",
       "Bash(curl -s \"https://api.cerebras.ai/v1/models\" -H \"Authorization: Bearer csk-d3jjvd9392fx3j2jcfjyewe6mvm26jjchry245xjjkry55rv\")",
       "Bash(node -e \"const d=require\\(''''fs''''\\).readFileSync\\(''''/dev/stdin'''',''''utf8''''\\); try{const j=JSON.parse\\(d\\); \\(j.data||j.models||[j]\\).forEach\\(m=>console.log\\(m.id||m.name||m\\)\\)}catch\\(e\\){console.log\\(d\\)}\")",
-      "Bash(find d:/websites/Tenders/app -type f -name page.*)"
+      "Bash(find d:/websites/Tenders/app -type f -name page.*)",
+      "Bash(grep -r \"grid\\\\|flex\\\\|md:\\\\|lg:\\\\|sm:\" /d/websites/Tenders/components/*.tsx)",
+      "Bash(npx tsx:*)",
+      "Bash(ls -1 /d/websites/Tenders/lib/*.ts)"
     ]
   }
 }

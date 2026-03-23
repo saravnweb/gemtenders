@@ -69,3 +69,18 @@ body {
   color-scheme: dark;
 }
 
+/* Hide scrollbar on overflow-scroll containers (tabs row, filter chips) */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Prevent text size inflation on iOS/Android orientation change */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+

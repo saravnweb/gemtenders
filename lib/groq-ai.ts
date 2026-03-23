@@ -1,4 +1,4 @@
-import { normalizeState, normalizeCity } from "./locations";
+import { normalizeState, normalizeCity, cityToState } from "./locations";
 
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 const GROQ_MODEL = "llama-3.3-70b-versatile";
@@ -110,10 +110,16 @@ ${cleanedText}`;
     parsedData.technical_summary = JSON.stringify(parsedData.parameters ?? {});
 
     if (parsedData?.authority) {
-      if (parsedData.authority.state) parsedData.authority.state = normalizeState(parsedData.authority.state);
-      if (parsedData.authority.city) parsedData.authority.city = normalizeCity(parsedData.authority.city);
-      if (parsedData.authority.consignee_state) parsedData.authority.consignee_state = normalizeState(parsedData.authority.consignee_state);
-      if (parsedData.authority.consignee_city) parsedData.authority.consignee_city = normalizeCity(parsedData.authority.consignee_city);
+      parsedData.authority.city = normalizeCity(parsedData.authority.city);
+      parsedData.authority.consignee_city = normalizeCity(parsedData.authority.consignee_city);
+
+      parsedData.authority.state = parsedData.authority.state
+        ? normalizeState(parsedData.authority.state)
+        : cityToState(parsedData.authority.city);
+
+      parsedData.authority.consignee_state = parsedData.authority.consignee_state
+        ? normalizeState(parsedData.authority.consignee_state)
+        : cityToState(parsedData.authority.consignee_city);
     }
     return parsedData;
   } catch (e: any) {

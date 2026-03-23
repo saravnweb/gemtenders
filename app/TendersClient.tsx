@@ -677,7 +677,7 @@ function TendersClient({
       <main id="main-content" className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
 
         {/* ── Hero / Search ── */}
-        <div className="mb-6 sm:mb-8 relative z-10 w-full">
+        <div className="mb-4 sm:mb-8 relative z-10 w-full">
           <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 lg:items-end justify-between">
             <div className="flex-1 w-full">
               <div className="flex items-center space-x-2 mb-1.5 sm:mb-3">
@@ -687,11 +687,11 @@ function TendersClient({
                 </span>
                 <span className="text-xs sm:text-xs text-blue-600 dark:text-blue-400 font-bold tracking-wide uppercase">Live Updates</span>
               </div>
-              <h2 className="font-bricolage text-xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight mb-1 sm:mb-2">
+              <h2 className="font-bricolage text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight mb-1 sm:mb-2">
                 Find Your Next Tender
               </h2>
 
-              <div className="mt-3 sm:mt-4 flex flex-row gap-2 sm:gap-3 max-w-3xl w-full">
+              <div className="mt-2 sm:mt-4 flex flex-row gap-2 sm:gap-3 max-w-3xl w-full">
                 <div className="relative flex-1 min-w-0">
                   <label htmlFor="tender-search" className="sr-only">Search tenders by keywords or bid number</label>
                   <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-slate-600 dark:text-slate-400" aria-hidden="true" />
@@ -720,7 +720,7 @@ function TendersClient({
                   aria-expanded={showFilters}
                   aria-controls="filters-drawer"
                   onClick={() => { setShowFilters(!showFilters); if (!showFilters) loadStates(); }}
-                  className={`shrink-0 px-3 sm:px-5 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl border transition-all flex items-center justify-center space-x-1.5 sm:space-x-2 font-bold text-xs sm:text-sm ${showFilters ? "bg-slate-800 text-white border-slate-800 shadow-md" : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 shadow-sm"}`}
+                  className={`shrink-0 px-4 sm:px-5 py-3 sm:py-3.5 rounded-xl sm:rounded-2xl border transition-all flex items-center justify-center space-x-1.5 sm:space-x-2 font-bold text-xs sm:text-sm ${showFilters ? "bg-slate-800 text-white border-slate-800 shadow-md" : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 shadow-sm"}`}
                 >
                   <Filter className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${showFilters ? "text-white" : "text-slate-500 dark:text-slate-400"}`} />
                   <span className="hidden sm:inline">Filters</span>
@@ -733,10 +733,10 @@ function TendersClient({
                   <button
                     onClick={handleSaveSearch}
                     disabled={isSavingSearch || saveSuccess}
-                    className={`flex items-center space-x-1.5 sm:space-x-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-xs sm:text-xs font-black uppercase tracking-widest transition-all shadow-sm ${saveSuccess ? "bg-green-500 text-white shadow-green-100" : "bg-slate-900 text-white hover:bg-black active:scale-[0.98]"}`}
+                    className={`flex items-center space-x-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all shadow-sm ${saveSuccess ? "bg-green-500 text-white shadow-green-100" : "bg-slate-900 text-white hover:bg-black active:scale-[0.98]"}`}
                   >
-                    {isSavingSearch ? <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-spin" /> : saveSuccess ? <CheckCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> : <Bell className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
-                    <span>{saveSuccess ? "Saved!" : "Save Alert"}</span>
+                    {isSavingSearch ? <Loader2 className="w-3 h-3 animate-spin" /> : saveSuccess ? <CheckCircle className="w-3 h-3" /> : <Bell className="w-3 h-3" />}
+                    <span>{saveSuccess ? "Saved!" : "Add to Keywords"}</span>
                   </button>
                   <p className="text-xs sm:text-xs text-slate-600 dark:text-slate-400 hidden sm:block">
                     Get notified when new tenders match these filters.
@@ -748,8 +748,8 @@ function TendersClient({
         </div>
 
         {/* ── Tabs ── */}
-        <div className="flex items-start sm:items-center justify-between mb-4 border-b border-slate-200 dark:border-slate-700 w-full overflow-x-auto overflow-y-hidden no-scrollbar">
-          <div className="flex flex-nowrap items-center gap-x-4 sm:gap-x-6 flex-1 pt-1 pr-2 shrink-0" role="tablist" aria-label="Tender Views">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 border-b border-slate-200 dark:border-slate-700 w-full">
+          <div className="flex flex-nowrap items-center gap-x-4 sm:gap-x-6 overflow-x-auto no-scrollbar pt-1 pb-0 sm:flex-1 sm:pr-2" role="tablist" aria-label="Tender Views">
             <TabButton label="All Active Bids" active={activeTab === "all"} onClick={() => setActiveTab("all")} />
 
             {user && savedSearches.length > 0 ? (
@@ -757,7 +757,7 @@ function TendersClient({
                 role="tab"
                 aria-selected={activeTab === "foryou"}
                 onClick={() => setActiveTab("foryou")}
-                className={`pb-2 sm:pb-3 text-sm font-bold flex items-center space-x-1.5 sm:space-x-2 transition-all relative whitespace-nowrap ${activeTab === "foryou" ? "text-blue-600 dark:text-blue-400" : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"}`}
+                className={`pb-2 sm:pb-3 text-xs sm:text-sm font-bold flex items-center space-x-1.5 sm:space-x-2 transition-all relative whitespace-nowrap ${activeTab === "foryou" ? "text-blue-600 dark:text-blue-400" : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"}`}
               >
                 <Zap className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${activeTab === "foryou" ? "text-blue-600" : "text-slate-500 dark:text-slate-400"}`} />
                 <span>For You</span>
@@ -771,7 +771,7 @@ function TendersClient({
                 role="tab"
                 aria-selected={activeTab === "foryou"}
                 onClick={() => { if (!user) window.location.href = "/login"; else window.location.href = "/dashboard/keywords"; }}
-                className="group pb-2 sm:pb-3 text-sm font-bold flex items-center space-x-1.5 sm:space-x-2 transition-all relative text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 whitespace-nowrap"
+                className="group pb-2 sm:pb-3 text-xs sm:text-sm font-bold flex items-center space-x-1.5 sm:space-x-2 transition-all relative text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 whitespace-nowrap"
               >
                 <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-500 group-hover:text-blue-600 transition-colors" />
                 <span>For You</span>
@@ -782,7 +782,7 @@ function TendersClient({
             )}
           </div>
 
-          <div className="flex items-center space-x-3 sm:space-x-4 shrink-0 pl-2 pb-2 sm:pb-3 pt-1">
+          <div className="flex items-center space-x-3 sm:space-x-4 shrink-0 pb-2 pt-1 sm:pl-2 sm:pb-3 sm:pt-1">
             <div className="hidden md:block text-xs font-bold text-slate-500 dark:text-slate-400">
               {loading ? "…" : activeTab === "foryou"
                 ? `${forYouTenders.length} results`
@@ -994,7 +994,7 @@ function TendersClient({
                   </button>
                   <button onClick={handleSaveSearch} disabled={isSavingSearch || saveSuccess} className={`w-full py-4 flex items-center justify-center space-x-2 rounded-2xl font-bold text-sm transition-all border-2 ${saveSuccess ? "bg-green-500 border-green-500 text-white" : "bg-white dark:bg-slate-800 border-blue-600 dark:border-blue-500 text-blue-600 hover:bg-blue-50 active:scale-[0.98]"}`}>
                     {isSavingSearch ? <Loader2 className="w-4 h-4 animate-spin" /> : saveSuccess ? <CheckCircle className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
-                    <span>{saveSuccess ? "Keyword Alert Saved!" : "Save as Keyword Alert"}</span>
+                    <span>{saveSuccess ? "Saved!" : "Add to Keywords"}</span>
                   </button>
                 </div>
               </div>
@@ -1056,7 +1056,13 @@ function TendersClient({
                   className="bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold py-3 px-8 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-all focus:ring-2 focus:ring-blue-500 focus:outline-none flex items-center space-x-2 disabled:opacity-60"
                 >
                   {loadingMore ? <Loader2 className="w-4 h-4 animate-spin text-slate-600" /> : <RefreshCw className="w-4 h-4 text-slate-600" />}
-                  <span>{loadingMore ? "Loading…" : "Load More Tenders"}</span>
+                  <span>
+                    {loadingMore
+                      ? "Loading…"
+                      : totalCount !== null && totalCount > displayTenders.length
+                        ? `Load More Tenders (${(totalCount - displayTenders.length).toLocaleString()} remaining)`
+                        : "Load More Tenders"}
+                  </span>
                 </button>
               </div>
             )}
@@ -1070,7 +1076,7 @@ function TendersClient({
 // ─── Small reusable components ────────────────────────────────────────────────
 function TabButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
-    <button role="tab" aria-selected={active} onClick={onClick} className={`pb-2 sm:pb-3 text-sm font-bold transition-all relative whitespace-nowrap ${active ? "text-blue-600 dark:text-blue-400" : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"}`}>
+    <button role="tab" aria-selected={active} onClick={onClick} className={`pb-2 sm:pb-3 text-xs sm:text-sm font-bold transition-all relative whitespace-nowrap ${active ? "text-blue-600 dark:text-blue-400" : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"}`}>
       {label}
       {active && <div className="absolute bottom-[-8px] sm:bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-t-full" />}
     </button>
@@ -1221,7 +1227,7 @@ function TenderCard({
 
       {/* AI Insight */}
       {hasValidInsight && (
-        <td role="cell" className="mb-3 p-2.5 bg-blue-50/50 dark:bg-blue-900/20 rounded-lg border border-blue-50 dark:border-blue-900 relative z-10 w-full">
+        <td role="cell" className="mb-3 p-2 sm:p-2.5 bg-blue-50/50 dark:bg-blue-900/20 rounded-lg border border-blue-50 dark:border-blue-900 relative z-10 w-full">
           <div className="flex items-center space-x-1 mb-1 opacity-60">
             <Zap className="w-2.5 h-2.5 text-blue-500" />
             <span className="text-[9px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-tighter">AI Insight</span>
@@ -1261,7 +1267,7 @@ function TenderCard({
       </td>
 
       {/* 4: EMD & Dates */}
-      <td role="cell" className="grid grid-cols-3 gap-2 py-2.5 border-y border-slate-100 dark:border-slate-700 mb-4 bg-slate-50 dark:bg-slate-800 -mx-4 px-4 relative z-10 pointer-events-none mt-auto w-full">
+      <td role="cell" className="grid grid-cols-3 gap-2 py-2 sm:py-2.5 border-y border-slate-100 dark:border-slate-700 mb-4 bg-slate-50 dark:bg-slate-800 -mx-4 px-4 relative z-10 pointer-events-none mt-auto w-full">
         <div className="flex flex-col">
           <span className="text-xs text-slate-500 dark:text-slate-400 mb-0.5">EMD Amount</span>
           <span className="text-[13px] font-medium text-slate-700 dark:text-slate-300 truncate">{formattedEMD}</span>
@@ -1284,10 +1290,10 @@ function TenderCard({
       </td>
 
       {/* 5: Actions */}
-      <td role="cell" className="flex gap-2 sm:gap-2.5 items-center relative z-20 mt-auto w-full">
+      <td role="cell" className="flex gap-2 items-center relative z-20 mt-auto w-full">
         <Link
           href={`/bids/${encodeURIComponent(tender.slug || '')}`}
-          className="flex-1 h-9 sm:h-10 rounded-xl border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs sm:text-sm font-bold flex items-center justify-center transition-all hover:bg-blue-100 dark:hover:bg-blue-800/30 active:scale-[0.98]"
+          className="flex-1 h-10 rounded-xl border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs sm:text-sm font-bold flex items-center justify-center transition-all hover:bg-blue-100 dark:hover:bg-blue-800/30 active:scale-[0.98]"
         >
           View Full Details
         </Link>
@@ -1304,23 +1310,23 @@ function TenderCard({
               alert("Link copied to clipboard!");
             }
           }}
-          className="w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center justify-center transition-all active:scale-[0.98]"
+          className="w-10 h-10 shrink-0 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center justify-center transition-all active:scale-[0.98]"
           title="Share"
           aria-label={`Share ${tender.title}`}
         >
-          <Share2 className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+          <Share2 className="w-4 h-4" />
         </button>
         <button
           onClick={(e) => {
             e.stopPropagation();
             onToggleSave();
           }}
-          className={`w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-xl border flex items-center justify-center transition-all active:scale-[0.98] ${isSaved ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-300'}`}
+          className={`w-10 h-10 shrink-0 rounded-xl border flex items-center justify-center transition-all active:scale-[0.98] ${isSaved ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-300'}`}
           title={isSaved ? "Saved" : "Save tender"}
           aria-label={isSaved ? `Unsave ${tender.title}` : `Save ${tender.title}`}
           aria-pressed={isSaved}
         >
-          <Bookmark className={`w-4 h-4 sm:w-4.5 sm:h-4.5 ${isSaved ? "fill-current text-blue-600 dark:text-blue-400" : ""}`} />
+          <Bookmark className={`w-4 h-4 ${isSaved ? "fill-current text-blue-600 dark:text-blue-400" : ""}`} />
         </button>
       </td>
     </tr>

@@ -165,9 +165,9 @@ export async function runEnrichment(limit: number = 20, reprocess: boolean = fal
           updatePayload.procurement_type = aiData.procurement_type || null;
           updatePayload.keywords = aiData.keywords || [];
           if (aiData.dates) {
-            if (aiData.dates.bid_opening_date) updatePayload.opening_date = parseGeMDate(aiData.dates.bid_opening_date) || aiData.dates.bid_opening_date;
-            if (aiData.dates.bid_start_date) updatePayload.start_date = parseGeMDate(aiData.dates.bid_start_date) || aiData.dates.bid_start_date;
-            if (aiData.dates.bid_end_date) updatePayload.end_date = parseGeMDate(aiData.dates.bid_end_date) || aiData.dates.bid_end_date;
+            const od = parseGeMDate(aiData.dates.bid_opening_date); if (od) updatePayload.opening_date = od;
+            const sd = parseGeMDate(aiData.dates.bid_start_date);   if (sd) updatePayload.start_date   = sd;
+            const ed = parseGeMDate(aiData.dates.bid_end_date);     if (ed) updatePayload.end_date     = ed;
           }
         }
 

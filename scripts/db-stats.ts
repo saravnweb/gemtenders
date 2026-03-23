@@ -36,11 +36,27 @@ async function getStats() {
         .select('*', { count: 'exact', head: true })
         .not('emd_amount', 'is', null);
 
-    console.log(`✅ Total Tenders Found:    ${total || 0}`);
-    console.log(`📄 Tenders with PDF URL:   ${hasPdf || 0} (${total ? Math.round((hasPdf || 0) / total * 100) : 0}%)`);
-    console.log(`⏳ Missing PDF Link:       ${missingPdf || 0}`);
-    console.log(`🤖 Tenders with AI Summary:${hasAiSummary || 0} (${total ? Math.round((hasAiSummary || 0) / total * 100) : 0}%)`);
-    console.log(`💰 Tenders with EMD Extracted: ${hasEmd || 0} (${total ? Math.round((hasEmd || 0) / total * 100) : 0}%)`);
+    // State & City coverage
+    const { count: hasState } = await supabase
+        .from('tenders')
+        .select('*', { count: 'exact', head: true })
+        .not('state', 'is', null);
+
+    const { count: hasCity } = await supabase
+        .from('tenders')
+        .select('*', { count: 'exact', head: true })
+        .not('city', 'is', null);
+
+    const missingState = (total || 0) - (hasState || 0);
+    const missingCity  = (total || 0) - (hasCity  || 0);
+
+    console.log(`✅ Total Tenders Found:       ${total || 0}`);
+    console.log(`📄 Tenders with PDF URL:      ${hasPdf || 0} (${total ? Math.round((hasPdf || 0) / total * 100) : 0}%)`);
+    console.log(`⏳ Missing PDF Link:           ${missingPdf || 0}`);
+    console.log(`🤖 Tenders with AI Summary:   ${hasAiSummary || 0} (${total ? Math.round((hasAiSummary || 0) / total * 100) : 0}%)`);
+    console.log(`💰 Tenders with EMD Extracted:${hasEmd || 0} (${total ? Math.round((hasEmd || 0) / total * 100) : 0}%)`);
+    console.log(`🗺️  Tenders with State:        ${hasState || 0} (${total ? Math.round((hasState || 0) / total * 100) : 0}%) | Missing: ${missingState}`);
+    console.log(`🏙️  Tenders with City:         ${hasCity  || 0} (${total ? Math.round((hasCity  || 0) / total * 100) : 0}%) | Missing: ${missingCity}`);
 
     if (missingPdf && missingPdf > 0) {
         console.log(`\n💡 TIP: Run 'npm run enrich -- --limit=${Math.min(missingPdf, 20)}' to process PDFs & AI!`);

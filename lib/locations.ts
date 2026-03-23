@@ -1,4 +1,4 @@
-import { City } from 'country-state-city';
+import { City, State } from 'country-state-city';
 
 // Canonical set of all Indian states and UTs
 export const INDIAN_STATES = new Set([
@@ -75,8 +75,32 @@ export function normalizeState(state: string | null | undefined): string | null 
 
 export function normalizeCity(city: string | null | undefined): string | null {
    if (!city || city.trim() === "N/A" || city.trim() === "") return null;
-   const c = city.trim();
+   // Strip leading/trailing asterisks (e.g. "***Hoshangabad" → "Hoshangabad")
+   const c = city.trim().replace(/^\*+/, '').replace(/\*+$/, '').trim();
+   if (!c || c === "N/A") return null;
    return c.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ').trim();
+}
+
+// Infer Indian state from a city name using country-state-city data.
+// Returns a state ONLY when all DB entries for that city name agree on the same state.
+// Returns null if the city is unknown OR if it appears in multiple different states (ambiguous).
+const _inCities = City.getCitiesOfCountry('IN') || [];
+export function cityToState(city: string | null | undefined): string | null {
+  if (!city) return null;
+  const needle = city.trim().toLowerCase();
+  const matches = _inCities.filter(c => c.name.toLowerCase() === needle);
+  if (!matches.length) return null;
+
+  const states = new Set<string>();
+  for (const m of matches) {
+    const s = State.getStateByCodeAndCountry(m.stateCode, 'IN');
+    const normalized = s ? normalizeState(s.name) : null;
+    if (normalized) states.add(normalized);
+  }
+
+  // Only return a state if all matches agree (unambiguous)
+  if (states.size === 1) return [...states][0];
+  return null; // city exists in multiple states — can't determine definitively
 }
 
 // ── Strict City Validation ──

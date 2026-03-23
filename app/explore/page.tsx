@@ -26,8 +26,14 @@ async function ExploreDataFetcher() {
 
   console.time('explore-fetch');
   const now = new Date().toISOString();
-  
-  // We will fetch up to 15,000 active tenders for accurate counts. Usually GeM has 4k-6k.
+
+  // Get real total count (separate from row fetch, bypasses Supabase 1000-row default cap)
+  const { count: totalCount } = await supabase
+    .from("tenders")
+    .select("id", { count: "exact", head: true })
+    .gte("end_date", now);
+
+  // Fetch rows for aggregation (state, ministry, org, type breakdowns) — capped by Supabase max_rows
   const { data: tenders } = await supabase
     .from("tenders")
     .select("id, title, state, ministry_name, organisation_name, emd_amount, eligibility_msme, eligibility_mii, startup_relaxation, created_at, end_date")
@@ -93,7 +99,7 @@ async function ExploreDataFetcher() {
   const todayEnd = new Date(todayStart);
   todayEnd.setDate(todayEnd.getDate() + 1);
 
-  let activeCount = tenders.length;
+  let activeCount = totalCount ?? tenders.length;
   let msePreferredCount = 0;
   let startupRelaxationCount = 0;
   let miiPreferenceCount = 0;

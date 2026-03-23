@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { CATEGORIES } from "@/lib/categories";
-import { 
-  Building2, MapPin, Search, Tags, Shapes, Rocket, FileText, 
+import {
+  Building2, MapPin, Search, Tags, Shapes, Rocket, FileText,
   Map, GraduationCap, PackageOpen, Award, Shield, FileCheck, Info,
-  LineChart, CheckCircle2, Factory, Zap, ShieldCheck, Tag
+  LineChart, CheckCircle2, Factory, Zap, ShieldCheck, Tag, X
 } from "lucide-react";
 
 type TabId = "category" | "ministry" | "state" | "org" | "keyword" | "type" | "mse";
@@ -43,30 +43,84 @@ export default function ExploreClient({
   }
 }) {
   const [activeTab, setActiveTab] = useState<TabId>("category");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Reset search when switching tabs
+  const handleTabChange = (tab: TabId) => {
+    setActiveTab(tab);
+    setSearchQuery("");
+  };
+
+  const filteredMinistries = useMemo(() =>
+    searchQuery.trim()
+      ? topMinistries.filter(m => m.ministry.toLowerCase().includes(searchQuery.toLowerCase()))
+      : topMinistries,
+    [topMinistries, searchQuery]
+  );
+
+  const filteredStates = useMemo(() =>
+    searchQuery.trim()
+      ? stateList.filter(s => s.state.toLowerCase().includes(searchQuery.toLowerCase()))
+      : stateList,
+    [stateList, searchQuery]
+  );
+
+  const filteredOrgs = useMemo(() =>
+    searchQuery.trim()
+      ? orgList.filter(o => o.org.toLowerCase().includes(searchQuery.toLowerCase()))
+      : orgList,
+    [orgList, searchQuery]
+  );
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans">
       <main id="main-content" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
         {/* Header Section */}
-        <div className="mb-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight font-bricolage">
+        <div className="mb-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight font-bricolage">
             Explore GeM Tenders
           </h1>
-          <p className="mt-3 text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-2xl font-medium">
-            <span className="font-bold text-blue-600 dark:text-blue-400">{stats.totalActive.toLocaleString()} active bids</span> — browse by category, ministry, state, keyword or type to find exact opportunities for your business.
+          <p className="mt-1 text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
+            <span className="font-bold text-blue-600 dark:text-blue-400">{stats.totalActive.toLocaleString()} active bids</span> — browse by category, ministry, state, keyword or type.
           </p>
         </div>
 
         {/* Dynamic Tabs Navigation */}
         <div role="tablist" aria-label="Browse tenders by" className="flex flex-wrap pb-4 mb-4 items-center gap-2 sm:gap-3 border-b border-slate-200 dark:border-slate-800 animate-in fade-in duration-700">
-          <TabButton id="category" label="By Category" active={activeTab === "category"} onClick={setActiveTab} />
-          <TabButton id="ministry" label="By Ministry" active={activeTab === "ministry"} onClick={setActiveTab} />
-          <TabButton id="state" label="By State" active={activeTab === "state"} onClick={setActiveTab} badge="new" />
-          <TabButton id="org" label="By Organisation" active={activeTab === "org"} onClick={setActiveTab} badge="new" />
-          <TabButton id="keyword" label="By Keyword" active={activeTab === "keyword"} onClick={setActiveTab} />
-          <TabButton id="type" label="By Type" active={activeTab === "type"} onClick={setActiveTab} />
-          <TabButton id="mse" label="MSE / Startup" active={activeTab === "mse"} onClick={setActiveTab} badge="new" />
+          <TabButton id="category" label="By Category" active={activeTab === "category"} onClick={handleTabChange} />
+          <TabButton id="ministry" label="By Ministry" active={activeTab === "ministry"} onClick={handleTabChange} />
+          <TabButton id="state" label="By State" active={activeTab === "state"} onClick={handleTabChange} badge="new" />
+          <TabButton id="org" label="By Organisation" active={activeTab === "org"} onClick={handleTabChange} badge="new" />
+          <TabButton id="keyword" label="By Keyword" active={activeTab === "keyword"} onClick={handleTabChange} />
+          <TabButton id="type" label="By Type" active={activeTab === "type"} onClick={handleTabChange} />
+          <TabButton id="mse" label="MSE / Startup" active={activeTab === "mse"} onClick={handleTabChange} badge="new" />
         </div>
+
+        {/* Inline search for filterable tabs */}
+        {(activeTab === "ministry" || activeTab === "state" || activeTab === "org") && (
+          <div className="relative mb-5 animate-in fade-in duration-300">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+            <input
+              type="text"
+              placeholder={
+                activeTab === "ministry" ? "Search ministries…"
+                : activeTab === "state" ? "Search states…"
+                : "Search organisations…"
+              }
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="w-full sm:max-w-sm pl-9 pr-9 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Tab Content Areas */}
         <div className="min-h-[500px]">
@@ -106,13 +160,13 @@ export default function ExploreClient({
           {/* 2. BY MINISTRY */}
           {activeTab === "ministry" && (
             <div id="tabpanel-ministry" role="tabpanel" aria-labelledby="tab-ministry" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xs font-black tracking-[0.2em] uppercase text-slate-400 dark:text-slate-500">
-                  TOP MINISTRIES BY LIVE TENDERS
+                  {filteredMinistries.length} {searchQuery ? "MATCHING" : "TOP"} MINISTRIES
                 </h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {topMinistries.map((Item, i) => (
+                {filteredMinistries.map((Item, i) => (
                   <a 
                     key={i} 
                     href={`/?q=${encodeURIComponent(Item.ministry)}`}
@@ -139,13 +193,13 @@ export default function ExploreClient({
           {/* 3. BY STATE */}
           {activeTab === "state" && (
             <div id="tabpanel-state" role="tabpanel" aria-labelledby="tab-state" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xs font-black tracking-[0.2em] uppercase text-slate-400 dark:text-slate-500">
-                  ALL INDIAN STATES & UTS
+                  {filteredStates.length} {searchQuery ? "MATCHING" : "INDIAN"} STATES & UTS
                 </h2>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-0 text-sm border-t border-l border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900">
-                {stateList.map((st, i) => (
+                {filteredStates.map((st, i) => (
                   <a 
                     key={i} 
                     href={`/?state=${encodeURIComponent(st.state)}`}
@@ -166,13 +220,13 @@ export default function ExploreClient({
           {/* 4. BY ORGANISATION */}
           {activeTab === "org" && (
             <div id="tabpanel-org" role="tabpanel" aria-labelledby="tab-org" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xs font-black tracking-[0.2em] uppercase text-slate-400 dark:text-slate-500">
-                  TOP ORGANISATIONS BY LIVE TENDERS
+                  {filteredOrgs.length} {searchQuery ? "MATCHING" : "TOP"} ORGANISATIONS
                 </h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {orgList.map((item, i) => (
+                {filteredOrgs.map((item, i) => (
                   <a
                     key={i}
                     href={`/?q=${encodeURIComponent(item.org)}`}
