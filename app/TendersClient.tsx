@@ -777,109 +777,6 @@ function TendersClient({
                 </button>
               </div>
 
-              {/* ── Row 1: Category chips ── */}
-              <div className="mt-3 sm:mt-4 flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 max-w-3xl">
-                <button
-                  onClick={() => setSelectedCategory(null)}
-                  className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border transition-all whitespace-nowrap ${
-                    !selectedCategory
-                      ? "bg-blue-600 text-white border-blue-600"
-                      : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-slate-800"
-                  }`}
-                >
-                  All
-                </button>
-                {CATEGORIES.map((cat) => (
-                  <button
-                    key={cat.id}
-                    onClick={() => setSelectedCategory(selectedCategory === cat.id ? null : cat.id)}
-                    className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all whitespace-nowrap ${
-                      selectedCategory === cat.id
-                        ? "bg-blue-600 text-white border-blue-600 shadow-sm"
-                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-slate-800"
-                    }`}
-                  >
-                    <span aria-hidden="true">{cat.icon}</span>
-                    <span>{cat.label}</span>
-                  </button>
-                ))}
-              </div>
-
-              {/* ── Row 2: Dimension dropdowns ── */}
-              <div className="mt-2 flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 max-w-3xl">
-                <FilterDropdown
-                  label="State"
-                  items={states}
-                  selected={selectedStates}
-                  onToggle={(s) => setSelectedStates((p) => p.includes(s) ? p.filter((x) => x !== s) : [...p, s])}
-                  onClear={() => { setSelectedStates([]); setSelectedCities([]); }}
-                  onOpen={() => { loadStates(); }}
-                  loading={!statesLoaded && states.length === 0}
-                  searchPlaceholder="Search states…"
-                />
-                <FilterDropdown
-                  label="City"
-                  items={cities}
-                  selected={selectedCities}
-                  onToggle={(c) => setSelectedCities((p) => p.includes(c) ? p.filter((x) => x !== c) : [...p, c])}
-                  onClear={() => setSelectedCities([])}
-                  onOpen={() => { if (selectedStates.length > 0 && !statesLoaded) loadStates(); }}
-                  disabled={selectedStates.length === 0}
-                  searchPlaceholder="Search cities…"
-                />
-                <FilterDropdown
-                  label="Ministry"
-                  items={ministries}
-                  selected={selectedMinistries}
-                  onToggle={(m) => setSelectedMinistries((p) => p.includes(m) ? p.filter((x) => x !== m) : [...p, m])}
-                  onClear={() => setSelectedMinistries([])}
-                  onOpen={loadMinistries}
-                  loading={!ministriesLoaded && ministries.length === 0}
-                  searchPlaceholder="Search ministries…"
-                />
-                <FilterDropdown
-                  label="Organisation"
-                  items={orgs}
-                  selected={selectedOrgs}
-                  onToggle={(o) => setSelectedOrgs((p) => p.includes(o) ? p.filter((x) => x !== o) : [...p, o])}
-                  onClear={() => setSelectedOrgs([])}
-                  onOpen={loadOrgs}
-                  loading={!orgsLoaded && orgs.length === 0}
-                  searchPlaceholder="Search organisations…"
-                />
-              </div>
-
-              {/* ── Row 3: Quick toggles ── */}
-              <div className="mt-2 flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 max-w-3xl">
-                {([
-                  { label: "Zero EMD",     active: emdFilter === "free",    onClick: () => setEmdFilter(emdFilter === "free" ? "all" : "free") },
-                  { label: "Ending Today", active: dateFilter === "today",   onClick: () => setDateFilter(dateFilter === "today" ? "all" : "today") },
-                  { label: "This Week",    active: dateFilter === "week",    onClick: () => setDateFilter(dateFilter === "week" ? "all" : "week") },
-                  {
-                    label: "MSME",
-                    active: msmeOnly,
-                    onClick: () => { if (isPremium) setMsmeOnly(!msmeOnly); else window.location.href = user ? "/dashboard/subscriptions" : "/login"; },
-                  },
-                  {
-                    label: "MII",
-                    active: miiOnly,
-                    onClick: () => { if (isPremium) setMiiOnly(!miiOnly); else window.location.href = user ? "/dashboard/subscriptions" : "/login"; },
-                  },
-                ] as { label: string; active: boolean; onClick: () => void }[]).map(({ label, active, onClick }) => (
-                  <button
-                    key={label}
-                    onClick={onClick}
-                    className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border transition-all whitespace-nowrap ${
-                      active
-                        ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-slate-900 dark:border-white"
-                        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-slate-400 dark:hover:border-slate-500"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-
               {(searchQuery.trim() || hasActiveFilters) && (
                 <div className="mt-3 sm:mt-4 flex items-center space-x-3 animate-in fade-in duration-300">
                   <button
@@ -900,8 +797,8 @@ function TendersClient({
         </div>
 
         {/* ── Tabs ── */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 border-b border-slate-200 dark:border-slate-700 w-full">
-          <div className="flex flex-nowrap items-center gap-x-4 sm:gap-x-6 overflow-x-auto no-scrollbar pt-1 pb-0 sm:flex-1 sm:pr-2" role="tablist" aria-label="Tender Views">
+        <div className="flex flex-row flex-wrap items-center justify-between mb-4 border-b border-slate-200 dark:border-slate-700 w-full">
+          <div className="flex flex-nowrap items-center gap-x-4 sm:gap-x-6 overflow-x-auto no-scrollbar pt-1 pb-0 flex-1 min-w-0 pr-2" role="tablist" aria-label="Tender Views">
             <TabButton label="All Active Bids" active={activeTab === "all"} onClick={() => setActiveTab("all")} />
 
             {user && savedSearches.length > 0 ? (
@@ -934,7 +831,7 @@ function TendersClient({
             )}
           </div>
 
-          <div className="flex items-center space-x-3 sm:space-x-4 shrink-0 pb-2 pt-1 sm:pl-2 sm:pb-3 sm:pt-1">
+          <div className="flex items-center space-x-3 shrink-0 pb-2 pt-1 pl-2">
             <div className="hidden md:block text-xs font-bold text-slate-500 dark:text-slate-400">
               {loading ? "…" : activeTab === "foryou"
                 ? `${forYouTenders.length} results`
@@ -942,7 +839,7 @@ function TendersClient({
                   ? `${totalCount.toLocaleString()} results`
                   : `${displayTenders.length}${hasMore ? "+" : ""} results`}
             </div>
-            <div className="flex items-center space-x-2 bg-slate-50 dark:bg-slate-900 sm:bg-transparent px-2 sm:px-0 py-1 sm:py-0 rounded font-medium">
+            <div className="flex items-center space-x-2 font-medium">
               <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Sort by :</span>
               <select
                 aria-label="Sort order"
@@ -1496,145 +1393,5 @@ function TenderCard({
         </button>
       </td>
     </tr>
-  );
-}
-
-// ─── FilterDropdown ────────────────────────────────────────────────────────────
-function FilterDropdown({
-  label,
-  items,
-  selected,
-  onToggle,
-  onClear,
-  onOpen,
-  loading = false,
-  disabled = false,
-  searchPlaceholder = "Search…",
-}: {
-  label: string;
-  items: string[];
-  selected: string[];
-  onToggle: (item: string) => void;
-  onClear: () => void;
-  onOpen?: () => void;
-  loading?: boolean;
-  disabled?: boolean;
-  searchPlaceholder?: string;
-}) {
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const ref = useRef<HTMLDivElement>(null);
-
-  // Close on outside click
-  useEffect(() => {
-    if (!open) return;
-    function handler(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    }
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [open]);
-
-  // Close on Escape
-  useEffect(() => {
-    if (!open) return;
-    function handler(e: KeyboardEvent) { if (e.key === "Escape") setOpen(false); }
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [open]);
-
-  function handleOpen() {
-    if (disabled) return;
-    if (!open) onOpen?.();
-    setOpen((v) => !v);
-    setQuery("");
-  }
-
-  const filtered = query.trim()
-    ? items.filter((i) => i.toLowerCase().includes(query.toLowerCase()))
-    : items;
-
-  const isActive = selected.length > 0;
-
-  return (
-    <div ref={ref} className="relative shrink-0">
-      <button
-        onClick={handleOpen}
-        disabled={disabled}
-        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition-all whitespace-nowrap ${
-          disabled
-            ? "opacity-40 cursor-not-allowed bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-400"
-            : isActive
-              ? "bg-blue-600 text-white border-blue-600 shadow-sm"
-              : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-slate-800"
-        }`}
-      >
-        <span>{isActive ? `${label} (${selected.length})` : label}</span>
-        {isActive
-          ? <X className="w-3 h-3" onClick={(e) => { e.stopPropagation(); onClear(); }} />
-          : <ChevronDown className={`w-3 h-3 transition-transform ${open ? "rotate-180" : ""}`} />
-        }
-      </button>
-
-      {open && (
-        <div className="absolute top-full left-0 mt-1.5 z-50 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl overflow-hidden">
-          {/* Search */}
-          <div className="p-2 border-b border-slate-100 dark:border-slate-800">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
-              <input
-                autoFocus
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={searchPlaceholder}
-                className="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 dark:text-slate-300 placeholder:text-slate-400"
-              />
-            </div>
-          </div>
-
-          {/* List */}
-          <div className="max-h-56 overflow-y-auto no-scrollbar">
-            {loading ? (
-              <div className="py-6 text-center text-xs text-slate-400">Loading…</div>
-            ) : filtered.length === 0 ? (
-              <div className="py-6 text-center text-xs text-slate-400">No results</div>
-            ) : (
-              filtered.map((item) => {
-                const checked = selected.includes(item);
-                return (
-                  <button
-                    key={item}
-                    onClick={() => onToggle(item)}
-                    className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-xs text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800 ${
-                      checked ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-bold" : "text-slate-700 dark:text-slate-300"
-                    }`}
-                  >
-                    <span className={`w-3.5 h-3.5 shrink-0 rounded border flex items-center justify-center transition-colors ${
-                      checked ? "bg-blue-600 border-blue-600" : "border-slate-300 dark:border-slate-600"
-                    }`}>
-                      {checked && <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 10 10"><path d="M1.5 5l2.5 2.5 4.5-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                    </span>
-                    <span className="truncate">{item}</span>
-                  </button>
-                );
-              })
-            )}
-          </div>
-
-          {/* Footer */}
-          {selected.length > 0 && (
-            <div className="p-2 border-t border-slate-100 dark:border-slate-800">
-              <button
-                onClick={() => { onClear(); setOpen(false); }}
-                className="w-full text-xs font-bold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 py-1.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-              >
-                Clear {label}
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
   );
 }
