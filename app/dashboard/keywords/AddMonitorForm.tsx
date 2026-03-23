@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { Plus, Search, Loader2, X, MapPin } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
+import UpgradeModal from '@/components/UpgradeModal';
 
 
 
@@ -12,6 +13,7 @@ export default function AddMonitorForm({ userId, membershipPlan, totalKeywords }
     const [keyword, setKeyword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isPending, startTransition] = useTransition();
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
     const router = useRouter();
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -23,9 +25,8 @@ export default function AddMonitorForm({ userId, membershipPlan, totalKeywords }
         setIsLoading(true);
         const newKeywordsCount = keyword.split(',').filter(k => k.trim()).length;
         if (membershipPlan === 'free' && totalKeywords + newKeywordsCount > 10) {
-            if (confirm(`Free plan allows up to 10 keywords across all monitors. You already have ${totalKeywords} keywords.\n\nWould you like to upgrade your plan now to add more?`)) {
-                router.push("/dashboard/subscriptions");
-            }
+            setShowUpgradeModal(true);
+            setIsLoading(false);
             return;
         }
 
@@ -51,6 +52,15 @@ export default function AddMonitorForm({ userId, membershipPlan, totalKeywords }
     };
 
     return (
+        <>
+        <UpgradeModal
+            isOpen={showUpgradeModal}
+            onClose={() => setShowUpgradeModal(false)}
+            reason="keywords"
+            currentPlan={membershipPlan}
+            currentCount={totalKeywords}
+            limitCount={10}
+        />
         <div className="fixed bottom-8 right-8 z-50 flex flex-col items-end gap-3">
             {isAdding && (
                 <form 
@@ -110,5 +120,6 @@ export default function AddMonitorForm({ userId, membershipPlan, totalKeywords }
                 <Plus className="w-6 h-6" />
             </button>
         </div>
+        </>
     );
 }

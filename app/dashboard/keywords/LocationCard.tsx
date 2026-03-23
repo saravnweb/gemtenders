@@ -5,6 +5,7 @@ import { MapPin, Plus, X, Loader2, Compass } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { getCitiesForStates } from './actions';
+import UpgradeModal, { type UpgradeReason } from '@/components/UpgradeModal';
 
 const STATES = [
   "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", 
@@ -23,6 +24,7 @@ export default function LocationCard({ search, membershipPlan }: { search: any, 
     const [newCity, setNewCity] = useState('');
     const [isUpdating, setIsUpdating] = useState(false);
     const [isPending, startTransition] = useTransition();
+    const [upgradeModal, setUpgradeModal] = useState<{ reason: UpgradeReason; currentCount: number; limitCount: number } | null>(null);
 
     useEffect(() => {
         setStates(search.query_params.states || []);
@@ -84,16 +86,12 @@ export default function LocationCard({ search, membershipPlan }: { search: any, 
 
         // Plan Checks
         if ((membershipPlan === 'free' || membershipPlan === 'basic') && states.length >= 1) {
-            if (confirm(`Basic plan allows only 1 state filter. Would you like to upgrade?`)) { 
-                router.push('/dashboard/subscriptions'); 
-            }
+            setUpgradeModal({ reason: 'state', currentCount: states.length, limitCount: 1 });
             e.target.value = "";
             return;
         }
         if (membershipPlan === 'starter' && states.length >= 1) {
-            if (confirm(`Starter plan allows only 1 state filter. Would you like to upgrade to Pro?`)) { 
-                router.push('/dashboard/subscriptions'); 
-            }
+            setUpgradeModal({ reason: 'state', currentCount: states.length, limitCount: 1 });
             e.target.value = "";
             return;
         }
@@ -113,9 +111,7 @@ export default function LocationCard({ search, membershipPlan }: { search: any, 
         
         // Plan Checks
         if ((membershipPlan === 'free' || membershipPlan === 'basic') && cityCount > 1) {
-            if (confirm(`Basic plan allows only 1 city filter. Would you like to upgrade to Starter or Pro?`)) { 
-                router.push('/dashboard/subscriptions'); 
-            }
+            setUpgradeModal({ reason: 'city', currentCount: cities.length, limitCount: 1 });
             return;
         }
         
@@ -125,6 +121,17 @@ export default function LocationCard({ search, membershipPlan }: { search: any, 
     };
 
     return (
+        <>
+        {upgradeModal && (
+            <UpgradeModal
+                isOpen={true}
+                onClose={() => setUpgradeModal(null)}
+                reason={upgradeModal.reason}
+                currentPlan={membershipPlan}
+                currentCount={upgradeModal.currentCount}
+                limitCount={upgradeModal.limitCount}
+            />
+        )}
         <div className={`bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-xl p-6 hover:border-slate-300 dark:hover:border-zinc-600 hover:shadow-md transition-all flex flex-col h-full shadow-sm ${isUpdating || isPending ? 'opacity-70 pointer-events-none' : ''}`}>
             <div className="flex flex-col mb-6">
                 <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight">Location Filters</h2>
@@ -219,5 +226,6 @@ export default function LocationCard({ search, membershipPlan }: { search: any, 
                 )}
             </div>
         </div>
+        </>
     );
 }

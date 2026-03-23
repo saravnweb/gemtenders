@@ -31,6 +31,11 @@ export default function AboutPage() {
           <li><strong>Real-time Notifications:</strong> Get email and WhatsApp alerts the moment a bid matching your profile is published on GeM.</li>
         </ul>
 
+        <h2 className="text-xl font-bold mt-8 mb-4 text-slate-800 dark:text-white">Who Built This</h2>
+        <p className="mb-4">
+          GeMTenders.org is built and maintained by a solo founder based in India. The goal is simple: make India&apos;s public procurement data more accessible to the businesses and vendors who need it most, without the noise of navigating the official portal directly.
+        </p>
+
         <h2 className="text-xl font-bold mt-8 mb-4 text-slate-800 dark:text-white">Contact Us</h2>
         <p className="mb-4">
           For inquiries about our tracking platform, reporting issues, or feature requests, contact us below:

@@ -5,6 +5,7 @@ import { Bell, ChevronRight, Trash2, X, Plus, Pencil, Check } from 'lucide-react
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
+import UpgradeModal, { type UpgradeReason } from '@/components/UpgradeModal';
 
 const STATES = [
   "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", 
@@ -33,6 +34,7 @@ export default function MonitorCard({ search, membershipPlan, totalKeywords }: {
     const [name, setName] = useState(search.name);
     const [isEditingName, setIsEditingName] = useState(false);
     const [editNameValue, setEditNameValue] = useState(search.name);
+    const [upgradeModal, setUpgradeModal] = useState<{ reason: UpgradeReason; currentCount: number; limitCount: number } | null>(null);
 
     const handleUpdateName = async () => {
         if (!editNameValue.trim() || editNameValue === name) {
@@ -126,12 +128,12 @@ export default function MonitorCard({ search, membershipPlan, totalKeywords }: {
         if (!state) { setIsAddingState(false); return; }
 
         if (membershipPlan === 'free' && states.length >= 1) {
-            if (confirm(`Free plan allows only 1 state filter per monitor. Would you like to upgrade?`)) { router.push('/dashboard/subscriptions'); }
+            setUpgradeModal({ reason: 'state', currentCount: states.length, limitCount: 1 });
             setIsAddingState(false);
             return;
         }
         if (membershipPlan === 'starter' && states.length >= 1) {
-            if (confirm(`Starter plan allows only 1 state filter per monitor. Would you like to upgrade to Pro?`)) { router.push('/dashboard/subscriptions'); }
+            setUpgradeModal({ reason: 'state', currentCount: states.length, limitCount: 1 });
             setIsAddingState(false);
             return;
         }
@@ -149,7 +151,7 @@ export default function MonitorCard({ search, membershipPlan, totalKeywords }: {
         const cityCount = cities.length + citiesToAdd.length;
         
         if (membershipPlan === 'free' && cityCount > 1) {
-            if (confirm(`Free plan allows only 1 city filter per monitor. Would you like to upgrade?`)) { router.push('/dashboard/subscriptions'); }
+            setUpgradeModal({ reason: 'city', currentCount: cities.length, limitCount: 1 });
             return;
         }
         
@@ -173,9 +175,7 @@ export default function MonitorCard({ search, membershipPlan, totalKeywords }: {
 
         const addedKwsCount = newKeyword.split(',').filter(k => k.trim()).length;
         if (membershipPlan === 'free' && totalKeywords + addedKwsCount > 10) {
-            if (confirm(`Free plan allows up to 10 keywords across all monitors. You are tracking ${totalKeywords} currently.\n\nWould you like to upgrade to Starter or Pro to add more?`)) {
-                router.push("/dashboard/subscriptions");
-            }
+            setUpgradeModal({ reason: 'keywords', currentCount: totalKeywords, limitCount: 10 });
             return;
         }
 
@@ -203,6 +203,17 @@ export default function MonitorCard({ search, membershipPlan, totalKeywords }: {
     };
 
     return (
+        <>
+        {upgradeModal && (
+            <UpgradeModal
+                isOpen={true}
+                onClose={() => setUpgradeModal(null)}
+                reason={upgradeModal.reason}
+                currentPlan={membershipPlan}
+                currentCount={upgradeModal.currentCount}
+                limitCount={upgradeModal.limitCount}
+            />
+        )}
         <div className={`group bg-white border border-slate-200 rounded-xl p-6 hover:border-slate-300 hover:shadow-md transition-all relative overflow-hidden shadow-sm ${isUpdating ? 'opacity-70 pointer-events-none' : ''}`}>
             <div className="flex items-start justify-between mb-4">
                 <div className="w-10 h-10 bg-slate-50 rounded-lg flex items-center justify-center border border-slate-100">
@@ -394,5 +405,6 @@ export default function MonitorCard({ search, membershipPlan, totalKeywords }: {
                 </div>
             </div>
         </div>
+        </>
     );
 }

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Zap, LogOut, Menu, X, LayoutDashboard, Bookmark, CreditCard, ChevronRight, Bell, Sun, Moon, Inbox, CheckCircle2 } from "lucide-react";
+import { Zap, LogOut, Menu, X, LayoutDashboard, Bookmark, CreditCard, ChevronRight, Bell, Sun, Moon, Inbox, CheckCircle2, Info } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useTheme } from "next-themes";
 import { supabase } from "@/lib/supabase";
@@ -239,6 +239,11 @@ export default function Navbar() {
                     </Link>
                 )}
 
+                <Link href="/about" className="flex items-center space-x-1.5 text-xs font-black uppercase tracking-widest text-fresh-sky-700 dark:text-fresh-sky-300 hover:text-atomic-tangerine-600 transition-colors">
+                  <Info className="w-4 h-4" />
+                  <span>About</span>
+                </Link>
+
                 <div className="h-6 w-px bg-fresh-sky-100 mx-2"></div>
 
                 {!loading && (
@@ -381,11 +386,17 @@ export default function Navbar() {
                         label="Saved Keywords" 
                         onClick={() => setIsMenuOpen(false)} 
                       />
-                      <MenuListItem 
-                        href="/dashboard/subscriptions" 
-                        icon={<CreditCard className="w-4 h-4 text-slate-600" />} 
-                        label="Plans" 
-                        onClick={() => setIsMenuOpen(false)} 
+                      <MenuListItem
+                        href="/dashboard/subscriptions"
+                        icon={<CreditCard className="w-4 h-4 text-slate-600" />}
+                        label="Plans"
+                        onClick={() => setIsMenuOpen(false)}
+                      />
+                      <MenuListItem
+                        href="/about"
+                        icon={<Info className="w-4 h-4 text-slate-600" />}
+                        label="About"
+                        onClick={() => setIsMenuOpen(false)}
                       />
                     </div>
 

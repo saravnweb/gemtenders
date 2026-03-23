@@ -11,6 +11,7 @@
     "crawl": "tsx scripts/run-scraper.ts",
     "parse": "tsx scripts/scraper/parser.ts",
     "enrich": "tsx scripts/enrich-tenders.ts",
+    "notify": "tsx scripts/notify.ts",
     "stats": "tsx scripts/db-stats.ts"
   },
   "keywords": [],

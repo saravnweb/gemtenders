@@ -11,6 +11,7 @@ export default function SubscriptionsPage() {
   const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState<any>(null);
   const [isAnnual, setIsAnnual] = useState(false);
+  const [razorpayReady, setRazorpayReady] = useState(false);
 
   useEffect(() => {
     async function loadProfile() {
@@ -89,7 +90,14 @@ export default function SubscriptionsPage() {
       };
 
       if (!(window as any).Razorpay) {
-        throw new Error("Razorpay SDK failed to load. Please check your connection.");
+        // Try to load dynamically as fallback
+        await new Promise<void>((resolve, reject) => {
+          const script = document.createElement("script");
+          script.src = "https://checkout.razorpay.com/v1/checkout.js";
+          script.onload = () => { setRazorpayReady(true); resolve(); };
+          script.onerror = () => reject(new Error("Razorpay SDK failed to load. Please check your internet connection and disable any ad blockers."));
+          document.body.appendChild(script);
+        });
       }
 
       const rzp = new (window as any).Razorpay(options);
@@ -112,7 +120,12 @@ export default function SubscriptionsPage() {
 
   return (
     <div className="space-y-8">
-      <Script src="https://checkout.razorpay.com/v1/checkout.js" />
+      <Script
+        src="https://checkout.razorpay.com/v1/checkout.js"
+        strategy="afterInteractive"
+        onLoad={() => setRazorpayReady(true)}
+        onError={() => console.warn("Razorpay script failed to load via Next.js Script — will retry on checkout.")}
+      />
 
       <div>
         <h1 className="text-2xl font-bold text-fresh-sky-950 tracking-tight">Manage Subscription</h1>

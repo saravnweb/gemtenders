@@ -1,23 +1,23 @@
 import Link from "next/link";
 
 const stateLinks = [
-  { label: "Delhi", href: "/explore?state=Delhi" },
-  { label: "Maharashtra", href: "/explore?state=Maharashtra" },
-  { label: "Karnataka", href: "/explore?state=Karnataka" },
-  { label: "Tamil Nadu", href: "/explore?state=Tamil+Nadu" },
-  { label: "Uttar Pradesh", href: "/explore?state=Uttar+Pradesh" },
-  { label: "Gujarat", href: "/explore?state=Gujarat" },
-  { label: "Rajasthan", href: "/explore?state=Rajasthan" },
-  { label: "West Bengal", href: "/explore?state=West+Bengal" },
+  { label: "Delhi", href: "/?state=Delhi" },
+  { label: "Maharashtra", href: "/?state=Maharashtra" },
+  { label: "Karnataka", href: "/?state=Karnataka" },
+  { label: "Tamil Nadu", href: "/?state=Tamil+Nadu" },
+  { label: "Uttar Pradesh", href: "/?state=Uttar+Pradesh" },
+  { label: "Gujarat", href: "/?state=Gujarat" },
+  { label: "Rajasthan", href: "/?state=Rajasthan" },
+  { label: "West Bengal", href: "/?state=West+Bengal" },
 ];
 
 const categoryLinks = [
-  { label: "Vehicles", href: "/explore?category=Vehicles" },
-  { label: "IT Equipment", href: "/explore?category=IT+Equipment" },
-  { label: "Office Supplies", href: "/explore?category=Office+Supplies" },
-  { label: "Medical Equipment", href: "/explore?category=Medical+Equipment" },
-  { label: "Construction", href: "/explore?category=Construction" },
-  { label: "Security Services", href: "/explore?category=Security+Services" },
+  { label: "Vehicles", href: "/?category=Vehicles" },
+  { label: "IT Equipment", href: "/?category=IT+Equipment" },
+  { label: "Office Supplies", href: "/?category=Office+Supplies" },
+  { label: "Medical Equipment", href: "/?category=Medical+Equipment" },
+  { label: "Construction", href: "/?category=Construction" },
+  { label: "Security Services", href: "/?category=Security+Services" },
 ];
 
 export default function Footer() {

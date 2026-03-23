@@ -31,7 +31,9 @@
       "Bash(find d:/websites/Tenders/app -type f -name page.*)",
       "Bash(grep -r \"grid\\\\|flex\\\\|md:\\\\|lg:\\\\|sm:\" /d/websites/Tenders/components/*.tsx)",
       "Bash(npx tsx:*)",
-      "Bash(ls -1 /d/websites/Tenders/lib/*.ts)"
+      "Bash(ls -1 /d/websites/Tenders/lib/*.ts)",
+      "Bash(find d:websitesTenders -type f -name schema.prisma -o -name *.prisma)",
+      "Bash(find d:websitesTenders -path */node_modules -prune -o -type f \\\\\\(-name schema.prisma -o -name *.sql -o -name migrations \\\\\\) -print)"
     ]
   }
 }

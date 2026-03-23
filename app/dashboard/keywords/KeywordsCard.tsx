@@ -4,6 +4,7 @@ import { useState, useTransition, useEffect } from 'react';
 import { Plus, X, Loader2, Search, Zap } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
+import UpgradeModal from '@/components/UpgradeModal';
 
 export default function KeywordsCard({ search, membershipPlan, totalKeywords }: { search: any, membershipPlan: string, totalKeywords: number }) {
     const router = useRouter();
@@ -13,6 +14,7 @@ export default function KeywordsCard({ search, membershipPlan, totalKeywords }: 
     const [newKeyword, setNewKeyword] = useState('');
     const [isUpdating, setIsUpdating] = useState(false);
     const [isPending, startTransition] = useTransition();
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
     useEffect(() => {
         setKeywords(search.query_params.q ? search.query_params.q.split(',').map((k: string) => k.trim()).filter(Boolean) : []);
@@ -56,9 +58,7 @@ export default function KeywordsCard({ search, membershipPlan, totalKeywords }: 
 
         const addedKwsCount = newKeyword.split(',').filter(k => k.trim()).length;
         if (membershipPlan === 'free' && totalKeywords + addedKwsCount > 10) {
-            if (confirm(`Free plan allows up to 10 keywords overall. You are predicting ${totalKeywords} currently.\n\nWould you like to upgrade to Starter or Pro to add more?`)) {
-                router.push("/dashboard/subscriptions");
-            }
+            setShowUpgradeModal(true);
             return;
         }
 
@@ -68,6 +68,15 @@ export default function KeywordsCard({ search, membershipPlan, totalKeywords }: 
     };
 
     return (
+        <>
+        <UpgradeModal
+            isOpen={showUpgradeModal}
+            onClose={() => setShowUpgradeModal(false)}
+            reason="keywords"
+            currentPlan={membershipPlan}
+            currentCount={totalKeywords}
+            limitCount={10}
+        />
         <div className={`bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-xl p-6 hover:border-slate-300 dark:hover:border-zinc-600 hover:shadow-md transition-all flex flex-col h-full shadow-sm ${isUpdating || isPending ? 'opacity-70 pointer-events-none' : ''}`}>
             <div className="flex flex-col mb-6">
                 <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight">Tender Keywords</h2>
@@ -117,5 +126,6 @@ export default function KeywordsCard({ search, membershipPlan, totalKeywords }: 
                 </button>
             </form>
         </div>
+        </>
     );
 }

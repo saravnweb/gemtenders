@@ -136,7 +136,6 @@ async function enrichTenders() {
   );
 
   const { extractTenderDataGroq: extractTenderData } = await import('../lib/groq-ai');
-  const { triggerKeywordNotifications } = await import('../lib/notifications');
 
 
   let successCount = 0;
@@ -243,14 +242,6 @@ async function enrichTenders() {
       }
 
       console.log(`    ✓ ${tender.bid_number}`);
-      
-      // Trigger user keyword notifications (future integration)
-      await triggerKeywordNotifications({
-        id: tender.id,
-        bid_number: tender.bid_number,
-        ...update
-      });
-
       successCount++;
     }));
 

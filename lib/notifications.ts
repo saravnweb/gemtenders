@@ -23,11 +23,6 @@ const transporter = nodemailer.createTransport({
  */
 export async function triggerKeywordNotifications(tenderData: any) {
   try {
-    if (!process.env.SMTP_HOST) {
-        console.warn(`[NOTIFICATIONS] SMTP_HOST not configured. Notification will not be sent for ${tenderData.bid_number}`);
-        return;
-    }
-
     console.log(`[NOTIFICATIONS] Checking keywords for tender ${tenderData.bid_number}`);
     
     // 1. Fetch saved searches 
@@ -42,6 +37,8 @@ export async function triggerKeywordNotifications(tenderData: any) {
     const textToSearch = [
         tenderData.title,
         tenderData.ai_summary,
+        tenderData.relevant_categories,
+        tenderData.gemarpts_result,
         tenderData.department,
         tenderData.ministry_name,
         tenderData.organisation_name,
@@ -81,6 +78,35 @@ export async function triggerKeywordNotifications(tenderData: any) {
               matchedUserIds.set(search.user_id, []);
           }
           matchedUserIds.get(search.user_id).push(search.name);
+      }
+    }
+
+    // 2b. Check topic follows (ministry / state / org)
+    const { data: topicFollows } = await supabase
+      .from('topic_follows')
+      .select('user_id, follow_type, follow_value');
+
+    if (topicFollows) {
+      for (const follow of topicFollows) {
+        let isMatch = false;
+        if (follow.follow_type === 'ministry' && tenderData.ministry_name) {
+          isMatch = tenderData.ministry_name.toLowerCase().includes(follow.follow_value.toLowerCase());
+        } else if (follow.follow_type === 'state' && tenderData.state) {
+          isMatch = tenderData.state.toLowerCase() === follow.follow_value.toLowerCase();
+        } else if (follow.follow_type === 'org' && tenderData.organisation_name) {
+          isMatch = tenderData.organisation_name.toLowerCase().includes(follow.follow_value.toLowerCase());
+        }
+
+        if (isMatch) {
+          if (!matchedUserIds.has(follow.user_id)) {
+            matchedUserIds.set(follow.user_id, []);
+          }
+          const label = follow.follow_type === 'ministry' ? 'Ministry'
+            : follow.follow_type === 'state' ? 'State' : 'Organisation';
+          const existing = matchedUserIds.get(follow.user_id);
+          const tag = `${label}: ${follow.follow_value}`;
+          if (!existing.includes(tag)) existing.push(tag);
+        }
       }
     }
 
