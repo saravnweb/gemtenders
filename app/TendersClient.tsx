@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback, useMemo, Suspense } from "rea
 import { supabase } from "@/lib/supabase";
 import {
   Search, Download, Clock, Zap, FileText, Bookmark, Info, RefreshCw,
-  X, ChevronDown, Bell, CheckCircle, Loader2, Share2
+  X, ChevronDown, Bell, CheckCircle, Loader2, Share2, MapPin
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
