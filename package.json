@@ -18,6 +18,7 @@
     "title-enrich": "tsx scripts/title-enrich.ts",
     "leaf-enrich": "tsx scripts/leaf-enrich.ts",
     "cleanup": "tsx scripts/cleanup-expired.ts",
+    "scrape-leaves": "tsx scripts/scrape-leaf-pages.ts",
     "solr-enrich": "tsx scripts/solr-enrich.ts"
   },
   "keywords": [],

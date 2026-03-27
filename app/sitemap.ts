@@ -2,64 +2,100 @@ import { MetadataRoute } from 'next'
 
 const baseUrl = 'https://www.gemtenders.org'
 
-export const revalidate = 3600
+// Number of tenders per sitemap page
+const PAGE_SIZE = 1000
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const now = new Date().toISOString()
+export const revalidate = 86400 // 24 hours
 
-  // Fetch all active tenders for the sitemap
+// Next.js calls this to know how many sitemap files to generate
+export async function generateSitemaps() {
+  // Get total count of tenders
   const res = await fetch(
-    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/tenders?select=slug,created_at,end_date&end_date=gte.${now}&order=created_at.desc&limit=5000`,
+    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/tenders?select=id&limit=1`,
+    {
+      headers: {
+        apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string,
+        Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+        Prefer: 'count=exact',
+      },
+    }
+  )
+
+  const totalCount = parseInt(res.headers.get('content-range')?.split('/')[1] ?? '54104')
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE)
+
+  // Page 0 = static pages, pages 1..N = tender batches
+  return Array.from({ length: totalPages + 1 }, (_, i) => ({ id: i }))
+}
+
+export default async function sitemap({
+  id,
+}: {
+  id: number
+}): Promise<MetadataRoute.Sitemap> {
+  // Page 0: return static site pages
+  if (id === 0) {
+    return [
+      {
+        url: baseUrl,
+        lastModified: new Date(),
+        changeFrequency: 'hourly',
+        priority: 1,
+      },
+      {
+        url: `${baseUrl}/explore`,
+        lastModified: new Date(),
+        changeFrequency: 'hourly',
+        priority: 0.9,
+      },
+      {
+        url: `${baseUrl}/bids`,
+        lastModified: new Date(),
+        changeFrequency: 'hourly',
+        priority: 0.9,
+      },
+      {
+        url: `${baseUrl}/about`,
+        lastModified: new Date(),
+        changeFrequency: 'monthly',
+        priority: 0.8,
+      },
+      {
+        url: `${baseUrl}/pricing`,
+        lastModified: new Date(),
+        changeFrequency: 'monthly',
+        priority: 0.8,
+      },
+      {
+        url: `${baseUrl}/privacy-policy`,
+        lastModified: new Date(),
+        changeFrequency: 'monthly',
+        priority: 0.4,
+      },
+    ]
+  }
+
+  // Pages 1+: paginated tender URLs
+  const offset = (id - 1) * PAGE_SIZE
+
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/tenders?select=slug,created_at&order=created_at.desc&limit=${PAGE_SIZE}&offset=${offset}`,
     {
       headers: {
         apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string,
         Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
       },
-      next: { revalidate: 3600 },
+      next: { revalidate: 86400 },
     }
   )
 
-  const tenders: { slug: string; created_at: string; end_date: string }[] =
+  const tenders: { slug: string; created_at: string }[] =
     res.ok ? await res.json() : []
 
-  const tenderUrls: MetadataRoute.Sitemap = tenders.map((t) => ({
+  return tenders.map((t) => ({
     url: `${baseUrl}/bids/${t.slug}`,
     lastModified: new Date(t.created_at),
-    changeFrequency: 'daily',
+    changeFrequency: 'weekly',
     priority: 0.7,
   }))
-
-  return [
-    {
-      url: baseUrl,
-      lastModified: new Date(),
-      changeFrequency: 'hourly',
-      priority: 1,
-    },
-    {
-      url: `${baseUrl}/about`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/pricing`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/bids`,
-      lastModified: new Date(),
-      changeFrequency: 'hourly',
-      priority: 0.9,
-    },
-    {
-      url: `${baseUrl}/privacy-policy`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.4,
-    },
-    ...tenderUrls,
-  ]
 }

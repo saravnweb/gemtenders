@@ -1,15 +1,20 @@
 /**
- * Bulk Enricher — axios + Gemini inline PDF
+ * Bulk Enricher — axios + Gemini inline PDF  (or raw_text from DB)
  *
- * Fetches PDF bytes directly from GeM using a lightweight axios session
- * (no Playwright / no browser), then sends the raw PDF to Gemini which
- * reads it natively — better quality than pdf-parse text extraction.
+ * Without --from-raw-text:
+ *   Fetches PDF bytes directly from GeM using axios, sends to Gemini.
+ *
+ * With --from-raw-text:
+ *   Reads the `raw_text` column (pre-scraped by scrape-leaf-pages.ts) and
+ *   feeds it directly to Groq AI — no PDF download, no browser required.
+ *   This is faster, cheaper, and works even when GeM blocks PDF access.
  *
  * Usage:
- *   npm run bulk-enrich                          # 500 tenders, 3 workers
- *   npm run bulk-enrich -- --limit=1000          # process up to 1000
- *   npm run bulk-enrich -- --workers=5           # 5 concurrent fetches
- *   npm run bulk-enrich -- --reset               # clear checkpoint and restart
+ *   npm run bulk-enrich                              # 500 tenders, Gemini PDF
+ *   npm run bulk-enrich -- --from-raw-text           # use raw_text from DB
+ *   npm run bulk-enrich -- --limit=1000              # process up to 1000
+ *   npm run bulk-enrich -- --workers=5               # 5 concurrent fetches
+ *   npm run bulk-enrich -- --reset                   # clear checkpoint and restart
  */
 
 import dotenv from 'dotenv';
@@ -29,12 +34,13 @@ import { detectCategory } from '../lib/categories';
 const httpsAgent = new https.Agent({ rejectUnauthorized: false });
 
 // ─── CONFIG ──────────────────────────────────────────────────────────────────
-const args       = process.argv.slice(2);
-const LIMIT      = parseInt(args.find(a => a.startsWith('--limit='))?.split('=')[1]   || '500',  10);
-const WORKERS    = parseInt(args.find(a => a.startsWith('--workers='))?.split('=')[1] || '3',    10);
-const BATCH_SIZE = parseInt(args.find(a => a.startsWith('--batch='))?.split('=')[1]   || '100',  10);
-const RESET      = args.includes('--reset');
-const CHECKPOINT = path.join(process.cwd(), 'bulk-enrich-progress.json');
+const args          = process.argv.slice(2);
+const LIMIT         = parseInt(args.find(a => a.startsWith('--limit='))?.split('=')[1]   || '500',  10);
+const WORKERS       = parseInt(args.find(a => a.startsWith('--workers='))?.split('=')[1] || '3',    10);
+const BATCH_SIZE    = parseInt(args.find(a => a.startsWith('--batch='))?.split('=')[1]   || '100',  10);
+const RESET         = args.includes('--reset');
+const FROM_RAW_TEXT = args.includes('--from-raw-text'); // skip PDF; use raw_text from DB
+const CHECKPOINT    = path.join(process.cwd(), 'bulk-enrich-progress.json');
 // ─────────────────────────────────────────────────────────────────────────────
 
 const supabase = createClient(
@@ -207,8 +213,130 @@ async function processOne(
   }
 }
 
+// ─── Raw-text enrichment (no PDF) ────────────────────────────────────────────
+async function processOneFromRawText(
+  tender: { id: string; bid_number: string; title: string | null; raw_text: string },
+  workerId: number,
+): Promise<'ok' | 'no-ai' | 'error'> {
+  try {
+    const { extractTenderDataGroq } = await import('../lib/groq-ai.js') as any;
+    console.log(`\n  [W${workerId}] Groq enriching from raw_text: ${tender.bid_number}`);
+    const aiData = await extractTenderDataGroq(tender.raw_text);
+    if (!aiData) {
+      await supabase.from('tenders').update({ enrichment_tried_at: new Date().toISOString() }).eq('id', tender.id);
+      return 'no-ai';
+    }
+
+    const auth = aiData.authority;
+    const updatePayload: any = {
+      ai_summary:        aiData.technical_summary,
+      title:             aiData.tender_title || tender.title,
+      ministry_name:     auth?.ministry     || null,
+      department_name:   auth?.department   || null,
+      organisation_name: auth?.organisation || null,
+      office_name:       auth?.office       || null,
+      state:             normalizeState(auth?.consignee_state || auth?.state),
+      city:              normalizeCity(auth?.consignee_city  || auth?.city),
+      emd_amount:        aiData.emd_amount || null,
+      quantity:          aiData.quantity   || null,
+      eligibility_msme:  aiData.eligibility?.msme || false,
+      eligibility_mii:   aiData.eligibility?.mii  || false,
+      mse_relaxation:              aiData.relaxations?.mse_experience  || null,
+      mse_turnover_relaxation:     aiData.relaxations?.mse_turnover    || null,
+      startup_relaxation:          aiData.relaxations?.startup_experience || null,
+      startup_turnover_relaxation: aiData.relaxations?.startup_turnover  || null,
+      documents_required: aiData.documents_required || [],
+      category:     aiData.category || detectCategory((aiData.tender_title || '') + ' ' + (aiData.technical_summary || '')) || null,
+      bid_type:     detectBidType(tender.bid_number, aiData.tender_title || ''),
+      procurement_type: aiData.procurement_type || null,
+      keywords:     aiData.keywords || [],
+      enrichment_tried_at: new Date().toISOString(),
+    };
+
+    // City fallback
+    if (!updatePayload.city || !updatePayload.state) {
+      const loc = extractCityStateFromConsigneeTable(tender.raw_text);
+      if (!updatePayload.city  && loc.city)  updatePayload.city  = loc.city;
+      if (!updatePayload.state && loc.state) updatePayload.state = loc.state;
+      if (updatePayload.city && !updatePayload.state) {
+        const inferred = cityToState(updatePayload.city);
+        if (inferred) updatePayload.state = inferred;
+      }
+    }
+
+    if (aiData.dates) {
+      const od = parseGeMDate(aiData.dates.bid_opening_date); if (od) updatePayload.opening_date = od;
+      const sd = parseGeMDate(aiData.dates.bid_start_date);   if (sd) updatePayload.start_date   = sd;
+      const ed = parseGeMDate(aiData.dates.bid_end_date);
+      if (ed && new Date(ed) > new Date()) updatePayload.end_date = ed;
+    }
+
+    await supabase.from('tenders').update(updatePayload).eq('id', tender.id);
+    return 'ok';
+  } catch (e: any) {
+    console.error(`\n  [W${workerId}] ERROR ${tender.bid_number}: ${e.message}`);
+    await supabase.from('tenders').update({ enrichment_tried_at: new Date().toISOString() }).eq('id', tender.id);
+    return 'error';
+  }
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 async function main() {
+  if (FROM_RAW_TEXT) {
+    console.log(`\n>>> [BULK-ENRICH] Mode: --from-raw-text (no PDF download, Groq AI on raw_text)`);
+    console.log(`    Limit: ${LIMIT} | Workers: ${WORKERS}\n`);
+
+    let { offset, totalDone } = loadCheckpoint();
+    if (offset > 0) console.log(`>>> Resuming from offset ${offset}\n`);
+
+    let totalOk = 0, totalFail = 0;
+    const startTime = Date.now();
+
+    while (totalDone < LIMIT) {
+      const fetchSize = Math.min(BATCH_SIZE, LIMIT - totalDone);
+      const { data: tenders, error } = await supabase
+        .from('tenders')
+        .select('id, bid_number, title, raw_text')
+        .is('ai_summary', null)
+        .not('raw_text', 'is', null)
+        .gte('end_date', new Date().toISOString())
+        .order('created_at', { ascending: false })
+        .range(offset, offset + fetchSize - 1);
+
+      if (error) { console.error('DB error:', error.message); break; }
+      if (!tenders?.length) { console.log('\n>>> No more tenders with raw_text to enrich.'); break; }
+
+      const elapsed = ((Date.now() - startTime) / 60000).toFixed(1);
+      console.log(`[Batch offset=${offset}] ${tenders.length} tenders | Done: ${totalDone} | Elapsed: ${elapsed}m`);
+
+      const queue = [...tenders] as any[];
+      let ok = 0, fail = 0;
+
+      await Promise.all(
+        Array.from({ length: WORKERS }, async (_, wid) => {
+          while (true) {
+            const t = queue.shift();
+            if (!t) break;
+            const result = await processOneFromRawText(t, wid + 1);
+            if (result === 'ok') ok++; else fail++;
+            process.stdout.write(`\r  ok=${ok} fail=${fail} | total: ${totalOk + ok}`);
+          }
+        })
+      );
+
+      totalOk += ok; totalFail += fail;
+      totalDone += tenders.length;
+      offset    += tenders.length;
+      saveCheckpoint(offset, totalDone);
+      console.log(`\n  Batch done. Enriched: ${totalOk} | Failed: ${totalFail}\n`);
+    }
+
+    const totalMin = ((Date.now() - startTime) / 60000).toFixed(1);
+    console.log(`\n>>> [BULK-ENRICH] Done in ${totalMin}m`);
+    console.log(`    Enriched: ${totalOk} | Failed: ${totalFail}`);
+    return;
+  }
+
   console.log(`\n>>> [BULK-ENRICH] Starting with ${WORKERS} concurrent workers (axios + Gemini PDF).`);
   console.log(`    Limit: ${LIMIT} | Batch: ${BATCH_SIZE}\n`);
 
