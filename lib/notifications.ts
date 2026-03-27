@@ -21,9 +21,10 @@ const transporter = nodemailer.createTransport({
  * 
  * @param tenderData The enriched tender data object
  */
-export async function triggerKeywordNotifications(tenderData: any) {
+export async function triggerKeywordNotifications(tenderData: any, options?: { urgent?: boolean }) {
+  const urgent = options?.urgent ?? false;
   try {
-    console.log(`[NOTIFICATIONS] Checking keywords for tender ${tenderData.bid_number}`);
+    console.log(`[NOTIFICATIONS] Checking keywords for tender ${tenderData.bid_number}${urgent ? ' [RA URGENT]' : ''}`);
     
     // 1. Fetch saved searches 
     const { data: searches, error } = await supabase
@@ -129,23 +130,46 @@ export async function triggerKeywordNotifications(tenderData: any) {
         
         const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://gemtenders.org';
         const tenderLink = `${siteUrl}/bids/${tenderData.slug || tenderData.bid_number}`;
-        const notificationTitle = `New Tender Match: ${tenderData.bid_number}`;
-        
+
+        const raEndFormatted = tenderData.ra_end_date
+          ? new Date(tenderData.ra_end_date).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' })
+          : 'N/A';
+
+        const notificationTitle = urgent
+          ? `⚡ URGENT: Reverse Auction — ${tenderData.bid_number}`
+          : `New Tender Match: ${tenderData.bid_number}`;
+
+        const inAppMessage = urgent
+          ? `Reverse Auction ${tenderData.ra_number} is now active. Bid closes: ${raEndFormatted}`
+          : `Matches: ${matchedQueries.join(', ')} - ${tenderData.department || 'Unknown Dept'}`;
+
         // --- IN-APP NOTIFICATION ---
         await supabase.from('in_app_notifications').insert({
            user_id: userId,
            title: notificationTitle,
-           message: `Matches: ${matchedQueries.join(', ')} - ${tenderData.department || 'Unknown Dept'}`,
+           message: inAppMessage,
            link: tenderLink,
         });
 
         // --- EMAIL ---
         if (email && process.env.SMTP_HOST) {
-          const mailOptions = {
-            from: process.env.EMAIL_FROM || '"GeM Tenders" <noreply@gemtenders.org>',
-            to: email,
-            subject: notificationTitle,
-            html: `
+          const emailHtml = urgent ? `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px 20px; border-radius: 4px; margin-bottom: 20px;">
+                  <h2 style="color: #92400e; margin: 0 0 8px;">⚡ Reverse Auction in Progress</h2>
+                  <p style="color: #78350f; margin: 0;">A tender you follow is now in Reverse Auction. Act quickly — time is limited.</p>
+                </div>
+                <h3 style="color: #1e40af;">${tenderData.title || tenderData.bid_number}</h3>
+                <p><strong>Original Bid:</strong> ${tenderData.bid_number}</p>
+                <p><strong>RA Number:</strong> ${tenderData.ra_number}</p>
+                <p><strong>Department:</strong> ${tenderData.department || 'N/A'}</p>
+                <p><strong>RA Closes on:</strong> <span style="color: #dc2626; font-weight: bold;">${raEndFormatted}</span></p>
+                <br />
+                <a href="${tenderLink}" style="display: inline-block; padding: 12px 24px; background-color: #d97706; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">⚡ Apply Now</a>
+                <br /><br />
+                <p style="font-size: 12px; color: #64748b; margin-top: 30px;">You are receiving this because you subscribed to keywords on GeM Tenders. Manage alerts from your dashboard.</p>
+              </div>
+            ` : `
               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <h2 style="color: #0f172a;">A new tender matched your keywords!</h2>
                 <p><strong>Keyword Monitors Triggered:</strong> ${matchedQueries.join(', ')}</p>
@@ -160,7 +184,13 @@ export async function triggerKeywordNotifications(tenderData: any) {
                 <br /><br />
                 <p style="font-size: 12px; color: #64748b; margin-top: 30px;">You are receiving this because you subscribed to keywords on GeM Tenders. You can manage your alerts from your dashboard.</p>
               </div>
-            `
+            `;
+
+          const mailOptions = {
+            from: process.env.EMAIL_FROM || '"GeM Tenders" <noreply@gemtenders.org>',
+            to: email,
+            subject: notificationTitle,
+            html: emailHtml,
           };
 
           await transporter.sendMail(mailOptions);

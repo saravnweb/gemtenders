@@ -1,0 +1,39 @@
+name: Bulk Enrich Tenders (axios + Gemini PDF)
+
+on:
+  schedule:
+    # Every 3 hours — 8 runs/day × 600 tenders = ~4,800 tenders/day
+    # All 54k tenders attempted in ~11 days, fully automated, no local PC needed.
+    - cron: '0 */3 * * *'
+  workflow_dispatch:  # Manual trigger: GitHub → Actions → this workflow → Run workflow
+
+jobs:
+  bulk-enrich:
+    name: Bulk Enrich Tenders
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run bulk enricher
+        # --reset: ignore local checkpoint (DB enrichment_tried_at column tracks progress)
+        # --limit=600: process up to 600 unattempted tenders per run
+        # --workers=3: 3 concurrent fetches (matches Gemini 2s/call rate limit)
+        run: npm run bulk-enrich -- --limit=600 --workers=3 --reset

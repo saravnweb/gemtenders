@@ -28,6 +28,11 @@ export async function GET(request: Request, context: { params: Promise<{ slug: s
       return new NextResponse("PDF not found for this tender", { status: 404 });
     }
 
+    // If pdf_url points to GeM directly, redirect — we can't proxy without session cookies
+    if (tender.pdf_url.includes('gem.gov.in')) {
+      return NextResponse.redirect(tender.pdf_url);
+    }
+
     // Fetch the PDF from the Supabase Storage URL
     const pdfRes = await fetch(tender.pdf_url);
     

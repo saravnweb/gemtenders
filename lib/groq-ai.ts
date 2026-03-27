@@ -10,11 +10,22 @@ export async function extractTenderDataGroq(pdfText: string) {
     return null;
   }
 
-  const cleanedText = pdfText
+  const cleanedFull = pdfText
     .replace(/[^\x20-\x7E\n\u0900-\u097F]/g, " ")
     .replace(/\s+/g, " ")
-    .trim()
-    .substring(0, 6000);
+    .trim();
+
+  // Always include the consignee section even when it's beyond the first 3500 chars,
+  // because that's where the delivery city/state lives in most GEM PDFs.
+  const consigneeIdx = cleanedFull.search(/consign|reporting\s+officer/i);
+  let cleanedText: string;
+  if (consigneeIdx > 3500) {
+    cleanedText = cleanedFull.substring(0, 3500)
+      + '\n\n[DELIVERY/CONSIGNEE SECTION]\n'
+      + cleanedFull.substring(consigneeIdx, consigneeIdx + 2500);
+  } else {
+    cleanedText = cleanedFull.substring(0, 6000);
+  }
 
   const prompt = `You are an expert Procurement Data Scientist. Extract RAW, UNTRUNCATED structured data from this GeM (Government e-Marketplace) Bid Document.
 The document layout is a table with Hindi and English headers. The values are usually in English.
@@ -28,7 +39,10 @@ CRITICAL EXTRACTION RULES:
    - state: Extract the exact STATE from the buyer address.
    - city: Extract the exact CITY or DISTRICT from the buyer address.
    - consignee_state: From "Consignees/Reporting Officer" section — STATE only.
-   - consignee_city: From "Consignees/Reporting Officer" section — CITY or DISTRICT only.
+     MASKED address: if address shows "**********CityName", extract "CityName" as the city.
+     PIN-leading address: if address starts with a 6-digit number like "400074,RCF Ltd...", use the PIN zone to infer state.
+     District pattern: look for "Dist-CityName" or "District CityName" to find the delivery city.
+   - consignee_city: The CITY or DISTRICT at the consignee delivery address (apply same rules above).
 2. ITEM DETAILS:
    - tender_title: FULL, UNTRUNCATED Item Category or BOQ Title. NEVER end with '...'.
    - quantity: NUMBER only (e.g. 1346).

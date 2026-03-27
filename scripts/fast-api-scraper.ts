@@ -1,202 +1,354 @@
+/**
+ * Fast API Scraper — Direct GeM API caller (no browser)
+ *
+ * Fetches all active tenders via the GeM internal API.
+ * Much faster than the Playwright crawler — handles ~35,000 tenders.
+ *
+ * Usage:
+ *   npm run fast-scrape                          # all pages (auto-detected from API)
+ *   npm run fast-scrape -- --pages=500           # first 500 pages
+ *   npm run fast-scrape -- --start=200           # resume from page 200
+ *   npm run fast-scrape -- --concurrency=5       # parallel requests per batch
+ */
+
 import dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
-import { generateSlug } from "@/lib/gemini";
+if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+  dotenv.config({ path: '.env' });
+}
+import fs from 'fs';
+import path from 'path';
+import https from 'https';
+import axios from 'axios';
 
-// Function to fetch CSRF Token & Cookies
+// Bypass SSL issues common with Indian government websites
+const httpsAgent = new https.Agent({ rejectUnauthorized: false });
+
+const CHECKPOINT = path.join(process.cwd(), 'fast-scrape-progress.json');
+
+function generateSlug(bidNumber: string, title: string): string {
+  const cleanBid   = bidNumber.replace(/\//g, '-').toLowerCase();
+  const cleanTitle = title.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').trim();
+  return `${cleanBid}-${cleanTitle}`.slice(0, 120);
+}
+const MAX_SESSION_RETRY = 3;
+
+// ─── Checkpoint helpers ───────────────────────────────────────────────────────
+function saveCheckpoint(page: number) {
+  fs.writeFileSync(CHECKPOINT, JSON.stringify({ lastCompletedPage: page, updatedAt: new Date().toISOString() }));
+}
+
+function loadCheckpoint(): number | null {
+  try {
+    if (fs.existsSync(CHECKPOINT)) {
+      const data = JSON.parse(fs.readFileSync(CHECKPOINT, 'utf-8'));
+      return data.lastCompletedPage ?? null;
+    }
+  } catch {}
+  return null;
+}
+
+// ─── Session ─────────────────────────────────────────────────────────────────
 async function getGeMSessionInfo() {
-  const res = await fetch('https://bidplus.gem.gov.in/all-bids', {
-    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
+  const res = await axios.get('https://bidplus.gem.gov.in/all-bids', {
+    httpsAgent,
+    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36' },
+    timeout: 30000,
   });
-  
-  const cookies: string[] = [];
-  res.headers.forEach((val, key) => {
-    if (key.toLowerCase() === 'set-cookie') cookies.push(val.split(';')[0]);
-  });
-  const cookieHeader = cookies.join('; ');
 
-  const html = await res.text();
+  const rawCookies: string[] = [];
+  const setCookie = res.headers['set-cookie'];
+  if (Array.isArray(setCookie)) {
+    setCookie.forEach(c => rawCookies.push(c.split(';')[0]));
+  }
+  const cookieHeader = rawCookies.join('; ');
+
+  const html: string = res.data;
   const match = html.match(/csrf_bd_gem_nk.*?['"]([0-9a-f]{32})['"]/);
   if (!match) throw new Error("Could not extract CSRF token from GeM.");
-  
+
   return { csrf: match[1], cookies: cookieHeader };
 }
 
-// Function to fetch a specific page from the GeM API
-async function fetchGeMBidsPage(page: number, csrf: string, cookies: string) {
+// ─── Single page fetch ────────────────────────────────────────────────────────
+async function fetchGeMBidsPage(pageNum: number, csrf: string, cookies: string): Promise<{ docs: any[]; numFound: number | null }> {
   const postdata = {
-    page,
+    page: pageNum,
     param: { searchParam: "searchbid" },
-    filter: {} // To get all ongoing bids.
+    filter: {}
   };
-  
+
   const formData = new URLSearchParams();
   formData.append('payload', JSON.stringify(postdata));
   formData.append('csrf_bd_gem_nk', csrf);
 
-  const res = await fetch('https://bidplus.gem.gov.in/all-bids-data', {
-    method: 'POST',
+  const res = await axios.post('https://bidplus.gem.gov.in/all-bids-data', formData.toString(), {
+    httpsAgent,
     headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+      'User-Agent':       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+      'Content-Type':     'application/x-www-form-urlencoded; charset=UTF-8',
       'X-Requested-With': 'XMLHttpRequest',
-      'Origin': 'https://bidplus.gem.gov.in',
-      'Referer': 'https://bidplus.gem.gov.in/all-bids',
-      'Cookie': cookies
+      'Origin':           'https://bidplus.gem.gov.in',
+      'Referer':          'https://bidplus.gem.gov.in/all-bids',
+      'Cookie':           cookies,
     },
-    body: formData.toString()
+    timeout: 30000,
   });
 
-  if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
-  const data = await res.json();
-  if (!data?.response?.response?.docs) return [];
-  
-  return data.response.response.docs;
+  const data = res.data;
+  if (!data?.response?.response?.docs) return { docs: [], numFound: null };
+  return {
+    docs:     data.response.response.docs,
+    numFound: data.response.response.numFound ?? null,
+  };
 }
 
-export async function runFastScrape(maxPages: number, concurrency: number = 10) {
-  console.log(`>>> [FAST-SCRAPE] Initializing GeM Session...`);
-  const session = await getGeMSessionInfo();
+// ─── Detect if a raw API doc is an RA bid ────────────────────────────────────
+function isRaBid(bid: any): boolean {
+  const bidType = bid.b_bid_type?.[0];
+  return bidType === 2 || bidType === 5;
+}
+
+// ─── Map RA bid → update record for the ORIGINAL bid ─────────────────────────
+// RA bids are NOT new tenders — they are procurement events on an existing bid.
+// We update the original bid (b_bid_number_parent) with the RA details.
+function mapRaToUpdate(bid: any): { parentBidNo: string; raNumber: string; raEndDate: string; raDetailsUrl: string } | null {
+  const parentBidNo = bid.b_bid_number_parent?.[0];
+  const raNumber    = bid.b_bid_number?.[0];
+  if (!parentBidNo || !raNumber) return null;
+
+  const bidType = bid.b_bid_type?.[0];
+  const docLbl  = bidType === 5 ? 'showdirectradocumentPdf' : 'showradocumentPdf';
+  const pdfId   = bid.b_id ? String(bid.b_id[0]) : '';
+  const raDetailsUrl = `https://bidplus.gem.gov.in/${docLbl}/${pdfId}`;
+
+  const futureDate = new Date();
+  futureDate.setDate(futureDate.getDate() + 30);
+  let raEndDate = bid.final_end_date_sort?.[0] || '';
+  if (!raEndDate || raEndDate.startsWith('-')) raEndDate = futureDate.toISOString();
+
+  return { parentBidNo, raNumber, raEndDate, raDetailsUrl };
+}
+
+// ─── Map regular bid → DB row ─────────────────────────────────────────────────
+function mapBidToRow(bid: any) {
+  const bidNo = (bid.b_bid_number?.[0]) || (bid.b_bid_number_parent?.[0]) || "UNKNOWN";
+  const title = bid.bd_category_name?.[0] || bid.b_category_name?.[0] || `Tender ${bidNo}`;
+
+  const deptName = bid.ba_official_details_deptName?.[0] || null;
+  const minName  = bid.ba_official_details_minName?.[0]  || null;
+  let department = deptName || minName || "N/A";
+  if (minName && deptName && minName !== deptName) department = `${minName}, ${deptName}`;
+
+  const pdfId = bid.b_id_parent ? String(bid.b_id_parent[0]) : (bid.b_id ? String(bid.b_id[0]) : "");
+
+  const futureDate = new Date();
+  futureDate.setDate(futureDate.getDate() + 30);
+
+  let startDate: string = bid.final_start_date_sort?.[0] || '';
+  let endDate:   string = bid.final_end_date_sort?.[0]   || '';
+  if (!startDate || startDate.startsWith('-')) startDate = new Date().toISOString();
+  if (!endDate   || endDate.startsWith('-'))   endDate   = futureDate.toISOString();
+
+  return {
+    bid_number:  bidNo,
+    slug:        generateSlug(bidNo, title),
+    title,
+    department,
+    start_date:  startDate,
+    end_date:    endDate,
+    details_url: `https://bidplus.gem.gov.in/showbidDocument/${pdfId}`,
+  };
+}
+
+// ─── Main ─────────────────────────────────────────────────────────────────────
+export async function runFastScrape(maxPages: number, concurrency: number = 5, startPage: number = 1) {
+  console.log(`\n>>> [FAST-SCRAPE] Initializing GeM Session...`);
+  let session = await getGeMSessionInfo();
   console.log(`>>> [FAST-SCRAPE] Session obtained. CSRF: ${session.csrf}`);
-  
-  // Test first page to see total
-  console.log(`>>> [FAST-SCRAPE] Fetching page 1 to verify...`);
-  const firstPage = await fetchGeMBidsPage(1, session.csrf, session.cookies);
-  if (firstPage.length === 0) {
-    console.log(">>> [FAST-SCRAPE] Failed to fetch first page or no items.");
-    return;
-  }
-  
-  let page = 1;
-  while (page <= maxPages) {
-    const promises = [];
-    for (let c = 0; c < concurrency && page <= maxPages; c++, page++) {
-      console.log(`>>> [FAST-SCRAPE] Enqueuing request for Page ${page}...`);
-      promises.push(fetchGeMBidsPage(page, session.csrf, session.cookies).then(res => ({ page: page - c, data: res }))); // minor logging offset fix
+  console.log(`>>> [FAST-SCRAPE] Pages: ${startPage} → ${maxPages === Infinity ? 'auto' : maxPages} | Concurrency: ${concurrency}\n`);
+
+  const { supabase } = await import('@/lib/supabase');
+
+  let page         = startPage;
+  let totalSaved   = 0;
+  let dynamicMax   = maxPages; // may be tightened after first page reveals numFound
+
+  while (page <= dynamicMax) {
+    const batchStart = page;
+
+    // Build concurrent fetch promises for this batch
+    const promises: Promise<{ pageNum: number; docs: any[]; numFound: number | null; ok: boolean; err?: string }>[] = [];
+    for (let c = 0; c < concurrency && page <= dynamicMax; c++, page++) {
+      const p = page;
+      promises.push(
+        fetchGeMBidsPage(p, session.csrf, session.cookies)
+          .then(({ docs, numFound }) => ({ pageNum: p, docs, numFound, ok: true }))
+          .catch(e  => ({ pageNum: p, docs: [], numFound: null, ok: false, err: String(e.message) }))
+      );
     }
-    
-    const results = await Promise.allSettled(promises);
-    
-    // Process results
-    const bidsToInsert = [];
-    for (const result of results) {
-      if (result.status === 'fulfilled') {
-        bidsToInsert.push(...result.value.data);
-      } else {
-        console.error(`>>> [FAST-SCRAPE] Error fetching a page:`, result.reason);
+
+    const results = await Promise.all(promises);
+
+    // On first batch, read numFound and cap dynamicMax
+    if (dynamicMax === maxPages) {
+      const found = results.find(r => r.numFound !== null)?.numFound;
+      if (found != null) {
+        const apiMax = Math.ceil(found / 10);
+        dynamicMax = Math.min(maxPages, apiMax);
+        console.log(`>>> [FAST-SCRAPE] API reports ${found} records → ${apiMax} pages. Capping at ${dynamicMax}.\n`);
       }
     }
-    
-    if (bidsToInsert.length === 0) {
-      console.log(">>> [FAST-SCRAPE] No items found in this chunk. Stopping.");
+
+    // Detect session expiry: all requests failed with HTTP errors
+    const httpFailed = results.filter(r => !r.ok);
+    if (httpFailed.length === results.length) {
+      console.warn(`\n>>> [FAST-SCRAPE] All pages in batch failed (pages ${batchStart}-${page - 1}). Refreshing session...`);
+
+      let refreshed = false;
+      for (let attempt = 1; attempt <= MAX_SESSION_RETRY; attempt++) {
+        await new Promise(r => setTimeout(r, 2000 * attempt));
+        try {
+          session = await getGeMSessionInfo();
+          console.log(`>>> [FAST-SCRAPE] Session refreshed (attempt ${attempt}). Retrying batch...`);
+          refreshed = true;
+          break;
+        } catch (e: any) {
+          console.error(`>>> [FAST-SCRAPE] Refresh attempt ${attempt} failed: ${e.message}`);
+        }
+      }
+
+      if (!refreshed) {
+        console.error(`>>> [FAST-SCRAPE] Could not refresh session after ${MAX_SESSION_RETRY} attempts. Stopping.`);
+        break;
+      }
+
+      // Retry the same batch with fresh session
+      page = batchStart;
+      continue;
+    }
+
+    // Collect all docs from successful pages
+    const allDocs: any[] = [];
+    for (const r of results) {
+      if (r.ok && r.docs.length > 0) allDocs.push(...r.docs);
+      else if (!r.ok) console.warn(`  [WARN] Page ${r.pageNum} failed: ${r.err}`);
+    }
+
+    // If the entire batch came back empty, we've passed the last page of data
+    if (allDocs.length === 0) {
+      console.log(`\n>>> [FAST-SCRAPE] Empty batch at pages ${batchStart}-${page - 1}. Reached end of data.`);
       break;
     }
 
-    console.log(`>>> [FAST-SCRAPE] Processing ${bidsToInsert.length} items from batch...`);
-    
-    const upsertBatch = bidsToInsert.map((bid: any) => {
-      const bidNo = (bid.b_bid_number ? bid.b_bid_number[0] : null) || (bid.b_bid_number_parent ? bid.b_bid_number_parent[0] : "UNKNOWN");
-      const title = bid.bd_category_name ? bid.bd_category_name[0] : (bid.b_category_name ? bid.b_category_name[0] : "Tender " + bidNo);
-      const deptName = bid.ba_official_details_deptName ? bid.ba_official_details_deptName[0] : null;
-      const minName = bid.ba_official_details_minName ? bid.ba_official_details_minName[0] : null;
-      let finalDept = deptName || minName || "N/A";
-      if (minName && deptName && minName !== deptName) {
-         finalDept = `${minName}, ${deptName}`;
-      }
-      
-      let pdfId = bid.b_id_parent ? String(bid.b_id_parent[0]) : (bid.b_id ? String(bid.b_id[0]) : "");
-      let docLbl = 'showbidDocument';
-      if (bid.b_bid_type && bid.b_bid_type[0] === 5) {
-        docLbl = 'showdirectradocumentPdf';
-        pdfId = bid.b_id ? String(bid.b_id[0]) : pdfId; // RA sometimes uses b_id
-      } else if (bid.b_bid_type && bid.b_bid_type[0] === 2) {
-        docLbl = 'showradocumentPdf';
-        pdfId = bid.b_id ? String(bid.b_id[0]) : pdfId; // RA uses b_id
-      }
-      
-      const pdfLink = `https://bidplus.gem.gov.in/${docLbl}/${pdfId}`;
-      
-      let startDate = bid.final_start_date_sort ? bid.final_start_date_sort[0] : null;
-      let endDate = bid.final_end_date_sort ? bid.final_end_date_sort[0] : null;
-      
-      const futureDate = new Date();
-      futureDate.setDate(futureDate.getDate() + 30); // 30 days from now
-      
-      if (!startDate || startDate.startsWith("-")) startDate = new Date().toISOString();
-      if (!endDate || endDate.startsWith("-")) endDate = futureDate.toISOString();
+    // Split docs: RA bids vs regular bids
+    const rowMap   = new Map<string, any>();
+    const raUpdates: ReturnType<typeof mapRaToUpdate>[] = [];
 
-      return {
-        bid_number: bidNo,
-        slug: generateSlug(bidNo, title),
-        title: title,
-        department: finalDept,
-        start_date: startDate,
-        end_date: endDate,
-        details_url: pdfLink,
-      };
-    }).filter(b => b.bid_number !== "UNKNOWN").filter(b => {
-      // Exclude obviously old tenders that the API might still return
-      if (b.bid_number.match(/GEM\/(2018|2019|2020|2021|2022|2023|2024|2025)\//)) return false;
-      
-      if (!b.end_date) return true;
-      return new Date(b.end_date) > new Date();
-    });
-    
-    const uniqueBatchMap = new Map();
-    for (const b of upsertBatch) {
-      if (!uniqueBatchMap.has(b.bid_number)) {
-        uniqueBatchMap.set(b.bid_number, b);
+    for (const bid of allDocs) {
+      if (isRaBid(bid)) {
+        const ra = mapRaToUpdate(bid);
+        if (ra) raUpdates.push(ra);
+      } else {
+        const row = mapBidToRow(bid);
+        if (row.bid_number === "UNKNOWN") continue;
+        if (row.end_date && new Date(row.end_date) <= new Date()) continue;
+        if (!rowMap.has(row.bid_number)) rowMap.set(row.bid_number, row);
       }
     }
-    const finalBatch = Array.from(uniqueBatchMap.values());
-    
-    if (finalBatch.length > 0) {
-      const { supabase } = await import('@/lib/supabase');
+    const rows = Array.from(rowMap.values());
 
-      // Step 1: Insert NEW tenders only (skip existing ones entirely to preserve AI-enriched data)
+    // ── Insert / update regular bids ──────────────────────────────────────────
+    if (rows.length > 0) {
       const { error: insertErr } = await supabase
         .from('tenders')
-        .upsert(finalBatch, { onConflict: 'bid_number', ignoreDuplicates: true });
-      if (insertErr) console.error(">>> [FAST-SCRAPE] Insert Error:", insertErr);
+        .upsert(rows, { onConflict: 'bid_number', ignoreDuplicates: true });
+      if (insertErr) console.error(">>> [FAST-SCRAPE] Insert Error:", insertErr.message);
 
-      // Step 2: Update only dates + URL for EXISTING tenders (never touch title/dept/ai_summary)
-      // Postgres upsert with missing NOT NULL columns fails, so we run parallel individual updates.
-      const updatePromises = finalBatch.map(b => 
-        supabase
-          .from('tenders')
-          .update({
-            start_date: b.start_date,
-            end_date:   b.end_date,
-            details_url: b.details_url,
-          })
-          .eq('bid_number', b.bid_number)
+      const updateResults = await Promise.all(
+        rows.map(b =>
+          supabase.from('tenders')
+            .update({ start_date: b.start_date, end_date: b.end_date, details_url: b.details_url })
+            .eq('bid_number', b.bid_number)
+        )
       );
-      
-      const updateResults = await Promise.all(updatePromises);
       const updateErrors = updateResults.map(r => r.error).filter(Boolean);
-      
-      if (updateErrors.length > 0) {
-        console.error(">>> [FAST-SCRAPE] Date Update Error:", updateErrors[0]);
+      if (updateErrors.length > 0) console.error(">>> [FAST-SCRAPE] Update Error:", updateErrors[0]);
+
+      totalSaved += rows.length;
+    }
+
+    // ── Update original bids with RA info ─────────────────────────────────────
+    // For each RA, find the original bid and attach the RA number + deadline.
+    // If the original bid was archived but the RA is still active → unarchive it.
+    let raLinked = 0;
+    for (const ra of raUpdates) {
+      if (!ra) continue;
+      const now = new Date();
+      const raActive = new Date(ra.raEndDate) > now;
+
+      const updatePayload: any = {
+        ra_number:    ra.raNumber,
+        ra_end_date:  ra.raEndDate,
+        ra_notified:  false,          // trigger notification on next notify run
+        details_url:  ra.raDetailsUrl, // point to the publicly accessible RA doc
+      };
+
+      // Unarchive if the RA is still active
+      if (raActive) {
+        updatePayload.is_archived  = false;
+        updatePayload.archived_at  = null;
+        updatePayload.end_date     = ra.raEndDate; // extend deadline to RA deadline
       }
 
-      console.log(`>>> [FAST-SCRAPE] Processed ${finalBatch.length} bids (new inserted, existing dates refreshed).`);
+      const { error } = await supabase
+        .from('tenders')
+        .update(updatePayload)
+        .eq('bid_number', ra.parentBidNo);
+
+      if (!error) raLinked++;
+      else console.warn(`  [WARN] RA link failed for ${ra.parentBidNo}: ${error.message}`);
     }
-    
-    // Add a small delay between chunks to avoid hard IP bans
+
+    saveCheckpoint(page - 1);
+    const raMsg = raLinked > 0 ? ` | RA linked: ${raLinked}` : '';
+    console.log(`  Pages ${batchStart}–${page - 1} | +${rows.length} bids${raMsg} | Total saved: ${totalSaved}`);
+
+    // Small delay between batches to avoid rate limiting
     await new Promise(r => setTimeout(r, 1000));
   }
-  
-  console.log(">>> [FAST-SCRAPE] Complete!");
+
+  // Remove checkpoint on successful completion
+  if (page > dynamicMax && fs.existsSync(CHECKPOINT)) fs.unlinkSync(CHECKPOINT);
+
+  console.log(`\n>>> [FAST-SCRAPE] Done! Total saved: ${totalSaved}`);
 }
 
+// ─── CLI entry ────────────────────────────────────────────────────────────────
 async function run() {
   const args = process.argv.slice(2);
-  const pagesArg = args.find(a => a.startsWith('--pages='));
-  const maxPages = pagesArg ? parseInt(pagesArg.split('=')[1], 10) : 100;
 
-  const concArg = args.find(a => a.startsWith('--concurrency='));
-  const concurrency = concArg ? parseInt(concArg.split('=')[1], 10) : 10;
+  const pagesArg   = args.find(a => a.startsWith('--pages='))?.split('=')[1];
+  const maxPages   = pagesArg ? parseInt(pagesArg, 10) : Infinity;
+  const concurrency = parseInt(args.find(a => a.startsWith('--concurrency='))?.split('=')[1] || '5',    10);
 
-  await runFastScrape(maxPages, concurrency);
+  // Explicit --start overrides checkpoint
+  let startPage = 1;
+  const explicitStart = args.find(a => a.startsWith('--start='));
+  if (explicitStart) {
+    startPage = parseInt(explicitStart.split('=')[1], 10);
+  } else {
+    const cp = loadCheckpoint();
+    if (cp) {
+      startPage = cp + 1;
+      console.log(`>>> [FAST-SCRAPE] Resuming from checkpoint: page ${startPage}`);
+    }
+  }
+
+  await runFastScrape(maxPages, concurrency, startPage);
 }
 
-run();
+run().catch(e => {
+  console.error('\n>>> [FAST-SCRAPE] Fatal error:', e.message);
+  process.exit(1);
+});

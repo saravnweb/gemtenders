@@ -139,17 +139,6 @@ export default function Navbar() {
             {/* Right Side Icons & Desktop Nav */}
             <div className="flex items-center space-x-1 sm:space-x-4 z-10">
 
-              {/* Dark Mode Toggle - Desktop only */}
-              {mounted && (
-                <button
-                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                  className="hidden md:inline-flex p-2 text-fresh-sky-700 dark:text-fresh-sky-300 hover:bg-fresh-sky-50 dark:hover:bg-fresh-sky-900/30 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-blue-500"
-                  aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-                >
-                  {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-                </button>
-              )}
-
               {/* Notification Icon and Dropdown */}
               {user && (
                 <div className="relative" ref={notificationRef}>

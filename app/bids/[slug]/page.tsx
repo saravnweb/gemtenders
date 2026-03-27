@@ -10,20 +10,25 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import DownloadButtons from "./DownloadButtons";
 import RevealBidNumber from "./RevealBidNumber";
-export const revalidate = 0; // Cache permanently disabled temporarily for testing
+export const revalidate = 3600; // Revalidate hourly
+export const dynamicParams = true;
 export async function generateStaticParams() {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/tenders?select=slug&order=start_date.desc&limit=50`, {
-    headers: {
-      apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string,
-      Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`
+  const now = new Date().toISOString();
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/tenders?select=slug&end_date=gte.${now}&order=created_at.desc&limit=500`,
+    {
+      headers: {
+        apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string,
+        Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`
+      }
     }
-  });
+  );
   if (!res.ok) return [];
   const tenders = await res.json();
   return tenders.map((t: any) => ({ slug: t.slug }));
 }
 
-const siteUrl = "https://gemtenders.org";
+const siteUrl = "https://www.gemtenders.org";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -45,6 +50,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   }
 
   const title = tender.title || "GeM Tender Details";
+  const isClosed = new Date(tender.end_date).getTime() < Date.now();
   const description = tender.ai_summary
     ? tender.ai_summary.substring(0, 155) + (tender.ai_summary.length > 155 ? "..." : "")
     : `View details for GeM tender: ${tender.title}. Check eligibility, EMD, and bid dates on GeMTenders.org.`;
@@ -55,6 +61,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     title,
     description,
     alternates: { canonical: canonicalUrl },
+    robots: isClosed ? { index: false, follow: false } : { index: true, follow: true },
     openGraph: {
       type: "article",
       url: canonicalUrl,
@@ -238,26 +245,26 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
       "@type": "Country",
       "name": "India"
     },
-    "url": `https://gemtenders.org/bids/${slug}`,
+    "url": `https://www.gemtenders.org/bids/${slug}`,
     "identifier": tender.bid_number,
-    "termsOfService": tender.pdf_url ? `https://gemtenders.org/api/download/${slug}` : undefined,
+    "termsOfService": tender.pdf_url ? `https://www.gemtenders.org/api/download/${slug}` : undefined,
   };
 
   const breadcrumbItems = [
-    { name: "Home", url: "https://gemtenders.org/" },
-    { name: "Tenders", url: "https://gemtenders.org/" }
+    { name: "Home", url: "https://www.gemtenders.org/" },
+    { name: "Tenders", url: "https://www.gemtenders.org/" }
   ];
 
   if (departments.length > 0) {
     breadcrumbItems.push({
       name: departments[0],
-      url: `https://gemtenders.org/?q=${encodeURIComponent(departments[0])}`
+      url: `https://www.gemtenders.org/?q=${encodeURIComponent(departments[0])}`
     });
   }
 
   breadcrumbItems.push({
     name: tender.bid_number,
-    url: `https://gemtenders.org/bids/${slug}`
+    url: `https://www.gemtenders.org/bids/${slug}`
   });
 
   const breadcrumbJsonLd = {
@@ -362,6 +369,43 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
             )}
           </div>
         </div>
+
+        {/* RA Alert Banner */}
+        {tender.ra_number && (() => {
+          const raActive = tender.ra_end_date && new Date(tender.ra_end_date) > new Date();
+          if (!raActive && !tender.ra_number) return null;
+          return (
+            <div className={`mb-8 rounded-2xl border px-6 py-5 flex flex-col sm:flex-row sm:items-center gap-4 ${raActive ? 'bg-amber-50 border-amber-300 dark:bg-amber-950/40 dark:border-amber-700' : 'bg-slate-100 border-slate-200 dark:bg-slate-800 dark:border-slate-700'}`}>
+              <div className="flex items-center gap-3 flex-1">
+                <div className={`p-2.5 rounded-xl shrink-0 ${raActive ? 'bg-amber-100 dark:bg-amber-900/60' : 'bg-slate-200 dark:bg-slate-700'}`}>
+                  <Zap className={`w-5 h-5 ${raActive ? 'text-amber-600 dark:text-amber-400' : 'text-slate-500'}`} />
+                </div>
+                <div>
+                  <p className={`text-sm font-bold ${raActive ? 'text-amber-800 dark:text-amber-300' : 'text-slate-600 dark:text-slate-400'}`}>
+                    {raActive ? '⚡ Reverse Auction in Progress' : 'Reverse Auction Closed'}
+                  </p>
+                  <p className={`text-xs mt-0.5 ${raActive ? 'text-amber-700 dark:text-amber-400' : 'text-slate-500'}`}>
+                    RA No: <span className="font-semibold">{tender.ra_number}</span>
+                    {tender.ra_end_date && (
+                      <> &mdash; Bid closes: <span className="font-semibold">{new Date(tender.ra_end_date).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' })}</span></>
+                    )}
+                  </p>
+                </div>
+              </div>
+              {raActive && (
+                <a
+                  href={tender.details_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="shrink-0 inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-colors shadow-sm shadow-amber-200 dark:shadow-amber-900"
+                >
+                  <Zap className="w-4 h-4" />
+                  Apply Now
+                </a>
+              )}
+            </div>
+          );
+        })()}
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
 

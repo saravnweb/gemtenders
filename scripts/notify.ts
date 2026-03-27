@@ -77,6 +77,53 @@ async function runNotifications() {
   }
 
   console.log(`\n>>> [NOTIFY] Done. Processed: ${totalProcessed} | Notified: ${totalNotified}`);
+
+  // ── RA notification pass ───────────────────────────────────────────────────
+  // Fetch tenders with an active RA that haven't been RA-notified yet
+  console.log(`\n>>> [NOTIFY] Running RA notification pass...`);
+  let raNotified = 0;
+
+  const { data: raTenders, error: raErr } = await supabase
+    .from('tenders')
+    .select(`
+      id, bid_number, slug, title, department,
+      ministry_name, department_name, organisation_name, office_name,
+      state, city, emd_amount, end_date, ai_summary,
+      ra_number, ra_end_date
+    `)
+    .not('ra_number', 'is', null)
+    .eq('ra_notified', false)
+    .gte('ra_end_date', new Date().toISOString());
+
+  if (raErr) {
+    console.error('[NOTIFY] RA query error:', raErr.message);
+  } else if (!raTenders?.length) {
+    console.log('[NOTIFY] No pending RA notifications.');
+  } else {
+    console.log(`>>> [NOTIFY] ${raTenders.length} tenders with active RAs to notify.`);
+    for (const tender of raTenders) {
+      if (DRY_RUN) {
+        console.log(`    [DRY-RUN] RA for ${tender.bid_number} → RA: ${tender.ra_number} closes ${tender.ra_end_date}`);
+        continue;
+      }
+      try {
+        await triggerKeywordNotifications(tender, { urgent: true });
+        const { error: upErr } = await supabase
+          .from('tenders')
+          .update({ ra_notified: true })
+          .eq('id', tender.id);
+        if (upErr) {
+          console.error(`    ✗ Failed to mark RA notified for ${tender.bid_number}:`, upErr.message);
+        } else {
+          console.log(`    ✓ RA notification sent: ${tender.bid_number} → ${tender.ra_number}`);
+          raNotified++;
+        }
+      } catch (e: any) {
+        console.error(`    ✗ RA ${tender.bid_number}:`, e.message);
+      }
+    }
+    console.log(`>>> [NOTIFY] RA pass done. Notified: ${raNotified}`);
+  }
 }
 
 runNotifications().catch(console.error);

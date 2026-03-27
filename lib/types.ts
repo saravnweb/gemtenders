@@ -15,5 +15,10 @@ export interface Tender {
   eligibility_msme: boolean;
   eligibility_mii: boolean;
   is_archived: boolean;
+  archived_at: string | null;
+  notification_sent: boolean;
+  ra_number: string | null;
+  ra_end_date: string | null;
+  ra_notified: boolean;
   created_at: string;
 }

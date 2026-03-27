@@ -9,7 +9,7 @@ const supabase = createClient(
 import path from "path";
 import fs from "fs";
 import { extractTenderData, generateSlug } from "@/lib/gemini";
-import { extractVerifiedCity, normalizeState, normalizeCity } from "../locations";
+import { extractVerifiedCity, normalizeState, normalizeCity, extractCityStateFromConsigneeTable } from "../locations";
 import { detectCategory } from "../categories";
 
 function detectBidType(bidNo: string, title: string): string {
@@ -43,23 +43,25 @@ function extractEmdFallback(text: string): number | null {
 }
 
 function extractLocationFallback(text: string): { state: string | null; city: string | null } {
+  // Primary: use consignee table extraction (covers masked, Dist, PIN patterns)
+  const consigneeResult = extractCityStateFromConsigneeTable(text);
+  if (consigneeResult.city || consigneeResult.state) {
+    return { state: consigneeResult.state, city: consigneeResult.city };
+  }
+
+  // Secondary: scan for full state names in the text
   const states = [
-    "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", 
-    "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh", 
-    "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", 
-    "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", 
+    "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat",
+    "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh",
+    "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab",
+    "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh",
     "Uttarakhand", "West Bengal", "Delhi", "Chandigarh", "Jammu & Kashmir", "Ladakh"
   ];
 
-  let foundState = null;
+  let foundState: string | null = null;
   for (const state of states) {
-    if (new RegExp(`\\b${state}\\b`, 'i').test(text)) {
-      foundState = state;
-      break;
-    }
+    if (new RegExp(`\\b${state}\\b`, 'i').test(text)) { foundState = state; break; }
   }
-
-  // Common mapping for abbreviations
   if (!foundState) {
     if (/\bM\.P\.\b|\bMP\b/i.test(text)) foundState = "Madhya Pradesh";
     else if (/\bU\.P\.\b|\bUP\b/i.test(text)) foundState = "Uttar Pradesh";
@@ -69,21 +71,7 @@ function extractLocationFallback(text: string): { state: string | null; city: st
     else if (/\bM\.H\.\b|\bMH\b/i.test(text)) foundState = "Maharashtra";
   }
 
-  // Simple city heuristic 1: Look for address patterns
-  // Simple city heuristic 1: Look for address patterns
-  const cityMatch = text.match(/Address\s*:\s*[^\,]+\,\s*([A-Z][a-z\s]+)\b/);
-  const m1 = cityMatch ? cityMatch[1].trim() : "";
-
-  // Heuristic 2: District field
-  const distMatch = text.match(/\bDistrict\b\s*[:\-]?\s*([^\n]+)/i);
-  const m2 = distMatch ? distMatch[1].trim() : "";
-
-  // Heuristic 3: Masked String (e.g. ***********MUMBAI)
-  const maskedCityMatch = text.match(/\*{5,}([A-Z][a-zA-Z\s]+)\b/);
-  const m3 = maskedCityMatch ? maskedCityMatch[1].trim() : "";
-
-  const foundCity = extractVerifiedCity(`${m1} ${m2} ${m3}`);
-
+  const foundCity = extractVerifiedCity(text);
   return { state: foundState, city: foundCity };
 }
 
@@ -121,6 +109,46 @@ export async function scrapeGeMBids(options?: { lightMode?: boolean; maxPages?: 
     
     await page.waitForTimeout(5000);
     await page.waitForSelector('.card', { timeout: 30000 });
+
+    // Sort by Bid Start Date (latest first)
+    try {
+      const sorted = await page.evaluate(() => {
+        // Find the "Start Date" / "Bid Start Date" sort link in the table header
+        const allLinks = Array.from(document.querySelectorAll('th a, th span, .sort-link, [data-sort]'));
+        const sortEl = allLinks.find(el =>
+          /start.?date|bid.?start/i.test(el.textContent || '') ||
+          /start.?date|bid.?start/i.test((el as HTMLElement).dataset?.sort || '')
+        ) as HTMLElement | undefined;
+        if (sortEl) { sortEl.click(); return true; }
+        return false;
+      });
+
+      if (sorted) {
+        await page.waitForTimeout(3000);
+        await page.waitForSelector('.card', { timeout: 15000 });
+
+        // Click again if currently ascending (to get descending = latest first)
+        await page.evaluate(() => {
+          const allLinks = Array.from(document.querySelectorAll('th a, th span, .sort-link, [data-sort]'));
+          const sortEl = allLinks.find(el =>
+            /start.?date|bid.?start/i.test(el.textContent || '') ||
+            /start.?date|bid.?start/i.test((el as HTMLElement).dataset?.sort || '')
+          ) as HTMLElement | undefined;
+          // Click again only if ascending indicator present
+          const isAsc = sortEl?.closest('th')?.classList.contains('asc') ||
+                        sortEl?.querySelector('.fa-sort-asc, .asc') !== null;
+          if (isAsc) sortEl?.click();
+        });
+
+        await page.waitForTimeout(3000);
+        await page.waitForSelector('.card', { timeout: 15000 });
+        console.log(">>> [SCRAPER] Sorted by Bid Start Date (latest first).");
+      } else {
+        console.warn(">>> [SCRAPER] Could not find Start Date sort control — using default order.");
+      }
+    } catch (sortErr: any) {
+      console.warn(">>> [SCRAPER] Sort attempt failed:", sortErr.message);
+    }
   } catch (e: any) {
     console.error(">>> [SCRAPER] Navigation failed:", e.message);
     await browser.close();
@@ -141,14 +169,23 @@ export async function scrapeGeMBids(options?: { lightMode?: boolean; maxPages?: 
         const bidNoEls = el.querySelectorAll('a.bid_no_hover');
         if (!bidNoEls || bidNoEls.length === 0) return;
 
-        // An RA will be the last element if both Bid and RA exist
-        const targetBidEl = bidNoEls[bidNoEls.length - 1];
-        let bidNo = targetBidEl.textContent?.trim() || "";
-        
-        // Remove any surrounding text like 'RA NO:' just in case it's in the link text
+        // Always use the FIRST link as the canonical Bid No. (original bid, e.g. GEM/2026/B/...)
+        // The last link may be an RA (GEM/2026/R/...) — store it separately
+        const firstBidEl = bidNoEls[0];
+        const lastBidEl = bidNoEls[bidNoEls.length - 1];
+        let bidNo = firstBidEl.textContent?.trim() || "";
         bidNo = bidNo.replace(/^RA NO:?\s*/i, '').replace(/^Bid No.\s*:?\s*/i, '').trim();
 
-        const pdfLink = (targetBidEl as HTMLAnchorElement).href || "";
+        // Extract RA number if a second link exists and it looks like an RA
+        let raNo: string | null = null;
+        if (bidNoEls.length > 1) {
+          const raText = lastBidEl.textContent?.trim() || "";
+          const cleaned = raText.replace(/^RA NO:?\s*/i, '').trim();
+          if (/GEM\/\d+\/R\//i.test(cleaned)) raNo = cleaned;
+        }
+
+        // Use the last element's href (RA link has the correct PDF if present), else fall back to first
+        const pdfLink = (lastBidEl as HTMLAnchorElement).href || (firstBidEl as HTMLAnchorElement).href || "";
         
         const cardBody = el.querySelector('.card-body');
         
@@ -192,8 +229,9 @@ export async function scrapeGeMBids(options?: { lightMode?: boolean; maxPages?: 
         const endDateEl = el.querySelector('.end_date');
         
         if (bidNo) {
-          items.push({ 
-            bidNo, 
+          items.push({
+            bidNo,
+            raNo,
             description: description || "Tender Description Unavailable",
             department: department || "N/A",
             startDate: startDateEl?.textContent?.trim() || "",
@@ -311,37 +349,43 @@ export async function scrapeGeMBids(options?: { lightMode?: boolean; maxPages?: 
         
         let buffer: Buffer | undefined;
         try {
-          // Use a new page to trigger download
-          const downloadPage = await context.newPage();
-          
-          // Setup download listener
-          const downloadPromise = downloadPage.waitForEvent('download', { timeout: 30000 });
-          
-          try {
-            await downloadPage.goto(bid.pdfLink, { waitUntil: 'load', timeout: 30000 });
-            // If it's a direct PDF, the goto might resolve or trigger a download
-          } catch (e: any) {
-            // Some links might trigger download immediately and cause navigation error, that's fine
-            console.log(`>>> [SCRAPER] Navigation note: ${e.message}`);
+          // Try direct HTTP request first — simpler and avoids browser page crashes
+          const response = await page.request.get(bid.pdfLink, { timeout: 30000 });
+          const contentType = response.headers()['content-type'] || '';
+          if (response.ok() && contentType.includes('pdf')) {
+            buffer = Buffer.from(await response.body());
+            console.log(`>>> [SCRAPER] Direct request got PDF (${(buffer.length / 1024).toFixed(1)} KB)`);
           }
-          
+        } catch (e: any) {
+          console.log(`>>> [SCRAPER] Direct request failed: ${e.message}`);
+        }
+
+        // Fall back to browser-based download if direct request didn't get a PDF
+        if (!buffer) {
           try {
-            const download = await downloadPromise;
-            const tempPath = path.join(process.cwd(), 'tmp', `temp_${bid.bidNo.replace(/\//g, "-")}.pdf`);
-            await download.saveAs(tempPath);
-            buffer = fs.readFileSync(tempPath);
-            fs.unlinkSync(tempPath); // cleanup
-          } catch (e) {
-            console.log(`>>> [SCRAPER] Standard download event not triggered. Trying manual request...`);
-            const response = await page.request.get(bid.pdfLink);
-            if (response.headers()['content-type']?.includes('pdf')) {
-               buffer = await response.body();
+            const downloadPage = await context.newPage();
+            const downloadPromise = downloadPage.waitForEvent('download', { timeout: 30000 });
+
+            try {
+              await downloadPage.goto(bid.pdfLink, { waitUntil: 'load', timeout: 30000 });
+            } catch (e: any) {
+              console.log(`>>> [SCRAPER] Navigation note: ${e.message}`);
             }
+
+            try {
+              const download = await downloadPromise;
+              const tempPath = path.join(process.cwd(), 'tmp', `temp_${bid.bidNo.replace(/\//g, "-")}.pdf`);
+              await download.saveAs(tempPath);
+              buffer = fs.readFileSync(tempPath);
+              fs.unlinkSync(tempPath);
+            } catch (e) {
+              console.log(`>>> [SCRAPER] Download event not triggered for browser fallback.`);
+            }
+
+            await downloadPage.close();
+          } catch (e) {
+            console.warn(`>>> [SCRAPER] Download attempt failed: ${e}`);
           }
-          
-          await downloadPage.close();
-        } catch (e) {
-          console.warn(`>>> [SCRAPER] Download attempt failed: ${e}`);
         }
 
         if (buffer && buffer.length > 5000) { 
@@ -482,6 +526,7 @@ export async function scrapeGeMBids(options?: { lightMode?: boolean; maxPages?: 
       bid_type: detectBidType(bid.bidNo, finalTitle),
       procurement_type: aiData?.procurement_type || null,
       keywords: aiData?.keywords || [],
+      ra_number: bid.raNo || null,
     }, { onConflict: 'bid_number' });
 
     if (error) {

@@ -8,7 +8,7 @@ import { extractTenderDataGroq as extractTenderData } from '../groq-ai';
 import { chromium } from 'playwright';
 import path from 'path';
 import fs from 'fs';
-import { normalizeState, normalizeCity } from '../locations';
+import { normalizeState, normalizeCity, extractCityStateFromConsigneeTable, cityToState } from '../locations';
 import { detectCategory } from '../categories';
 import { parseGeMDate } from './gem-scraper';
 
@@ -124,13 +124,13 @@ export async function runEnrichment(limit: number = 20, reprocess: boolean = fal
         
         let extractedText = '';
         if (typeof ParserClass === 'function' && ParserClass.toString().includes('class')) {
-          const instance = new ParserClass({ data: buffer, max: 5 });
+          const instance = new ParserClass({ data: buffer, max: 0 });
           const result = await instance.getText();
           extractedText = result.text || '';
           await instance.destroy?.();
         } else {
           const fn = typeof pdfLib === 'function' ? pdfLib : pdfLib.default;
-          const textData = await fn(buffer, { max: 5 });
+          const textData = await fn(buffer, { max: 0 });
           extractedText = textData.text || '';
         }
 
@@ -149,6 +149,16 @@ export async function runEnrichment(limit: number = 20, reprocess: boolean = fal
           updatePayload.office_name = auth?.office;
           updatePayload.state = normalizeState(auth?.consignee_state || auth?.state);
           updatePayload.city = normalizeCity(auth?.consignee_city || auth?.city);
+
+          // Regex fallback on full (non-truncated) text when AI misses city/state
+          if (!updatePayload.city || !updatePayload.state) {
+            const loc = extractCityStateFromConsigneeTable(extractedText);
+            if (!updatePayload.city && loc.city) updatePayload.city = loc.city;
+            if (!updatePayload.state && loc.state) updatePayload.state = loc.state;
+            if (updatePayload.city && !updatePayload.state) {
+              updatePayload.state = cityToState(updatePayload.city);
+            }
+          }
           updatePayload.emd_amount = aiData.emd_amount;
           updatePayload.quantity = aiData.quantity;
           updatePayload.ai_summary = aiData.technical_summary;
@@ -172,9 +182,7 @@ export async function runEnrichment(limit: number = 20, reprocess: boolean = fal
 
         const nowMs = Date.now();
         if (updatePayload.end_date && new Date(updatePayload.end_date).getTime() < nowMs) {
-          console.warn(`    ! DB discovered expired date ${updatePayload.end_date} for ${tender.bid_number}. Deleting...`);
-          await supabase.from('tenders').delete().eq('id', tender.id);
-          successCount++;
+          console.warn(`    ! Skipping expired tender ${tender.bid_number} (end_date: ${updatePayload.end_date})`);
           return;
         }
 

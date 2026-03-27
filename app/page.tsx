@@ -34,7 +34,7 @@ export default async function Page() {
     "itemListElement": initialTenders.map((tender: any, index: number) => ({
       "@type": "ListItem",
       "position": index + 1,
-      "url": `https://gemtenders.org/bids/${tender.slug}`
+      "url": `https://www.gemtenders.org/bids/${tender.slug}`
     }))
   };
 

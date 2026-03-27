@@ -6,13 +6,14 @@ import {
   Search, Download, Clock, Zap, FileText, Bookmark, Info, RefreshCw,
   X, ChevronDown, Bell, CheckCircle, Loader2, Share2, MapPin
 } from "lucide-react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const PAGE_SIZE = 21;
 const COLUMNS =
-  "id,title,bid_number,state,city,department,ministry_name,department_name,organisation_name,office_name,emd_amount,start_date,end_date,ai_summary,eligibility_msme,eligibility_mii,created_at,slug";
+  "id,title,bid_number,ra_number,state,city,department,ministry_name,department_name,organisation_name,office_name,emd_amount,start_date,end_date,ai_summary,eligibility_msme,eligibility_mii,created_at,slug";
 
 import { CATEGORIES, getCategoryById } from "@/lib/categories";
 
@@ -37,10 +38,18 @@ function getCategory(title: string, summary: string) {
 
 const isNAValue = (v?: string | null) => !v || /^n\/?a$/i.test(v.trim());
 
+// Build OR clause — identical to queryTenders so contextual counts match main results
+function buildSearchOrClause(q: string): string {
+  const terms = q.split(",").map((s) => s.trim()).filter(Boolean);
+  return terms.map((term) =>
+    `title.ilike.%${term}%,bid_number.ilike.%${term}%,ra_number.ilike.%${term}%,department.ilike.%${term}%,ministry_name.ilike.%${term}%,organisation_name.ilike.%${term}%,state.ilike.%${term}%,city.ilike.%${term}%,ai_summary.ilike.%${term}%`
+  ).join(",");
+}
+
 function formatDepartmentInfo(ministry?: string, dept?: string, org?: string): string {
   let ministryStr = ministry || "";
   let deptStr = dept || "";
-  let orgStr = isNAValue(org) ? (dept || "") : (org || "");
+  let orgStr = isNAValue(org) ? "" : (org || "");
 
   const states = ["Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Goa","Gujarat","Haryana","Himachal Pradesh","Jharkhand","Karnataka","Kerala","Madhya Pradesh","Maharashtra","Manipur","Meghalaya","Mizoram","Nagaland","Odisha","Punjab","Rajasthan","Sikkim","Tamil Nadu","Telangana","Tripura","Uttar Pradesh","Uttarakhand","West Bengal","Delhi","Puducherry","Chandigarh","Ladakh","Jammu And Kashmir"];
 
@@ -68,8 +77,18 @@ function formatDepartmentInfo(ministry?: string, dept?: string, org?: string): s
 
   let cleanDept = deptStr.replace(/([^\s,])(Department Of|Office Of|Organisation Of|Division Of)/gi, "$1, $2");
 
-  if (orgStr && (deptStr.toLowerCase().includes(orgStr.toLowerCase()) || ministryStr.toLowerCase().includes(orgStr.toLowerCase()))) {
-    orgStr = "";
+  if (orgStr) {
+    const orgNorm = orgStr.toLowerCase().replace(/\s+/g, " ").trim();
+    const mNorm = ministryStr.toLowerCase();
+    const dNorm = deptStr.toLowerCase();
+    if (
+      dNorm.includes(orgNorm) ||
+      mNorm.includes(orgNorm) ||
+      orgNorm.includes(mNorm) ||
+      (mNorm && dNorm && orgNorm.includes(mNorm) && orgNorm.includes(dNorm))
+    ) {
+      orgStr = "";
+    }
   }
 
   const parts = [ministryStr, cleanDept, orgStr].filter(Boolean).map((s) => toTitleCase(s));
@@ -121,8 +140,8 @@ async function queryTendersCount(filters: Filters): Promise<number> {
 
   if (filters.q.trim()) {
     const searchTerms = filters.q.split(',').map(s => s.trim()).filter(Boolean);
-    const orClauses = searchTerms.map(term => 
-      `title.ilike.%${term}%,bid_number.ilike.%${term}%,department.ilike.%${term}%,ministry_name.ilike.%${term}%,organisation_name.ilike.%${term}%,state.ilike.%${term}%,city.ilike.%${term}%,ai_summary.ilike.%${term}%`
+    const orClauses = searchTerms.map(term =>
+      `title.ilike.%${term}%,bid_number.ilike.%${term}%,ra_number.ilike.%${term}%,department.ilike.%${term}%,ministry_name.ilike.%${term}%,organisation_name.ilike.%${term}%,state.ilike.%${term}%,city.ilike.%${term}%,ai_summary.ilike.%${term}%`
     );
     q = q.or(orClauses.join(','));
   }
@@ -164,65 +183,32 @@ async function queryTendersCount(filters: Filters): Promise<number> {
 async function queryForYouTenders(searches: any[]): Promise<any[]> {
   if (!searches.length) return [];
 
-  // Build OR parts from all saved search keywords + category keywords
-  const orParts: string[] = [];
-  const allStates: string[] = [];
-  const allCities: string[] = [];
-
+  // Collect all unique keywords across all saved searches
+  const allKeywords: string[] = [];
   searches.forEach(search => {
-    const p = search.query_params;
-    if (!p) return;
-
-    if (p.states) allStates.push(...p.states);
-    if (p.state) allStates.push(p.state);
-    if (p.cities) allCities.push(...p.cities);
-
-    if (p.q) {
-      p.q.split(",").map((k: string) => k.trim()).filter(Boolean).forEach((kw: string) => {
-        orParts.push(`title.ilike.%${kw}%`, `department.ilike.%${kw}%`, `ai_summary.ilike.%${kw}%`);
-      });
-    }
-    if (p.category) {
-      orParts.push(`category.eq.${p.category}`); // Since we are combining with .or(), wait actually .or("category.eq.it,title.ilike...") works in Supabase string syntax
+    const q = search.query_params?.q;
+    if (q) {
+      q.split(",").map((k: string) => k.trim()).filter(Boolean)
+        .forEach((kw: string) => allKeywords.push(kw));
     }
   });
+  const uniqueKeywords = [...new Set(allKeywords)];
 
-  let q = supabase
+  if (!uniqueKeywords.length) return [];
+
+  // Use ONLY title in the DB query to keep the OR clause short (avoids URL length limits).
+  // All field matching (org, ministry, ai_summary, etc.) is done client-side in forYouTenders.
+  const orString = uniqueKeywords.map(kw => `title.ilike.%${kw}%`).join(",");
+
+  const { data, error } = await supabase
     .from("tenders")
     .select(COLUMNS)
     .gte("end_date", new Date().toISOString())
+    .or(orString)
     .order("created_at", { ascending: false })
-    .order("id", { ascending: true })
-    .limit(3000);
+    .limit(1000);
 
-  if (orParts.length > 0) {
-    const unique = [...new Set(orParts)];
-    q = q.or(unique.join(","));
-  }
-
-  const uniqueStates = [...new Set(allStates)];
-  if (uniqueStates.length > 0) {
-    const hasSearchWithoutStates = searches.some(s => {
-      const p = s.query_params || {};
-      return !(p.states?.length > 0 || p.state);
-    });
-    if (!hasSearchWithoutStates) {
-      q = q.in("state", uniqueStates);
-    }
-  }
-
-  const uniqueCities = [...new Set(allCities)];
-  if (uniqueCities.length > 0) {
-    const hasSearchWithoutCities = searches.some(s => {
-      const p = s.query_params || {};
-      return !(p.cities?.length > 0);
-    });
-    if (!hasSearchWithoutCities) {
-      q = q.in("city", uniqueCities);
-    }
-  }
-
-  const { data } = await q;
+  if (error) console.error("[ForYou] query error:", error);
   return data || [];
 }
 
@@ -253,8 +239,8 @@ async function queryTenders(filters: Filters, page: number): Promise<any[]> {
   // Text search
   if (filters.q.trim()) {
     const searchTerms = filters.q.split(',').map(s => s.trim()).filter(Boolean);
-    const orClauses = searchTerms.map(term => 
-      `title.ilike.%${term}%,bid_number.ilike.%${term}%,department.ilike.%${term}%,ministry_name.ilike.%${term}%,organisation_name.ilike.%${term}%,state.ilike.%${term}%,city.ilike.%${term}%,ai_summary.ilike.%${term}%`
+    const orClauses = searchTerms.map(term =>
+      `title.ilike.%${term}%,bid_number.ilike.%${term}%,ra_number.ilike.%${term}%,department.ilike.%${term}%,ministry_name.ilike.%${term}%,organisation_name.ilike.%${term}%,state.ilike.%${term}%,city.ilike.%${term}%,ai_summary.ilike.%${term}%`
     );
     q = q.or(orClauses.join(','));
   }
@@ -357,6 +343,8 @@ function TendersClient({
   const [page, setPage]                         = useState(0);
   const [hasMore, setHasMore]                   = useState(initialTenders.length === PAGE_SIZE);
   const [totalCount, setTotalCount]             = useState<number | null>(initialTotalCount ?? null);
+  const [activeCount, setActiveCount]           = useState<number | null>(initialTotalCount ?? null);
+  const [archivedCount, setArchivedCount]       = useState<number | null>(null);
   const [forYouAllTenders, setForYouAllTenders] = useState<any[]>([]);
   const [forYouLoading, setForYouLoading]       = useState(false);
 
@@ -382,17 +370,23 @@ function TendersClient({
   const [saveSuccess, setSaveSuccess]       = useState(false);
 
   // ── Filter panel state ──
-  const [states, setStates]             = useState<string[]>([]);
-  const [cities, setCities]             = useState<string[]>([]);
+  const [states, setStates]             = useState<Array<{label:string;value:string;count:number}>>([]);
+  const [cities, setCities]             = useState<Array<{label:string;value:string;count:number}>>([]);
   const [statesLoaded, setStatesLoaded] = useState(false);
 
   // ── Ministry / Organisation filter state ──
   const [selectedMinistries, setSelectedMinistries] = useState<string[]>([]);
   const [selectedOrgs, setSelectedOrgs]             = useState<string[]>([]);
-  const [ministries, setMinistries]                 = useState<string[]>([]);
-  const [orgs, setOrgs]                             = useState<string[]>([]);
+  const [ministries, setMinistries]                 = useState<Array<{label:string;value:string;count:number}>>([]);
+  const [orgs, setOrgs]                             = useState<Array<{label:string;value:string;count:number}>>([]);
   const [ministriesLoaded, setMinistriesLoaded]     = useState(false);
   const [orgsLoaded, setOrgsLoaded]                 = useState(false);
+
+  // ── Contextual filter options (filtered by active search query) ──
+  const [contextualStates, setContextualStates]         = useState<Array<{label:string;value:string;count:number}>>([]);
+  const [contextualMinistries, setContextualMinistries] = useState<Array<{label:string;value:string;count:number}>>([]);
+  const [contextualOrgs, setContextualOrgs]             = useState<Array<{label:string;value:string;count:number}>>([]);
+  const [contextualLoading, setContextualLoading]       = useState(false);
 
   // ── Refs ──
   const isFirstRender  = useRef(true);
@@ -422,6 +416,12 @@ function TendersClient({
       if (c.length > 0) setSelectedCities(c);
       else if (prefCities.length > 0) setSelectedCities(prefCities);
     } catch {}
+
+    const tab = searchParams.get("tab");
+    if (tab === "foryou" || tab === "all" || tab === "archived") setActiveTab(tab);
+
+    const sort = searchParams.get("sort");
+    if (sort === "newest" || sort === "ending_soon") setSortOrder(sort);
 
     // Instantly remove any tenders that have precisely expired but were kept around by SSR cache
     const now = Date.now();
@@ -480,48 +480,41 @@ function TendersClient({
     });
   }, [savedSearches]);
 
+  // ── Helper: row array → sorted counted items ──
+  function toCounted(rows: any[], key: string) {
+    const map: Record<string, number> = {};
+    rows.forEach((r) => { const v = r[key]; if (v) map[v] = (map[v] || 0) + 1; });
+    return Object.entries(map)
+      .map(([v, c]) => ({ label: v, value: v, count: c }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }
+
   // ── Lazy-load states for filter panel ──
   async function loadStates() {
     if (statesLoaded) return;
-    const { data } = await supabase.from("tenders").select("state").not("state", "is", null).limit(5000);
-    if (data) {
-      const unique = [...new Set(data.map((t: any) => t.state).filter(Boolean))].sort() as string[];
-      setStates(unique);
-      setStatesLoaded(true);
-    }
+    const { data } = await supabase.from("tenders").select("state")
+      .gte("end_date", new Date().toISOString()).not("state", "is", null).limit(10000);
+    if (data) { setStates(toCounted(data, "state")); setStatesLoaded(true); }
   }
 
   // ── Lazy-load ministries ──
   async function loadMinistries() {
     if (ministriesLoaded) return;
-    const { data } = await supabase
-      .from("tenders")
-      .select("ministry_name")
-      .gte("end_date", new Date().toISOString())
-      .not("ministry_name", "is", null)
-      .limit(2000);
-    if (data) {
-      const unique = [...new Set(data.map((t: any) => t.ministry_name).filter(Boolean))].sort() as string[];
-      setMinistries(unique);
-      setMinistriesLoaded(true);
-    }
+    const { data } = await supabase.from("tenders").select("ministry_name")
+      .gte("end_date", new Date().toISOString()).not("ministry_name", "is", null).limit(10000);
+    if (data) { setMinistries(toCounted(data, "ministry_name")); setMinistriesLoaded(true); }
   }
 
   // ── Lazy-load organisations ──
   async function loadOrgs() {
     if (orgsLoaded) return;
-    const { data } = await supabase
-      .from("tenders")
-      .select("organisation_name")
-      .gte("end_date", new Date().toISOString())
-      .not("organisation_name", "is", null)
-      .limit(2000);
-    if (data) {
-      const unique = [...new Set(data.map((t: any) => t.organisation_name).filter(Boolean))].sort() as string[];
-      setOrgs(unique);
-      setOrgsLoaded(true);
-    }
+    const { data } = await supabase.from("tenders").select("organisation_name")
+      .gte("end_date", new Date().toISOString()).not("organisation_name", "is", null).limit(10000);
+    if (data) { setOrgs(toCounted(data, "organisation_name")); setOrgsLoaded(true); }
   }
+
+  // ── Contextual filter options cache ──
+  const contextualQueryCache = useRef("");
 
   // ── Load cities when states selected ──
   useEffect(() => {
@@ -533,12 +526,10 @@ function TendersClient({
       return;
     }
     supabase.from("tenders").select("city")
-      .in("state", selectedStates).not("city", "is", null).limit(2000)
+      .gte("end_date", new Date().toISOString())
+      .in("state", selectedStates).not("city", "is", null).limit(10000)
       .then(({ data }) => {
-        if (data) {
-          const unique = [...new Set(data.map((t: any) => t.city).filter(Boolean))].sort() as string[];
-          setCities(unique);
-        }
+        if (data) setCities(toCounted(data, "city"));
       });
   }, [selectedStates, statesLoaded]);
 
@@ -569,21 +560,58 @@ function TendersClient({
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
     const delay = searchQuery ? 350 : 0; // Debounce text search; instant for toggles
 
+    // Clear contextual data immediately when search query changes
+    const q = searchQuery.trim();
+    if (q !== contextualQueryCache.current) {
+      contextualQueryCache.current = "";
+      setContextualStates([]);
+      setContextualMinistries([]);
+      setContextualOrgs([]);
+      setContextualLoading(!!q);
+    }
+
     debounceTimer.current = setTimeout(async () => {
       const seq = ++fetchSeq.current;
       setLoading(true);
       setPage(0);
 
-      const [results, count] = await Promise.all([
-        queryTenders(currentFilters(), 0),
-        queryTendersCount(currentFilters()),
+      // Fetch contextual filter options in parallel with main results
+      const needContextual = !!q && contextualQueryCache.current !== q;
+      const ctxPromise = needContextual
+        ? supabase.from("tenders")
+            .select("state, ministry_name, organisation_name")
+            .gte("end_date", new Date().toISOString())
+            .or(buildSearchOrClause(q))
+            .order("created_at", { ascending: false })
+            .limit(1000)
+        : Promise.resolve(null);
+
+      const f = currentFilters();
+      const [results, count, countArchived, ctxResult] = await Promise.all([
+        queryTenders(f, 0),
+        queryTendersCount({ ...f, tab: "all" }),
+        queryTendersCount({ ...f, tab: "archived" }),
+        ctxPromise,
       ]);
 
       if (seq !== fetchSeq.current) return; // Discard stale response
       setTenders(results);
       setTotalCount(count);
+      setActiveCount(count);
+      setArchivedCount(countArchived);
       setHasMore(results.length === PAGE_SIZE);
       setLoading(false);
+
+      if (needContextual && ctxResult) {
+        const { data } = ctxResult as any;
+        if (data) {
+          contextualQueryCache.current = q;
+          setContextualStates(toCounted(data, "state"));
+          setContextualMinistries(toCounted(data, "ministry_name"));
+          setContextualOrgs(toCounted(data, "organisation_name"));
+        }
+        setContextualLoading(false);
+      }
     }, delay);
 
     return () => { if (debounceTimer.current) clearTimeout(debounceTimer.current); };
@@ -616,30 +644,31 @@ function TendersClient({
         if (p.q) {
            const kws = p.q.split(",").map((k: string) => k.trim()).filter(Boolean);
            if (kws.length && !kws.some((kw: string) => {
-             try {
-               const regex = new RegExp(`\\b${kw.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&')}\\b`, 'i');
-               return regex.test(tender.title || "") ||
-                      regex.test(tender.bid_number || "") ||
-                      regex.test(tender.department || "") ||
-                      regex.test(tender.ai_summary || "");
-             } catch (e) {
-               const lowerKw = kw.toLowerCase();
-               return tender.title?.toLowerCase().includes(lowerKw) ||
-                      tender.bid_number?.toLowerCase().includes(lowerKw) ||
-                      tender.department?.toLowerCase().includes(lowerKw) ||
-                      tender.ai_summary?.toLowerCase().includes(lowerKw);
-             }
+             const kwLower = kw.toLowerCase();
+             return (tender.title || "").toLowerCase().includes(kwLower) ||
+                    (tender.bid_number || "").toLowerCase().includes(kwLower) ||
+                    (tender.department || "").toLowerCase().includes(kwLower) ||
+                    (tender.organisation_name || "").toLowerCase().includes(kwLower) ||
+                    (tender.ministry_name || "").toLowerCase().includes(kwLower) ||
+                    (tender.ai_summary || "").toLowerCase().includes(kwLower);
            })) match = false;
         }
 
+        // Strict location filter — must match saved state/city exactly.
+        // Tenders without state/city won't show until enriched by the backfill script.
         const alertStates = p.states || (p.state ? [p.state] : []);
-        if (alertStates.length && !alertStates.includes(tender.state)) match = false;
+        if (alertStates.length) {
+          if (!tender.state || !alertStates.some((s: string) => s.toLowerCase() === tender.state.toLowerCase())) match = false;
+        }
 
         const alertCities = p.cities || [];
-        if (alertCities.length && !alertCities.includes(tender.city)) match = false;
+        if (alertCities.length && tender.city) {
+          // Only exclude when city IS known and doesn't match — null city means "unresolved, still in state"
+          if (!alertCities.some((c: string) => c.toLowerCase() === tender.city.toLowerCase())) match = false;
+        }
 
         if (p.category) {
-          if (tender.category !== p.category) match = false;
+          if (getCategory(tender.title, tender.ai_summary)?.id !== p.category) match = false;
         }
 
         if (p.msme && !tender.eligibility_msme) match = false;
@@ -766,13 +795,21 @@ function TendersClient({
           <div className="mt-3 flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 max-w-3xl">
             <FilterDropdown
               label="State"
-              items={states}
+              items={(() => {
+                if (!searchQuery.trim()) return states;
+                if (contextualLoading) return [];
+                // Use contextual results when available; fall back to global list
+                const base = contextualStates.length > 0 ? contextualStates : states;
+                const merged = [...base];
+                selectedStates.forEach((s) => { if (!merged.find((i) => i.value === s)) merged.push({ label: s, value: s, count: 0 }); });
+                return merged;
+              })()}
               selected={selectedStates}
               mode="multi"
               onToggle={(v) => setSelectedStates((p) => p.includes(v) ? p.filter((x) => x !== v) : [...p, v])}
               onClear={() => { setSelectedStates([]); setSelectedCities([]); }}
-              onOpen={loadStates}
-              loading={!statesLoaded && states.length === 0}
+              onOpen={() => { loadStates(); }}
+              loading={searchQuery.trim() ? contextualLoading : (!statesLoaded && states.length === 0)}
               searchPlaceholder="Search states…"
             />
             <FilterDropdown
@@ -787,24 +824,38 @@ function TendersClient({
             />
             <FilterDropdown
               label="Ministry"
-              items={ministries}
+              items={(() => {
+                if (!searchQuery.trim()) return ministries;
+                if (contextualLoading) return [];
+                const base = contextualMinistries.length > 0 ? contextualMinistries : ministries;
+                const merged = [...base];
+                selectedMinistries.forEach((s) => { if (!merged.find((i) => i.value === s)) merged.push({ label: s, value: s, count: 0 }); });
+                return merged;
+              })()}
               selected={selectedMinistries}
               mode="multi"
               onToggle={(v) => setSelectedMinistries((p) => p.includes(v) ? p.filter((x) => x !== v) : [...p, v])}
               onClear={() => setSelectedMinistries([])}
-              onOpen={loadMinistries}
-              loading={!ministriesLoaded && ministries.length === 0}
+              onOpen={() => { loadMinistries(); }}
+              loading={searchQuery.trim() ? contextualLoading : (!ministriesLoaded && ministries.length === 0)}
               searchPlaceholder="Search ministries…"
             />
             <FilterDropdown
               label="Organisation"
-              items={orgs}
+              items={(() => {
+                if (!searchQuery.trim()) return orgs;
+                if (contextualLoading) return [];
+                const base = contextualOrgs.length > 0 ? contextualOrgs : orgs;
+                const merged = [...base];
+                selectedOrgs.forEach((s) => { if (!merged.find((i) => i.value === s)) merged.push({ label: s, value: s, count: 0 }); });
+                return merged;
+              })()}
               selected={selectedOrgs}
               mode="multi"
               onToggle={(v) => setSelectedOrgs((p) => p.includes(v) ? p.filter((x) => x !== v) : [...p, v])}
               onClear={() => setSelectedOrgs([])}
-              onOpen={loadOrgs}
-              loading={!orgsLoaded && orgs.length === 0}
+              onOpen={() => { loadOrgs(); }}
+              loading={searchQuery.trim() ? contextualLoading : (!orgsLoaded && orgs.length === 0)}
               searchPlaceholder="Search organisations…"
             />
             <FilterDropdown
@@ -871,31 +922,101 @@ function TendersClient({
           )}
         </div>
 
-        {/* ── Tabs ── */}
-        <div className="flex flex-row flex-wrap items-center justify-between mb-4 border-b border-slate-200 dark:border-slate-700 w-full">
-          <div className="flex flex-nowrap items-center gap-x-4 sm:gap-x-6 overflow-x-auto no-scrollbar pt-1 pb-0 flex-1 min-w-0 pr-2" role="tablist" aria-label="Tender Views">
-            <TabButton label="All Active Bids" active={activeTab === "all"} onClick={() => setActiveTab("all")} />
+        {/* ── Main layout: sidebar + content ── */}
+        <div className="flex gap-6 items-start">
 
+          {/* ── Left sidebar ── */}
+          <aside className="hidden lg:flex flex-col gap-1 w-40 shrink-0 sticky top-20">
+            <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-3 mb-1">View</p>
+            {(["all", "archived"] as const).map((tab) => {
+              const cnt = tab === "all" ? activeCount : archivedCount;
+              return (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all text-left w-full ${
+                    activeTab === tab
+                      ? "bg-slate-900 dark:bg-slate-700 text-white shadow-sm"
+                      : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
+                  }`}
+                >
+                  <span className="flex items-center gap-2.5">
+                    {tab === "all"      && <span className="w-1.5 h-1.5 rounded-full bg-green-400 shrink-0" />}
+                    {tab === "archived" && <Clock className="w-3.5 h-3.5 shrink-0" />}
+                    {tab === "all" ? "Active Bids" : "Archived Bids"}
+                  </span>
+                  {loading ? (
+                    <span className="text-[10px] opacity-60">…</span>
+                  ) : cnt !== null ? (
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${activeTab === tab ? "bg-white/20 text-white" : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300"}`}>
+                      {cnt.toLocaleString()}
+                    </span>
+                  ) : null}
+                </button>
+              );
+            })}
+          </aside>
+
+          {/* ── Right: tabs + grid ── */}
+          <div className="flex-1 min-w-0">
+
+        {/* ── Tabs ── */}
+        <div className="mb-4 border-b border-slate-200 dark:border-slate-700 w-full">
+          {/* Row 1: Active/Archived toggle */}
+          <div className="flex items-center pt-1 pb-2 lg:hidden">
+            <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-full p-0.5 text-xs font-bold" role="tablist" aria-label="Tender Views">
+              <button
+                role="tab"
+                aria-selected={activeTab === "all" || activeTab === "foryou"}
+                onClick={() => setActiveTab("all")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all whitespace-nowrap ${activeTab !== "archived" ? "bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm" : "text-slate-500 dark:text-slate-400"}`}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-green-400 shrink-0" />
+                Active Bids
+                {activeCount !== null && !loading && (
+                  <span className="ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">
+                    {activeCount.toLocaleString()}
+                  </span>
+                )}
+              </button>
+              <button
+                role="tab"
+                aria-selected={activeTab === "archived"}
+                onClick={() => setActiveTab("archived")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all whitespace-nowrap ${activeTab === "archived" ? "bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm" : "text-slate-500 dark:text-slate-400"}`}
+              >
+                <Clock className="w-3 h-3 shrink-0" />
+                Archived Bids
+                {archivedCount !== null && !loading && (
+                  <span className="ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                    {archivedCount.toLocaleString()}
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Row 2: For You + Sort by */}
+          <div className="flex flex-row items-center justify-between pt-1 pb-2">
             {user && savedSearches.length > 0 ? (
               <button
                 role="tab"
                 aria-selected={activeTab === "foryou"}
                 onClick={() => setActiveTab("foryou")}
-                className={`pb-2 sm:pb-3 text-xs sm:text-sm font-bold flex items-center space-x-1.5 sm:space-x-2 transition-all relative whitespace-nowrap ${activeTab === "foryou" ? "text-blue-600 dark:text-blue-400" : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"}`}
+                className={`text-xs sm:text-sm font-bold flex items-center space-x-1.5 sm:space-x-2 transition-all relative whitespace-nowrap ${activeTab === "foryou" ? "text-blue-600 dark:text-blue-400" : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"}`}
               >
                 <Zap className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${activeTab === "foryou" ? "text-blue-600" : "text-slate-500 dark:text-slate-400"}`} />
                 <span>For You</span>
                 <span className={`px-1.5 sm:px-2 py-0.5 rounded-full text-xs font-black tracking-widest uppercase ${activeTab === "foryou" ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"}`}>
                   {forYouLoading ? "…" : forYouTenders.length}
                 </span>
-                {activeTab === "foryou" && <div className="absolute bottom-[-8px] sm:bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-t-full" />}
               </button>
             ) : (
               <button
                 role="tab"
-                aria-selected={activeTab === "foryou"}
+                aria-selected={false}
                 onClick={() => { if (!user) window.location.href = "/login"; else window.location.href = "/dashboard/keywords"; }}
-                className="group pb-2 sm:pb-3 text-xs sm:text-sm font-bold flex items-center space-x-1.5 sm:space-x-2 transition-all relative text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 whitespace-nowrap"
+                className="group text-xs sm:text-sm font-bold flex items-center space-x-1.5 sm:space-x-2 transition-all relative text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 whitespace-nowrap"
               >
                 <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-500 group-hover:text-blue-600 transition-colors" />
                 <span>For You</span>
@@ -904,27 +1025,27 @@ function TendersClient({
                 </span>
               </button>
             )}
-          </div>
 
-          <div className="flex items-center space-x-3 shrink-0 pb-2 pt-1 pl-2">
-            <div className="hidden md:block text-xs font-bold text-slate-500 dark:text-slate-400">
-              {loading ? "…" : activeTab === "foryou"
-                ? `${forYouTenders.length} results`
-                : totalCount !== null
-                  ? `${totalCount.toLocaleString()} results`
-                  : `${displayTenders.length}${hasMore ? "+" : ""} results`}
-            </div>
-            <div className="flex items-center space-x-2 font-medium">
-              <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Sort by :</span>
-              <select
-                aria-label="Sort order"
-                value={sortOrder}
-                onChange={(e) => setSortOrder(e.target.value as "newest" | "ending_soon")}
-                className="text-xs sm:text-sm bg-transparent border-none outline-none cursor-pointer text-slate-900 dark:text-slate-100 font-bold p-0"
-              >
-                <option value="newest">Newest First</option>
-                <option value="ending_soon">Ending Soon</option>
-              </select>
+            <div className="flex items-center space-x-3 shrink-0">
+              <div className="hidden md:block text-xs font-bold text-slate-500 dark:text-slate-400">
+                {loading ? "…" : activeTab === "foryou"
+                  ? `${forYouTenders.length} results`
+                  : activeTab === "archived"
+                    ? archivedCount !== null ? `${archivedCount.toLocaleString()} results` : `${displayTenders.length}${hasMore ? "+" : ""} results`
+                    : activeCount !== null ? `${activeCount.toLocaleString()} results` : `${displayTenders.length}${hasMore ? "+" : ""} results`}
+              </div>
+              <div className="flex items-center space-x-2 font-medium">
+                <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Sort by :</span>
+                <select
+                  aria-label="Sort order"
+                  value={sortOrder}
+                  onChange={(e) => setSortOrder(e.target.value as "newest" | "ending_soon")}
+                  className="text-xs sm:text-sm bg-transparent border-none outline-none cursor-pointer text-slate-900 dark:text-slate-100 font-bold p-0"
+                >
+                  <option value="newest">Newest First</option>
+                  <option value="ending_soon">Ending Soon</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
@@ -965,7 +1086,7 @@ function TendersClient({
 
 
         {/* ── Tender Grid ── */}
-        {loading ? (
+        {loading || (activeTab === "foryou" && forYouLoading) ? (
           <div role="table" aria-label="Loading Tenders" className="w-full">
             <div role="rowgroup" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {Array.from({ length: 6 }).map((_, i) => (
@@ -978,10 +1099,20 @@ function TendersClient({
         ) : displayTenders.length === 0 ? (
           <div className="text-center py-20 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl flex flex-col items-center">
             <div className="w-14 h-14 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
-              <Search className="w-7 h-7 text-slate-300 dark:text-slate-600" />
+              {activeTab === "foryou" ? <Zap className="w-7 h-7 text-slate-300 dark:text-slate-600" /> : <Search className="w-7 h-7 text-slate-300 dark:text-slate-600" />}
             </div>
-            <h3 className="text-lg font-medium text-slate-500 dark:text-slate-400">No matching tenders found.</h3>
-            <p className="text-slate-600 dark:text-slate-400 mt-1 text-sm">Try adjusting your filters or search terms.</p>
+            {activeTab === "foryou" ? (
+              <>
+                <h3 className="text-lg font-medium text-slate-500 dark:text-slate-400">No matching tenders yet.</h3>
+                <p className="text-slate-600 dark:text-slate-400 mt-1 text-sm">New tenders matching your keywords will appear here automatically.</p>
+                <Link href="/dashboard/keywords" className="mt-4 text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline">Update Keywords →</Link>
+              </>
+            ) : (
+              <>
+                <h3 className="text-lg font-medium text-slate-500 dark:text-slate-400">No matching tenders found.</h3>
+                <p className="text-slate-600 dark:text-slate-400 mt-1 text-sm">Try adjusting your filters or search terms.</p>
+              </>
+            )}
           </div>
         ) : (
           <>
@@ -1030,6 +1161,8 @@ function TendersClient({
             )}
           </>
         )}
+          </div>{/* end right column */}
+        </div>{/* end sidebar+content flex */}
       </main>
     </div>
   );
@@ -1220,13 +1353,22 @@ function TenderCard({
         <div className="flex items-center space-x-1 shrink-0">
           {tender.eligibility_msme && <span className="text-xs font-bold px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded border border-blue-100 dark:border-blue-800" title="MSE Preferred">MSE</span>}
           {tender.eligibility_mii  && <span className="text-xs font-bold px-1.5 py-0.5 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded border border-amber-100 dark:border-amber-800" title="MII Preferred">MII</span>}
+          {tender.ra_number && (
+            <span
+              className="text-xs font-bold px-1.5 py-0.5 bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded border border-purple-100 dark:border-purple-800 cursor-help"
+              title={`This bid moved to Reverse Auction\nRA No: ${tender.ra_number}\nClick to search by RA number`}
+              onClick={(e) => { e.stopPropagation(); setSearchQuery(tender.ra_number); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+            >
+              Reverse Auction ↗
+            </span>
+          )}
           <span className="text-xs font-medium px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded">GeM</span>
         </div>
       </td>
 
       {/* 4: EMD & Dates */}
       <td role="cell" className="grid grid-cols-3 gap-2 py-2 sm:py-2.5 border-y border-slate-100 dark:border-slate-700 mb-4 bg-slate-50 dark:bg-slate-800 -mx-4 px-4 relative z-10 pointer-events-none mt-auto w-full">
-        <div className="flex flex-col">
+        <div className="flex flex-col items-center">
           <span className="text-xs text-slate-500 dark:text-slate-400 mb-0.5">EMD Amount</span>
           <span className="text-[13px] font-medium text-slate-700 dark:text-slate-300 truncate">{formattedEMD}</span>
         </div>
@@ -1236,7 +1378,7 @@ function TenderCard({
             {isFallbackDate ? "Pending" : (tender.start_date ? formatDate(tender.start_date) : "N/A")}
           </span>
         </div>
-        <div className="flex flex-col items-end border-l border-slate-200 dark:border-slate-700 pl-1">
+        <div className="flex flex-col items-center border-l border-slate-200 dark:border-slate-700">
           <div className="flex items-center space-x-1 mb-0.5">
             <Clock className="w-2.5 h-2.5 text-slate-500 dark:text-slate-400" />
             <span className="text-xs text-slate-500 dark:text-slate-400">Close Date</span>
@@ -1292,10 +1434,11 @@ function TenderCard({
 }
 
 // ─── FilterDropdown ────────────────────────────────────────────────────────────
-type FDItem = string | { label: string; value: string };
+type FDItem = string | { label: string; value: string; count?: number };
 
 function fdValue(item: FDItem) { return typeof item === "string" ? item : item.value; }
 function fdLabel(item: FDItem) { return typeof item === "string" ? item : item.label; }
+function fdCount(item: FDItem) { return typeof item === "string" ? undefined : item.count; }
 
 function FilterDropdown({
   label,
@@ -1326,18 +1469,38 @@ function FilterDropdown({
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const ref = useRef<HTMLDivElement>(null);
+  const [panelStyle, setPanelStyle] = useState<React.CSSProperties>({});
+  const [mounted, setMounted] = useState(false);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const opened = useRef(false);
+  const prevOnOpen = useRef(onOpen);
 
+  // Reset the "already opened" guard when the onOpen callback changes
+  useEffect(() => {
+    if (prevOnOpen.current !== onOpen) {
+      prevOnOpen.current = onOpen;
+      opened.current = false;
+    }
+  }, [onOpen]);
+
+  useEffect(() => { setMounted(true); }, []);
+
+  // Close on outside click — must check both trigger button and panel
   useEffect(() => {
     if (!open) return;
     function handler(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      const t = e.target as Node;
+      if (
+        btnRef.current && !btnRef.current.contains(t) &&
+        panelRef.current && !panelRef.current.contains(t)
+      ) setOpen(false);
     }
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
+  // Close on Escape
   useEffect(() => {
     if (!open) return;
     function handler(e: KeyboardEvent) { if (e.key === "Escape") setOpen(false); }
@@ -1345,9 +1508,29 @@ function FilterDropdown({
     return () => document.removeEventListener("keydown", handler);
   }, [open]);
 
+  // Close on scroll/resize (panel is fixed, won't track the button)
+  useEffect(() => {
+    if (!open) return;
+    function close() { setOpen(false); }
+    window.addEventListener("scroll", close, { passive: true, capture: true });
+    window.addEventListener("resize", close);
+    return () => {
+      window.removeEventListener("scroll", close, { capture: true });
+      window.removeEventListener("resize", close);
+    };
+  }, [open]);
+
   function handleToggle() {
     if (disabled) return;
     if (!open && !opened.current) { opened.current = true; onOpen?.(); }
+    if (!open && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
+      const panelW = 240;
+      const vw = window.innerWidth;
+      let left = rect.left;
+      if (left + panelW > vw - 8) left = Math.max(8, vw - panelW - 8);
+      setPanelStyle({ position: "fixed", top: rect.bottom + 6, left, width: panelW, zIndex: 9999 });
+    }
     setOpen((v) => !v);
     setQuery("");
   }
@@ -1363,10 +1546,91 @@ function FilterDropdown({
       : `${label} (${selected.length})`
     : label;
 
+  const panel = (
+    <div
+      ref={panelRef}
+      style={panelStyle}
+      className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl overflow-hidden"
+    >
+      {searchable && (
+        <div className="p-2 border-b border-slate-100 dark:border-slate-800">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+            <input
+              autoFocus
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={searchPlaceholder}
+              className="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 dark:text-slate-300 placeholder:text-slate-400"
+            />
+          </div>
+        </div>
+      )}
+
+      <div className="max-h-60 overflow-y-auto no-scrollbar">
+        {loading ? (
+          <div className="py-8 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />Loading…
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="py-8 text-center text-xs text-slate-400">No results</div>
+        ) : filtered.map((item) => {
+          const val = fdValue(item);
+          const lbl = fdLabel(item);
+          const checked = selected.includes(val);
+          const cnt = fdCount(item);
+          return (
+            <button
+              key={val}
+              onClick={() => {
+                if (mode === "single") { onSelect?.(val); setOpen(false); }
+                else { onToggle?.(val); }
+              }}
+              className={`w-full flex items-center gap-2 px-4 py-2.5 text-xs text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800 ${
+                checked ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-bold" : "text-slate-700 dark:text-slate-300"
+              }`}
+            >
+              {mode === "multi" ? (
+                <span className={`w-3.5 h-3.5 shrink-0 rounded border flex items-center justify-center transition-colors ${checked ? "bg-blue-600 border-blue-600" : "border-slate-300 dark:border-slate-600"}`}>
+                  {checked && <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 10 10"><path d="M1.5 5l2.5 2.5 4.5-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                </span>
+              ) : (
+                <span className={`w-3.5 h-3.5 shrink-0 rounded-full border flex items-center justify-center transition-colors ${checked ? "border-blue-600" : "border-slate-300 dark:border-slate-600"}`}>
+                  {checked && <span className="w-2 h-2 rounded-full bg-blue-600 block" />}
+                </span>
+              )}
+              <span className="truncate flex-1">{lbl}</span>
+              {cnt !== undefined && cnt > 0 && (
+                <span className={`shrink-0 tabular-nums text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                  checked ? "bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200" : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
+                }`}>
+                  {cnt.toLocaleString()}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {selected.length > 0 && (
+        <div className="p-2 border-t border-slate-100 dark:border-slate-800">
+          <button
+            onClick={() => { onClear(); setOpen(false); }}
+            className="w-full py-1.5 text-xs font-bold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+          >
+            Clear {label}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
   return (
-    <div ref={ref} className="relative shrink-0">
+    <div className="relative shrink-0">
       {/* Trigger button */}
       <button
+        ref={btnRef}
         onClick={handleToggle}
         disabled={disabled}
         className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-all whitespace-nowrap ${
@@ -1394,76 +1658,8 @@ function FilterDropdown({
         )}
       </button>
 
-      {/* Dropdown panel */}
-      {open && (
-        <div className="absolute top-full left-0 mt-1.5 z-50 w-60 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl overflow-hidden">
-          {searchable && (
-            <div className="p-2 border-b border-slate-100 dark:border-slate-800">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
-                <input
-                  autoFocus
-                  type="text"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder={searchPlaceholder}
-                  className="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 dark:text-slate-300 placeholder:text-slate-400"
-                />
-              </div>
-            </div>
-          )}
-
-          <div className="max-h-60 overflow-y-auto no-scrollbar">
-            {loading ? (
-              <div className="py-8 text-center text-xs text-slate-400">Loading…</div>
-            ) : filtered.length === 0 ? (
-              <div className="py-8 text-center text-xs text-slate-400">No results</div>
-            ) : filtered.map((item) => {
-              const val = fdValue(item);
-              const lbl = fdLabel(item);
-              const checked = selected.includes(val);
-              return (
-                <button
-                  key={val}
-                  onClick={() => {
-                    if (mode === "single") {
-                      onSelect?.(val);
-                      setOpen(false);
-                    } else {
-                      onToggle?.(val);
-                    }
-                  }}
-                  className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-xs text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800 ${
-                    checked ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-bold" : "text-slate-700 dark:text-slate-300"
-                  }`}
-                >
-                  {mode === "multi" ? (
-                    <span className={`w-3.5 h-3.5 shrink-0 rounded border flex items-center justify-center transition-colors ${checked ? "bg-blue-600 border-blue-600" : "border-slate-300 dark:border-slate-600"}`}>
-                      {checked && <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 10 10"><path d="M1.5 5l2.5 2.5 4.5-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                    </span>
-                  ) : (
-                    <span className={`w-3.5 h-3.5 shrink-0 rounded-full border flex items-center justify-center transition-colors ${checked ? "border-blue-600" : "border-slate-300 dark:border-slate-600"}`}>
-                      {checked && <span className="w-2 h-2 rounded-full bg-blue-600 block" />}
-                    </span>
-                  )}
-                  <span className="truncate">{lbl}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {selected.length > 0 && (
-            <div className="p-2 border-t border-slate-100 dark:border-slate-800">
-              <button
-                onClick={() => { onClear(); setOpen(false); }}
-                className="w-full py-1.5 text-xs font-bold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-              >
-                Clear {label}
-              </button>
-            </div>
-          )}
-        </div>
-      )}
+      {/* Dropdown panel — rendered via portal to escape overflow-x-auto clipping */}
+      {open && mounted && createPortal(panel, document.body)}
     </div>
   );
 }

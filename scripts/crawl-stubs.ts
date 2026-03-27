@@ -118,15 +118,39 @@ async function main() {
 
   const page = await context.newPage();
 
-  // Navigate to start page
-  console.log(`>>> [CRAWL] Loading page ${resumePage}...`);
+  // Navigate to page 1 first to set sort order before crawling
+  console.log(`>>> [CRAWL] Loading page 1 to configure sort order...`);
   try {
-    await page.goto(`https://bidplus.gem.gov.in/all-bids?page=${resumePage}`, {
+    await page.goto(`https://bidplus.gem.gov.in/all-bids`, {
       waitUntil: 'networkidle',
       timeout: 60000,
     });
     await page.waitForTimeout(3000);
     await page.waitForSelector('.card', { timeout: 30000 });
+
+    // Set Sort by: Bid start date : Latest first
+    console.log(`>>> [CRAWL] Setting sort order to: Bid start date : Latest first`);
+    const sortEl = await page.$('select#sortby, select[name="sortby"], select[name="sort_by"], select[name="sort"]');
+    if (sortEl) {
+      const sortSelector = 'select#sortby, select[name="sortby"], select[name="sort_by"], select[name="sort"]';
+      await page.selectOption(sortSelector, { label: 'Bid start date : Latest first' });
+      await page.waitForTimeout(3000);
+      await page.waitForSelector('.card', { timeout: 30000 });
+      console.log(`>>> [CRAWL] Sort order applied.`);
+    } else {
+      console.warn(`>>> [CRAWL] Sort dropdown not found — proceeding with default order.`);
+    }
+
+    // If resuming from a later page, navigate directly to it
+    if (resumePage > 1) {
+      console.log(`>>> [CRAWL] Navigating to resume page ${resumePage}...`);
+      await page.goto(`https://bidplus.gem.gov.in/all-bids?page=${resumePage}`, {
+        waitUntil: 'networkidle',
+        timeout: 60000,
+      });
+      await page.waitForTimeout(3000);
+      await page.waitForSelector('.card', { timeout: 30000 });
+    }
   } catch (e: any) {
     console.error(`>>> [CRAWL] Failed to load initial page: ${e.message}`);
     await browser.close();

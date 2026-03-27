@@ -27,6 +27,11 @@ CREATE TABLE tenders (
     eligibility_msme BOOLEAN DEFAULT false,
     eligibility_mii BOOLEAN DEFAULT false,
     is_archived BOOLEAN DEFAULT false,
+    archived_at TIMESTAMPTZ,
+    notification_sent BOOLEAN DEFAULT false,
+    ra_number TEXT DEFAULT NULL,        -- RA bid number (GEM/20xx/R/xxx) if this bid has an active Reverse Auction
+    ra_end_date TIMESTAMPTZ DEFAULT NULL, -- RA closing deadline
+    ra_notified BOOLEAN DEFAULT false,  -- whether RA-specific notification has been sent
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -34,6 +39,7 @@ CREATE TABLE tenders (
 CREATE INDEX idx_tenders_slug ON tenders(slug);
 CREATE INDEX idx_tenders_bid_number ON tenders(bid_number);
 CREATE INDEX idx_tenders_end_date ON tenders(end_date);
+CREATE INDEX idx_tenders_archived_at ON tenders(archived_at) WHERE archived_at IS NOT NULL;
 CREATE INDEX idx_tenders_state ON tenders(state);
 CREATE INDEX idx_tenders_city ON tenders(city);
 
@@ -136,3 +142,19 @@ FOR ALL
 TO authenticated
 USING (auth.uid() = user_id)
 WITH CHECK (auth.uid() = user_id);
+
+-- ==========================================
+-- MIGRATIONS (run these on existing DB)
+-- ==========================================
+-- ALTER TABLE tenders ADD COLUMN IF NOT EXISTS notification_sent BOOLEAN DEFAULT false;
+-- ALTER TABLE tenders ADD COLUMN IF NOT EXISTS ra_number TEXT DEFAULT NULL;
+-- ALTER TABLE tenders ADD COLUMN IF NOT EXISTS ra_end_date TIMESTAMPTZ DEFAULT NULL;
+-- ALTER TABLE tenders ADD COLUMN IF NOT EXISTS ra_notified BOOLEAN DEFAULT false;
+-- ALTER TABLE tenders ADD COLUMN IF NOT EXISTS enrichment_tried_at TIMESTAMPTZ DEFAULT NULL;
+-- CREATE INDEX IF NOT EXISTS idx_tenders_enrichment_tried_at ON tenders(enrichment_tried_at) WHERE enrichment_tried_at IS NULL;
+-- ALTER TABLE tenders ADD COLUMN IF NOT EXISTS category TEXT DEFAULT NULL;
+-- ALTER TABLE tenders ADD COLUMN IF NOT EXISTS bid_type TEXT DEFAULT NULL;
+-- ALTER TABLE tenders ADD COLUMN IF NOT EXISTS procurement_type TEXT DEFAULT NULL;
+-- ALTER TABLE tenders ADD COLUMN IF NOT EXISTS keywords TEXT[] DEFAULT '{}';
+-- CREATE INDEX IF NOT EXISTS idx_tenders_category ON tenders(category);
+-- CREATE INDEX IF NOT EXISTS idx_tenders_bid_type ON tenders(bid_type);

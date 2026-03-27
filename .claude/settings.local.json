@@ -34,7 +34,16 @@
       "Bash(ls -1 /d/websites/Tenders/lib/*.ts)",
       "Bash(find d:websitesTenders -type f -name schema.prisma -o -name *.prisma)",
       "Bash(find d:websitesTenders -path */node_modules -prune -o -type f \\\\\\(-name schema.prisma -o -name *.sql -o -name migrations \\\\\\) -print)",
-      "Bash(ls d:/websites/Tenders/.env*)"
+      "Bash(ls d:/websites/Tenders/.env*)",
+      "Bash(grep -r from.*profiles /d/websites/Tenders/app --include=*.ts --include=*.tsx)",
+      "Bash(grep -E '\"\"crawl|\"\"enrich|\"\"fast-scrape|\"\"scrape' package.json)",
+      "Bash(xargs grep:*)",
+      "Bash(npx tsx -e \":*)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code} | content-type: %{content_type} | size: %{size_download}\" -L --max-time 15 -A \"Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\) AppleWebKit/537.36\" \"https://bidplus.gem.gov.in/showbidDocument/8296881\")",
+      "Bash(curl -s -c /tmp/gem-cookies.txt -o /dev/null \"https://bidplus.gem.gov.in/all-bids\" -A \"Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\) AppleWebKit/537.36\")",
+      "Bash(curl -s -b /tmp/gem-cookies.txt -L -o /tmp/test.pdf -w \"status:%{http_code} size:%{size_download} type:%{content_type}\" --max-time 15 -A \"Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\) AppleWebKit/537.36\" -e \"https://bidplus.gem.gov.in/all-bids\" \"https://bidplus.gem.gov.in/showbidDocument/8296881\")",
+      "Bash(pkill -f \"run-scraper\")",
+      "Bash(pkill -f \"gem-scraper\")"
     ]
   }
 }

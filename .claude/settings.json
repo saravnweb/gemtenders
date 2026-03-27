@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \":*)",
+      "WebFetch(domain:developers.google.com)",
+      "Bash(npx tsx -e \":*)",
+      "Bash(find /d/websites/Tenders -name *.md -type f)",
+      "Bash(grep -E \"tender\\\\.\\([\\\\w_]+\\)\" /d/websites/Tenders/app/bids/[slug]/page.tsx)",
+      "Bash(python -c \"import sys, json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\(''''scripts'''', {}\\), indent=2\\)\\)\")"
+    ]
+  }
+}
