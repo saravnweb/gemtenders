@@ -2,14 +2,24 @@ import dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL) dotenv.config({ path: '.env' });
 
+process.on('unhandledRejection', (reason) => {
+  console.error('\n🛑 UNHANDLED REJECTION:', reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('\n🛑 UNCAUGHT EXCEPTION:', err);
+  process.exit(1);
+});
+
 import { createClient } from '@supabase/supabase-js';
 import { State } from 'country-state-city';
-import { normalizeState, normalizeCity, cityToState, INDIAN_STATES } from '../lib/locations';
+import { normalizeState, normalizeCity, cityToState, INDIAN_STATES } from '../../lib/locations';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
+
+function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)); }
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const GROQ_MODEL   = 'llama-3.3-70b-versatile';
@@ -103,14 +113,33 @@ async function fixLocations() {
   let totalFixed = 0, stateFixed = 0, cityFixed = 0, bothFixed = 0, skipped = 0;
 
   while (true) {
-    const { data: rows, error } = await supabase
-      .from('tenders')
-      .select('id, bid_number, state, city, ai_summary, office_name, organisation_name, department_name, ministry_name, title')
-      .or('state.is.null,city.is.null')
-      .range(offset, offset + BATCH - 1);
+    // Fetch rows where either state or city is missing
+    let rows: any[] | null = null;
+    let retries = 3;
+    while (retries > 0) {
+      const { data, error: fetchErr } = await supabase
+        .from('tenders')
+        .select('id, bid_number, state, city, ai_summary, office_name, organisation_name, department_name, ministry_name, title')
+        .or('state.is.null,city.is.null')
+        .range(0, BATCH - 1);
 
-    if (error) { console.error('DB error:', error.message); break; }
-    if (!rows || rows.length === 0) break;
+      if (fetchErr) {
+        console.error(`\n  DB error (retries=${retries}): ${fetchErr.message}`);
+        if (fetchErr.message.includes('timeout')) {
+          retries--;
+          await sleep(5000);
+          continue;
+        }
+        break;
+      }
+      rows = data;
+      break;
+    }
+
+    if (!rows || rows.length === 0) {
+      console.log('>>> No more location-deficient tenders to repair.');
+      break;
+    }
 
     console.log(`    Batch ${offset + 1}–${offset + rows.length} (${rows.length} rows)...`);
 
@@ -119,68 +148,72 @@ async function fixLocations() {
       const chunk = rows.slice(i, i + CONCURRENCY);
 
       await Promise.all(chunk.map(async (row) => {
-        const missingState = !row.state;
-        const missingCity  = !row.city;
-        const update: Record<string, string | null> = {};
+        try {
+          const missingState = !row.state;
+          const missingCity  = !row.city;
+          const update: Record<string, string | null> = {};
 
-        // ── Free pass: city known → infer state via DB lookup ──────────────
-        if (!missingCity && missingState) {
-          const inferred = cityToState(row.city);
-          if (inferred && isValidState(inferred)) {
-            update.state = inferred;
-          }
-        }
-
-        // ── AI pass: ask Groq for missing fields ────────────────────────────
-        if ((missingCity && !update.city) || (missingState && !update.state)) {
-          const text = blobsFromRow(row);
-          if (!text.trim()) { skipped++; return; }
-
-          try {
-            let { city, state } = await aiExtractLocation(text);
-
-            // Normalize
-            city  = city  ? normalizeCity(city)   : null;
-            state = state ? normalizeState(state)  : null;
-
-            // Validate against DB — reject ministry/org names masquerading as locations
-            if (missingCity  && !update.city  && city  && isValidCity(city))   update.city  = city;
-            if (missingState && !update.state && state && isValidState(state))  update.state = state;
-
-            // Cross-validate city against country-state-city DB
-            if (update.city) {
-              const dbState = cityToState(update.city); // null = unknown or city spans multiple states
-              if (dbState && missingState) {
-                // DB gives a definitive, unambiguous state — always trust it
-                update.state = dbState;
-              }
+          // ── Free pass: city known → infer state via DB lookup ──────────────
+          if (!missingCity && missingState) {
+            const inferred = cityToState(row.city);
+            if (inferred && isValidState(inferred)) {
+              update.state = inferred;
             }
-          } catch (e: any) {
-            console.error(`    ✗ AI error for ${row.bid_number}: ${e.message}`);
+          }
+
+          // ── AI pass: ask Groq for missing fields ────────────────────────────
+          if ((missingCity && !update.city) || (missingState && !update.state)) {
+            const text = blobsFromRow(row);
+            if (!text.trim()) { skipped++; return; }
+
+            try {
+              let { city, state } = await aiExtractLocation(text);
+
+              // Normalize
+              city  = city  ? normalizeCity(city)   : null;
+              state = state ? normalizeState(state)  : null;
+
+              // Validate against DB — reject ministry/org names masquerading as locations
+              if (missingCity  && !update.city  && city  && isValidCity(city))   update.city  = city;
+              if (missingState && !update.state && state && isValidState(state))  update.state = state;
+
+              // Cross-validate city against country-state-city DB
+              if (update.city) {
+                const dbState = cityToState(update.city); // null = unknown or city spans multiple states
+                if (dbState && missingState) {
+                  // DB gives a definitive, unambiguous state — always trust it
+                  update.state = dbState;
+                }
+              }
+            } catch (e: any) {
+              console.error(`    ✗ AI error for ${row.bid_number}: ${e.message}`);
+              return;
+            }
+          }
+
+          // Don't overwrite existing values with null
+          if (!update.city)  delete update.city;
+          if (!update.state) delete update.state;
+
+          if (Object.keys(update).length === 0) { skipped++; return; }
+
+          const { error: upErr } = await supabase.from('tenders').update(update).eq('id', row.id);
+          if (upErr) {
+            console.error(`    ✗ DB error ${row.bid_number}: ${upErr.message}`);
             return;
           }
+
+          const fixedCity  = 'city'  in update;
+          const fixedState = 'state' in update;
+          if (fixedCity && fixedState) bothFixed++;
+          else if (fixedState) stateFixed++;
+          else if (fixedCity)  cityFixed++;
+          totalFixed++;
+
+          console.log(`    ✓ ${row.bid_number} → state: ${update.state ?? row.state ?? '–'} | city: ${update.city ?? row.city ?? '–'}`);
+        } catch (e: any) {
+          console.error(`    ✗ Fatal error for ${row.bid_number}: ${e.message}`);
         }
-
-        // Don't overwrite existing values with null
-        if (!update.city)  delete update.city;
-        if (!update.state) delete update.state;
-
-        if (Object.keys(update).length === 0) { skipped++; return; }
-
-        const { error: upErr } = await supabase.from('tenders').update(update).eq('id', row.id);
-        if (upErr) {
-          console.error(`    ✗ DB error ${row.bid_number}: ${upErr.message}`);
-          return;
-        }
-
-        const fixedCity  = 'city'  in update;
-        const fixedState = 'state' in update;
-        if (fixedCity && fixedState) bothFixed++;
-        else if (fixedState) stateFixed++;
-        else if (fixedCity)  cityFixed++;
-        totalFixed++;
-
-        console.log(`    ✓ ${row.bid_number} → state: ${update.state ?? row.state ?? '–'} | city: ${update.city ?? row.city ?? '–'}`);
       }));
     }
 

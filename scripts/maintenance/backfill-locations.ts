@@ -12,7 +12,7 @@ import dotenv from "dotenv";
 dotenv.config({ path: ".env.local" });
 
 import { createClient } from "@supabase/supabase-js";
-import { extractVerifiedCity, cityToState, normalizeState, normalizeCity } from "../lib/locations";
+import { extractVerifiedCity, cityToState, normalizeState, normalizeCity } from "../../lib/locations";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -105,7 +105,7 @@ async function main() {
 
     console.log(`[offset=${offset}] Processing ${tenders.length} tenders…`);
 
-    const updates: Promise<any>[] = [];
+    const updates: PromiseLike<any>[] = [];
     let batchUpdated = 0;
 
     for (const tender of tenders) {

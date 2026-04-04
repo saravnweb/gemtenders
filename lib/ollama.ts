@@ -13,15 +13,15 @@ export async function extractTenderDataOllama(pdfText: string) {
     
     CRITICAL EXTRACTION RULES:
     1. AUTHORITY HIERARCHY & LOCATIONS:
-       - ministry: "Ministry/State Name"
-       - department: "Department Name"
-       - organisation: "Organisation Name" (e.g., "Indian Army")
-       - office: "Office Name"
-       - state: Extract the exact STATE perfectly from the buyer address.
+       - ministry: Look for the field marked "(Ministry)" or "Ministry of...".
+       - department: Look for the field marked "(Department)" or "Department of...".
+       - organisation: Look for the field marked "(Organisation)". If multiple are present, pick the most specific one (e.g., "Indian Army", "Border Security Force", "Central Public Works Department").
+       - office: Look for "(Office)" or "Office Name".
+       - state: Extract the exact STATE perfectly from the full buyer address.
        - city: Extract the exact CITY or DISTRICT from the buyer address.
-       - consignee_state: Look at the "Consignees/Reporting Officer" section. Extract ONLY the STATE name.
-       - consignee_city: Look at the "Consignees/Reporting Officer" section. Extract ONLY the CITY or DISTRICT name (e.g. "New Delhi", "Mumbai", "Ambala"). Do not include the person's name or the state here.
-       DO NOT leave these null if they are present in the text.
+       - consignee_state: Look at the "Consignees/Reporting Officer" table. Extract ONLY the STATE name.
+       - consignee_city: Look at the "Consignees/Reporting Officer" table. Extract ONLY the CITY or DISTRICT name.
+       DO NOT leave these null if they are present in the text. Treat "N/A" as null.
     2. ITEM DETAILS:
        - tender_title: Extract the FULL, UNTRUNCATED value of the Item Category or BOQ Title. Search the entire document to find the complete name without trailing '...'. NEVER return a title ending in '...'. If the document only has a truncated title, remove '...' from the end.
        - quantity: Extract the "Total Quantity" or "कुल मात्रा". It must be a NUMBER (e.g., 1346).
@@ -33,8 +33,10 @@ export async function extractTenderDataOllama(pdfText: string) {
        - bid_start_date: "Document Date" or "Published Date" or "Bid Start Date"
        - bid_end_date: "Bid End Date/Time"
        - bid_opening_date: "Bid Opening Date/Time" - ENSURE THIS IS EXTRACTED.
-    5. RELAXATIONS:
-       - Check "MSE Relaxation for Years Of Experience and Turnover" and the Startup equivalent.
+    5. RELAXATIONS & PREFERENCES:
+       - msme: Look for "MSE Purchase Preference" or "एम एस ई खरीद वरीयता". If "Yes" or "हाँ", set to true.
+       - mii: Look for "MII Compliance" or "एम आई आई अनुपालन". If "Yes" or "हाँ", set to true.
+       - startup: Look for "Startup Relaxation" or "स्टार्टअप छूट". If "Yes" or "हाँ", set to true.
     6. FRONTEND PARAMETERS:
        - You MUST extract these specific keys perfectly into the "parameters" object. Do not rename the keys.
        - "CONTRACT PERIOD": Look for "Bid Offer Validity" or "Contract Period".
@@ -45,15 +47,14 @@ export async function extractTenderDataOllama(pdfText: string) {
        - "DOCUMENT REQUIRED FROM SELLER": Give a comma-separated list of required documents.
        - "insight": Provide a 1-sentence professional summary of this tender. DO NOT start with "This tender is for" or "This tender". Start directly with the action/item being procured, e.g. "Supply of [Item] for [Organization]".
     7. CLASSIFICATION (based on what is being procured):
-       - category: Pick EXACTLY ONE ID from this list that best matches the primary item/service:
-         "it","civil","electrical","medical","furniture","vehicles","manpower","security","transport","printing","catering","textile","maintenance","pipes-hardware","cleaning","events-training","supplies","survey-consulting","water-environment","defence"
-       - procurement_type: "Goods" if buying physical products, "Works" if construction/installation work, "Services" if hiring people or services.
-       - keywords: Array of 5-8 most specific English keywords describing what is being procured.
+       - category: Pick EXACTLY ONE ID: "it","office","transport","medical","furniture","electrical","industrial","security","services","civil","textile","environment","professional","defence","others"
+       - procurement_type: "Goods" | "Works" | "Services"
+       - keywords: Array of 5-8 most specific English keywords.
 
     Output Schema (JSON):
     {
       "tender_title": "string (FULL, UNTRUNCATED title/category)",
-      "category": "string (one of the 20 IDs from Rule 7)",
+      "category": "string (one of the 15 IDs from Rule 7)",
       "procurement_type": "Goods | Works | Services",
       "keywords": ["string", "string"],
       "authority": {

@@ -3,7 +3,7 @@ dotenv.config({ path: '.env.local' });
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL) dotenv.config({ path: '.env' });
 
 import { createClient } from '@supabase/supabase-js';
-import { INDIAN_STATES, cityToState } from '../lib/locations';
+import { INDIAN_STATES, cityToState } from '../../lib/locations';
 import { City } from 'country-state-city';
 
 const supabase = createClient(

@@ -32,31 +32,38 @@ The document layout is a table with Hindi and English headers. The values are us
 
 CRITICAL EXTRACTION RULES:
 1. AUTHORITY HIERARCHY & LOCATIONS:
-   - ministry: "Ministry/State Name"
-   - department: "Department Name"
-   - organisation: "Organisation Name"
-   - office: "Office Name"
-   - state: Extract the exact STATE from the buyer address.
+   - ministry: Look for the field marked "(Ministry)" or "Ministry of...".
+   - department: Look for the field marked "(Department)" or "Department of...".
+   - organisation: Look for the field marked "(Organisation)". If multiple are present, pick the most specific one (e.g., "Indian Army", "Border Security Force", "Central Public Works Department").
+   - office: Look for "(Office)" or "Office Name".
+   - state: Extract the exact STATE perfectly from the full buyer address.
    - city: Extract the exact CITY or DISTRICT from the buyer address.
-   - consignee_state: From "Consignees/Reporting Officer" section — STATE only.
+   - consignee_state: From "Consignees/Reporting Officer" table — STATE only.
      MASKED address: if address shows "**********CityName", extract "CityName" as the city.
      PIN-leading address: if address starts with a 6-digit number like "400074,RCF Ltd...", use the PIN zone to infer state.
      District pattern: look for "Dist-CityName" or "District CityName" to find the delivery city.
    - consignee_city: The CITY or DISTRICT at the consignee delivery address (apply same rules above).
+   DO NOT leave these null if they are present in the text. Treat "N/A" as null.
 2. ITEM DETAILS:
    - tender_title: FULL, UNTRUNCATED Item Category or BOQ Title. NEVER end with '...'.
    - quantity: NUMBER only (e.g. 1346).
 3. GeMARPTS & CATEGORIES:
    - gemarpts_strings, gemarpts_result, relevant_categories: extract as-is.
 4. DATES (ISO-8601): bid_start_date, bid_end_date, bid_opening_date.
-5. FRONTEND PARAMETERS (extract into "parameters" object):
+5. RELAXATIONS & PREFERENCES:
+   - msme: Look for "MSE Purchase Preference" or "एम एस ई खरीद वरीयता". If "Yes" or "हाँ", set to true.
+   - mii: Look for "MII Compliance" or "एम आई आई अनुपालन". If "Yes" or "हाँ", set to true.
+   - startup: Look for "Startup Relaxation" or "स्टार्टअप छूट". If "Yes" or "हाँ", set to true.
+6. FRONTEND PARAMETERS (extract into "parameters" object):
    - "CONTRACT PERIOD", "MINIMUM AVERAGE ANNUAL TURNOVER OF THE BIDDER", "ESTIMATED BID VALUE",
    - "EPBG DETAIL", "CONSIGNEES/REPORTING OFFICER AND QUANTITY", "DOCUMENT REQUIRED FROM SELLER",
    - "insight": 1-sentence summary starting with the action, e.g. "Supply of X for Y".
-6. CLASSIFICATION:
-   - category: ONE of: "it","civil","electrical","medical","furniture","vehicles","manpower","security","transport","printing","catering","textile","maintenance","pipes-hardware","cleaning","events-training","supplies","survey-consulting","water-environment","defence"
+7. P2 DIRECT NUMERIC FIELDS (extract at Top Level):
+   - estimated_value, epbg_percentage, min_turnover_lakhs, experience_years, delivery_days, num_consignees, pre_bid_date.
+8. CLASSIFICATION:
+   - category: Pick EXACTLY ONE ID: "it","office","transport","medical","furniture","electrical","industrial","security","services","civil","textile","environment","professional","defence","others"
    - procurement_type: "Goods" | "Works" | "Services"
-   - keywords: 5-8 specific English keywords.
+   - keywords: Array of 5-8 specific English keywords.
 
 Output ONLY valid JSON matching this schema exactly:
 {
@@ -71,6 +78,13 @@ Output ONLY valid JSON matching this schema exactly:
   "gemarpts_result": "string",
   "relevant_categories": "string",
   "emd_amount": 0,
+  "estimated_value": 0,
+  "epbg_percentage": 0,
+  "min_turnover_lakhs": 0,
+  "experience_years": 0,
+  "delivery_days": 0,
+  "num_consignees": 0,
+  "pre_bid_date": "ISO-8601 | null",
   "relaxations": { "mse_experience": "string", "mse_turnover": "string", "startup_experience": "string", "startup_turnover": "string" },
   "documents_required": ["string"],
   "eligibility": { "msme": false, "mii": false },

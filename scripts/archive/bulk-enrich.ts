@@ -26,9 +26,10 @@ import axios from 'axios';
 import path from 'path';
 import fs from 'fs';
 import { createClient } from '@supabase/supabase-js';
-import { extractTenderDataFromPdfBytes } from '../lib/gemini';
+// import { extractTenderDataFromPdfBytes } from '../lib/gemini';
 import { normalizeState, normalizeCity, extractCityStateFromConsigneeTable, cityToState } from '../lib/locations';
 import { detectCategory } from '../lib/categories';
+import { getComputedFields } from '../lib/computed-fields';
 
 // SSL bypass — Indian government portals often have cert issues
 const httpsAgent = new https.Agent({ rejectUnauthorized: false });
@@ -129,6 +130,7 @@ async function processOne(
     console.log(`\n  [W${workerId}] PDF ${buffer.length}b — sending to Gemini...`);
 
     // ── Gemini reads the PDF inline ───────────────────────────────────────
+    const { extractTenderDataFromPdfBytes } = await import('../lib/gemini.js') as any;
     const aiData = await extractTenderDataFromPdfBytes(buffer);
     if (!aiData) {
       await supabase.from('tenders').update({ enrichment_tried_at: new Date().toISOString() }).eq('id', tender.id);
@@ -136,9 +138,11 @@ async function processOne(
     }
 
     // ── Upload to Supabase Storage ────────────────────────────────────────
+    // DISABLED: We now extract text directly to avoid hitting 1GB storage limits.
     const fileName = `${tender.bid_number.replace(/\//g, '-')}.pdf`;
     let pdfPublicUrl: string | null = null;
 
+    /*
     const { data: uploadData } = await supabase.storage
       .from('tender-documents')
       .upload(fileName, buffer, { contentType: 'application/pdf', upsert: true });
@@ -147,6 +151,7 @@ async function processOne(
       const { data: urlData } = supabase.storage.from('tender-documents').getPublicUrl(uploadData.path);
       pdfPublicUrl = urlData.publicUrl;
     }
+    */
 
     // ── Build update payload ──────────────────────────────────────────────
     const auth = aiData.authority;
@@ -187,8 +192,19 @@ async function processOne(
       bid_type:     detectBidType(tender.bid_number, aiData.tender_title || ''),
       procurement_type: aiData.procurement_type || null,
       keywords:     aiData.keywords || [],
+      estimated_value:    aiData.estimated_value || null,
+      epbg_percentage:    aiData.epbg_percentage || null,
+      min_turnover_lakhs: aiData.min_turnover_lakhs || null,
+      experience_years:   aiData.experience_years || null,
+      delivery_days:      aiData.delivery_days || null,
+      num_consignees:     aiData.num_consignees || null,
+      pre_bid_date:       aiData.pre_bid_date || null,
       enrichment_tried_at: new Date().toISOString(),
     });
+
+    // Action 6: Computed fields
+    const computed = getComputedFields(updatePayload);
+    Object.assign(updatePayload, computed);
 
     if (aiData.dates) {
       const od = parseGeMDate(aiData.dates.bid_opening_date); if (od) updatePayload.opening_date = od;
@@ -250,8 +266,19 @@ async function processOneFromRawText(
       bid_type:     detectBidType(tender.bid_number, aiData.tender_title || ''),
       procurement_type: aiData.procurement_type || null,
       keywords:     aiData.keywords || [],
+      estimated_value:    aiData.estimated_value || null,
+      epbg_percentage:    aiData.epbg_percentage || null,
+      min_turnover_lakhs: aiData.min_turnover_lakhs || null,
+      experience_years:   aiData.experience_years || null,
+      delivery_days:      aiData.delivery_days || null,
+      num_consignees:     aiData.num_consignees || null,
+      pre_bid_date:       aiData.pre_bid_date || null,
       enrichment_tried_at: new Date().toISOString(),
     };
+
+    // Action 6: Computed fields
+    const computed = getComputedFields(updatePayload);
+    Object.assign(updatePayload, computed);
 
     // City fallback
     if (!updatePayload.city || !updatePayload.state) {

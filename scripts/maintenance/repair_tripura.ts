@@ -7,7 +7,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-import { normalizeState, normalizeCity } from '../lib/locations';
+import { normalizeState, normalizeCity } from '../../lib/locations';
 
 async function run() {
   console.log("Fetching tenders erroneously categorized as Tripura...");

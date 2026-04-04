@@ -126,6 +126,17 @@ function saveCheckpoint(page: number, totalDone: number) {
   fs.writeFileSync(CHECKPOINT, JSON.stringify({ page, totalDone, updatedAt: new Date().toISOString() }));
 }
 
+function parseGeMDate(dateStr: string): string | null {
+  if (!dateStr) return null;
+  try {
+    if (/^\d{4}-\d{2}-\d{2}T/.test(dateStr)) return new Date(dateStr).toISOString();
+    const dateMatch = dateStr.match(/(\d{2})[-/](\d{2})[-/](\d{4})/);
+    if (!dateMatch) return null;
+    const [, day, month, year] = dateMatch;
+    return new Date(`${year}-${month}-${day}T00:00:00+05:30`).toISOString();
+  } catch { return null; }
+}
+
 // ─── Optional inline AI ───────────────────────────────────────────────────────
 async function enrichOne(
   tender: { id: string; bid_number: string; title: string | null },
@@ -149,6 +160,17 @@ async function enrichOne(
       quantity:          aiData.quantity   || null,
       eligibility_msme:  aiData.eligibility?.msme || false,
       eligibility_mii:   aiData.eligibility?.mii  || false,
+      mse_relaxation:              aiData.relaxations?.mse_experience  || null,
+      mse_turnover_relaxation:     aiData.relaxations?.mse_turnover    || null,
+      startup_relaxation:          aiData.relaxations?.startup_experience || null,
+      startup_turnover_relaxation: aiData.relaxations?.startup_turnover  || null,
+      estimated_value:    aiData.estimated_value || null,
+      epbg_percentage:    aiData.epbg_percentage || null,
+      min_turnover_lakhs: aiData.min_turnover_lakhs || null,
+      experience_years:   aiData.experience_years || null,
+      delivery_days:      aiData.delivery_days || null,
+      num_consignees:     aiData.num_consignees || null,
+      pre_bid_date:       aiData.pre_bid_date || null,
       documents_required: aiData.documents_required || [],
       category:          aiData.category || detectCategory(tender.title || '') || null,
       bid_type:          /\/RA\//i.test(tender.bid_number) ? 'Reverse Auction' : 'Open Bid',
@@ -159,6 +181,14 @@ async function enrichOne(
     if (payload.city && !payload.state) {
       const inf = cityToState(payload.city); if (inf) payload.state = inf;
     }
+    
+    if (aiData.dates) {
+      const od = parseGeMDate(aiData.dates.bid_opening_date); if (od) payload.opening_date = od;
+      const sd = parseGeMDate(aiData.dates.bid_start_date);   if (sd) payload.start_date   = sd;
+      const ed = parseGeMDate(aiData.dates.bid_end_date);
+      if (ed && new Date(ed) > new Date()) payload.end_date = ed;
+    }
+
     await supabase.from('tenders').update(payload).eq('id', tender.id);
     return true;
   } catch { return false; }
@@ -229,9 +259,12 @@ async function main() {
       if (doc.ba_official_details_deptName?.[0]) directUpdate.department_name = doc.ba_official_details_deptName[0];
       if (doc.b_total_quantity?.[0])            directUpdate.quantity         = doc.b_total_quantity[0];
       if (doc.b_category_name?.[0] || doc.bd_category_name?.[0]) {
+        const gemCat = doc.b_category_name?.[0] || doc.bd_category_name?.[0];
+        directUpdate.gem_category = gemCat;
         const localCat = detectCategory(row.title || '');
         if (localCat) directUpdate.category = localCat;
       }
+      if (doc.is_high_value !== undefined) directUpdate.is_high_value = doc.is_high_value;
       directUpdate.bid_type = /\/RA\//i.test(bidNo) ? 'Reverse Auction' : (doc.b_bid_type?.[0] === 2 ? 'Reverse Auction' : 'Open Bid');
 
       await supabase.from('tenders').update(directUpdate).eq('id', row.id);

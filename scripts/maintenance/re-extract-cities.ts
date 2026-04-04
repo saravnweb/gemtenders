@@ -7,7 +7,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-import { normalizeCity } from '../lib/locations';
+import { normalizeCity } from '../../lib/locations';
 
 async function parsePdfFromUrl(url: string): Promise<string | null> {
   try {

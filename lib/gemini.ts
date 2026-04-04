@@ -50,15 +50,15 @@ The document layout is a table with Hindi and English headers. The values are us
 
 CRITICAL EXTRACTION RULES:
 1. AUTHORITY HIERARCHY & LOCATIONS:
-   - ministry: "Ministry/State Name"
-   - department: "Department Name"
-   - organisation: "Organisation Name" (e.g., "Indian Army")
-   - office: "Office Name"
-   - state: Extract the exact STATE perfectly from the buyer address.
+   - ministry: Look for the field marked "(Ministry)" or "Ministry of...".
+   - department: Look for the field marked "(Department)" or "Department of...".
+   - organisation: Look for the field marked "(Organisation)" or "Organisation Name". If multiple are present, pick the most specific one (e.g., "Indian Army", "Border Security Force", "Central Public Works Department").
+   - office: Look for "(Office)" or "Office Name".
+   - state: Extract the exact STATE perfectly from the full buyer address.
    - city: Extract the exact CITY or DISTRICT from the buyer address.
-   - consignee_state: Look at the "Consignees/Reporting Officer" section. Extract ONLY the STATE name.
-   - consignee_city: Look at the "Consignees/Reporting Officer" section. Extract ONLY the CITY or DISTRICT name (e.g. "New Delhi", "Mumbai", "Ambala"). Do not include the person's name or the state here.
-   DO NOT leave these null if they are present in the text.
+   - consignee_state: Look at the "Consignees/Reporting Officer" table. Extract ONLY the STATE name.
+   - consignee_city: Look at the "Consignees/Reporting Officer" table. Extract ONLY the CITY or DISTRICT name.
+   DO NOT leave these null if they are present in the text. Treat "N/A" as null.
 2. ITEM DETAILS:
    - tender_title: Extract the FULL, UNTRUNCATED value of the Item Category or BOQ Title. Search the entire document to find the complete name without trailing '...'. NEVER return a title ending in '...'. If the document only has a truncated title, remove '...' from the end.
    - quantity: Extract the "Total Quantity" or "कुल मात्रा". It must be a NUMBER (e.g., 1346).
@@ -70,8 +70,10 @@ CRITICAL EXTRACTION RULES:
    - bid_start_date: "Document Date" or "Published Date" or "Bid Start Date"
    - bid_end_date: "Bid End Date/Time"
    - bid_opening_date: "Bid Opening Date/Time" - ENSURE THIS IS EXTRACTED.
-5. RELAXATIONS:
-   - Check "MSE Relaxation for Years Of Experience and Turnover" and the Startup equivalent.
+5. RELAXATIONS & PREFERENCES:
+   - msme: Look for "MSE Purchase Preference" or "एम एस ई खरीद वरीयता". If it says "Yes" or "हाँ", set to true.
+   - mii: Look for "MII Compliance" or "एम आई आई अनुपालन". If it says "Yes" or "हाँ", set to true.
+   - startup: Look for "Startup Relaxation" or "स्टार्टअप छूट". If "Yes" or "हाँ", set to true.
 6. LANGUAGE:
    - DO NOT INCLUDE ANY HINDI TEXT in your output. If a value contains both English and Hindi, extract ONLY the English portion. Omit all Hindi characters entirely.
 7. FRONTEND PARAMETERS:
@@ -85,33 +87,30 @@ CRITICAL EXTRACTION RULES:
    - "insight": Provide a 1-sentence professional summary of this tender (what is being bought and for whom).
 8. CLASSIFICATION (based on what is being procured):
    - category: Pick EXACTLY ONE ID from this list that best matches the primary item/service being procured:
-     "it" (IT & Tech: laptops, servers, CCTV, software, networking, printers, telecom)
-     "civil" (Civil Works: construction, roads, buildings, renovation, waterproofing, flooring)
-     "electrical" (Electrical: transformers, cables, UPS, solar panels, LED lights, generators, switchgear)
-     "medical" (Medical: hospital equipment, medicines, surgical supplies, lab equipment, diagnostics)
-     "furniture" (Furniture: chairs, tables, almirahs, modular workstations, racks, shelving)
-     "vehicles" (Vehicles: cars, trucks, buses, tractors, electric vehicles, vehicle hiring)
-     "manpower" (Manpower: staffing, labour outsourcing, data entry operators, contractual workers)
-     "security" (Security: security guards, surveillance, fire safety, access control, metal detectors)
-     "transport" (Transport & Logistics: freight, cargo, courier, goods shifting, packers and movers)
-     "printing" (Printing: flex printing, banners, brochures, publications, stationery printing)
-     "catering" (Catering & Food: food supply, canteen, mess services, rations, grocery, edible oil)
-     "textile" (Textile & Uniform: uniforms, fabric, linen, bedsheets, blankets, towels, curtains)
-     "maintenance" (Maintenance/AMC: annual maintenance contracts, overhauling, facility management, repair services)
-     "pipes-hardware" (Pipes & Hardware: pipes, valves, pumps, bolts, nuts, steel structures, hardware items)
-     "cleaning" (Cleaning: housekeeping, pest control, waste management, sanitation, horticulture)
-     "events-training" (Events & Training: events, seminars, workshops, conferences, training programs)
-     "supplies" (Supplies & Stationery: stationery, office supplies, toners, consumables, safety equipment)
-     "survey-consulting" (Survey & Consulting: surveys, consultancy, audits, inspections, DPRs, GIS mapping)
-     "water-environment" (Water & Environment: water treatment, ETP, STP, water purifiers, borewell, pollution control)
-     "defence" (Defence & Specialized: military equipment, army stores, ordnance, tactical/defence items)
-   - procurement_type: "Goods" if buying physical products, "Works" if construction/civil/installation work, "Services" if hiring people or services.
-   - keywords: Array of 5-8 most specific and relevant English keywords describing what is being procured (e.g. ["16 channel IP DVR", "2MP dome camera", "CCTV surveillance system"]). Use specific product/service names, not generic words.
+     "it" (Computers & IT: laptops, servers, software, networking, printers, CCTV, telecom)
+     "office" (Office & Building: office machines, stationery, consumables, appliances, HVAC)
+     "transport" (Automobiles & Transport: vehicles, spare parts, electric vehicles, hiring services, logistics)
+     "medical" (Healthcare & Medical: hospital equipment, medicines, surgical supplies, lab equipment)
+     "furniture" (Furniture & Fixtures: chairs, tables, almirahs, modular workstations, shelving)
+     "electrical" (Electrical & Power: transformers, cables, UPS, solar power, LED lighting, switchgear)
+     "industrial" (Industrial & Hardware: pipes, valves, pumps, steel, industrial gases, hand tools)
+     "security" (Security & Safety: security guards, surveillance, fire safety, access control)
+     "services" (Manpower & Services: staffing, cleaning, catering, facility management, outsourcing)
+     "civil" (Civil & Construction: buildings, roads, repairs, infrastructure, project management)
+     "textile" (Textile & Training: uniforms, fabric, events, seminars, training programs)
+     "environment" (Environment & Water: water supply, STP, waste management, pollution control)
+     "professional" (Professional Services: consulting, audits, surveys, legal, project reports)
+     "defence" (Defence & Military: tactical gear, assault equipment, military stores, ordnance)
+     "others" (Others: miscellaneous items not fitting above)
+9. PROCUREMENT TYPE:
+   - procurement_type: Choose "Goods" if buying physical products, "Works" if construction/civil/installation/repair work, "Services" if hiring people, agencies, or AMC.
+10. KEYWORDS:
+   - keywords: Provide an array of 5-8 most specific English keywords describing what is being procured (e.g. ["16 channel IP DVR", "2MP dome camera", "CCTV surveillance system"]). Omit generic words like "tender" or "bid".
 
 Output Schema (JSON):
 {
   "tender_title": "string (FULL, UNTRUNCATED title/category)",
-  "category": "string (one of the 20 category IDs listed in Rule 8)",
+  "category": "string (one of the 15 category IDs listed in Rule 8)",
   "procurement_type": "Goods | Works | Services",
   "keywords": ["string", "string"],
   "authority": {

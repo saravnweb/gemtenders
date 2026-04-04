@@ -21,7 +21,7 @@ async function ExploreDataFetcher() {
   // Use anonymous supabase client to fetch public active active tenders
   const { createClient } = await import('@supabase/supabase-js');
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
   const supabase = createClient(supabaseUrl, supabaseKey);
 
   console.time('explore-fetch');
@@ -33,29 +33,46 @@ async function ExploreDataFetcher() {
     .select("id", { count: "exact", head: true })
     .gte("end_date", now);
 
-  // Fetch rows for aggregation (state, ministry, org, type breakdowns) — capped by Supabase max_rows
-  const { data: tenders } = await supabase
-    .from("tenders")
-    .select("id, title, state, ministry_name, organisation_name, emd_amount, eligibility_msme, eligibility_mii, startup_relaxation, created_at, end_date")
-    .gte("end_date", now)
-    .limit(15000);
+  // Multi-Sample Strategy to bypass 1000-row limit and ensure data richness:
+  // 1. Latest 1000 (for real-time counts like closing/added today)
+  // 2. 2000 Enriched (specifically seeking those with organisations/states populated)
+  const [latestRes, enrichedRes] = await Promise.all([
+    supabase
+      .from("tenders")
+      .select("id, title, state, ministry_name, organisation_name, emd_amount, eligibility_msme, eligibility_mii, startup_relaxation, created_at, end_date")
+      .gte("end_date", now)
+      .order("created_at", { ascending: false })
+      .limit(1000),
+    supabase
+      .from("tenders")
+      .select("id, title, state, ministry_name, organisation_name, emd_amount, eligibility_msme, eligibility_mii, startup_relaxation, created_at, end_date")
+      .gte("end_date", now)
+      .not("organisation_name", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(2000)
+  ]);
+
+  // Combine unique tenders
+  const tenderMap = new Map();
+  latestRes.data?.forEach(t => tenderMap.set(t.id, t));
+  enrichedRes.data?.forEach(t => tenderMap.set(t.id, t));
+  const tenders = Array.from(tenderMap.values());
 
   console.timeEnd('explore-fetch');
 
-  if (!tenders) {
-    return <div>Error loading data.</div>;
+  if (tenders.length === 0) {
+    return <div>Error loading data or no active tenders found.</div>;
   }
 
   // 1. Calculate By State Counts — only real Indian states/UTs
   const stateCounts: Record<string, number> = {};
-  const stateFieldMinistries: Record<string, number> = {}; // ministry names mistakenly stored in state field
+  const stateFieldMinistries: Record<string, number> = {}; 
   tenders.forEach(t => {
     if (!t.state) return;
     const canonical = normalizeState(t.state);
     if (canonical && INDIAN_STATES.has(canonical)) {
       stateCounts[canonical] = (stateCounts[canonical] || 0) + 1;
     } else {
-      // It's a ministry name stored in the state field
       stateFieldMinistries[t.state] = (stateFieldMinistries[t.state] || 0) + 1;
     }
   });
@@ -64,15 +81,18 @@ async function ExploreDataFetcher() {
     .map(([state, count]) => ({ state, count }));
 
   // 2. Calculate By Ministry Counts (ministry_name field + overflow from state field)
+  const isInvalid = (v?: string | null) => !v || /^n\/?a$/i.test(v.trim()) || v === 'null';
   const ministryCounts: Record<string, number> = {};
   tenders.forEach(t => {
-    if (t.ministry_name) {
-      ministryCounts[t.ministry_name] = (ministryCounts[t.ministry_name] || 0) + 1;
+    if (!isInvalid(t.ministry_name)) {
+      ministryCounts[t.ministry_name!] = (ministryCounts[t.ministry_name!] || 0) + 1;
     }
   });
   // Merge ministry names that were stored in the state field
   for (const [name, count] of Object.entries(stateFieldMinistries)) {
-    ministryCounts[name] = (ministryCounts[name] || 0) + count;
+    if (!isInvalid(name)) {
+      ministryCounts[name] = (ministryCounts[name] || 0) + count;
+    }
   }
   const topMinistries = Object.entries(ministryCounts)
     .sort((a, b) => b[1] - a[1])
@@ -82,8 +102,8 @@ async function ExploreDataFetcher() {
   // 3. By Organisation Counts
   const orgCounts: Record<string, number> = {};
   tenders.forEach(t => {
-    if (t.organisation_name) {
-      orgCounts[t.organisation_name] = (orgCounts[t.organisation_name] || 0) + 1;
+    if (!isInvalid(t.organisation_name)) {
+      orgCounts[t.organisation_name!] = (orgCounts[t.organisation_name!] || 0) + 1;
     }
   });
   const orgList = Object.entries(orgCounts)

@@ -10,68 +10,44 @@ function buildPrompt(cleanedText: string): string {
 
     CRITICAL EXTRACTION RULES:
     1. AUTHORITY HIERARCHY & LOCATIONS:
-       - ministry: "Ministry/State Name"
-       - department: "Department Name"
-       - organisation: "Organisation Name" (e.g., "Indian Army")
-       - office: "Office Name"
-       - state: Extract the exact STATE perfectly from the buyer address.
+       - ministry: Look for the field marked "(Ministry)" or "Ministry of...".
+       - department: Look for the field marked "(Department)" or "Department of...".
+       - organisation: Look for "(Organisation)" or "Organisation Name". If multiple are present, pick the most specific one (e.g., "Indian Army", "Border Security Force").
+       - office: Look for "(Office)" or "Office Name".
+       - state: Extract the exact STATE perfectly from the full buyer address.
        - city: Extract the exact CITY or DISTRICT from the buyer address.
-       - consignee_state: Look at the "Consignees/Reporting Officer" section. Extract ONLY the STATE name.
-       - consignee_city: Look at the "Consignees/Reporting Officer" section. Extract ONLY the CITY or DISTRICT name (e.g. "New Delhi", "Mumbai", "Ambala"). Do not include the person's name or the state here.
-       DO NOT leave these null if they are present in the text.
+       - consignee_state: From "Consignees/Reporting Officer" table — STATE only.
+       - consignee_city: From "Consignees/Reporting Officer" table — CITY/DISTRICT only.
+       DO NOT leave these null if they are present in the text. Treat "N/A" as null.
     2. ITEM DETAILS:
-       - tender_title: Extract the FULL, UNTRUNCATED value of the Item Category or BOQ Title. Search the entire document to find the complete name without trailing '...'. NEVER return a title ending in '...'. If the document only has a truncated title, remove '...' from the end.
-       - quantity: Extract the "Total Quantity" or "कुल मात्रा". It must be a NUMBER (e.g., 1346).
+       - tender_title: FULL, UNTRUNCATED Item Category or BOQ Title. NEVER end with '...'.
+       - quantity: Extract the "Total Quantity". It must be a NUMBER.
     3. GeMARPTS & CATEGORIES:
-       - gemarpts_strings: Value of "Searched Strings used in GeMARPTS".
-       - gemarpts_result: Value of "Searched Result generated in GeMARPTS".
-       - relevant_categories: Value of "Relevant Categories selected for notification".
+       - gemarpts_strings, gemarpts_result, relevant_categories: extract as-is.
     4. DATES (ISO-8601):
-       - bid_start_date: "Document Date" or "Published Date" or "Bid Start Date"
-       - bid_end_date: "Bid End Date/Time"
-       - bid_opening_date: "Bid Opening Date/Time" - ENSURE THIS IS EXTRACTED.
-    5. RELAXATIONS:
-       - Check "MSE Relaxation for Years Of Experience and Turnover" and the Startup equivalent.
+       - bid_start_date, bid_end_date, bid_opening_date.
+    5. RELAXATIONS & PREFERENCES:
+       - msme: Look for "MSE Purchase Preference" or "एम एस ई खरीद वरीयता". If "Yes" or "हाँ", set to true.
+       - mii: Look for "MII Compliance" or "एम आई आई अनुपालन". If "Yes" or "हाँ", set to true.
+       - startup: Look for "Startup Relaxation" or "स्टार्टअप छूट". If "Yes" or "हाँ", set to true.
     6. LANGUAGE:
        - DO NOT INCLUDE ANY HINDI TEXT in your output. If a value contains both English and Hindi, extract ONLY the English portion. Omit all Hindi characters entirely.
     7. FRONTEND PARAMETERS:
        - You MUST extract these specific keys perfectly into the "parameters" object. Do not rename the keys.
-       - "CONTRACT PERIOD": Look for "Bid Offer Validity" or "Contract Period".
-       - "MINIMUM AVERAGE ANNUAL TURNOVER OF THE BIDDER": Look for "Minimum Average Annual Turnover of the bidder" in Lakhs or Crores.
-       - "ESTIMATED BID VALUE": Look for estimated value in INR.
-       - "EPBG DETAIL": Look for ePBG percentage or details.
-       - "CONSIGNEES/REPORTING OFFICER AND QUANTITY": Extract the FULL consignee details exactly as written, including the person's name, address, CITY, state, and quantity.
-       - "DOCUMENT REQUIRED FROM SELLER": Give a comma-separated list of required documents.
+       - "CONTRACT PERIOD", "MINIMUM AVERAGE ANNUAL TURNOVER OF THE BIDDER", "ESTIMATED BID VALUE",
+       - "EPBG DETAIL", "CONSIGNEES/REPORTING OFFICER AND QUANTITY", "DOCUMENT REQUIRED FROM SELLER",
        - "insight": Provide a 1-sentence professional summary of this tender (what is being bought and for whom).
     8. CLASSIFICATION (based on what is being procured):
-       - category: Pick EXACTLY ONE ID from this list that best matches the primary item/service being procured:
-         "it" (IT & Tech: laptops, servers, CCTV, software, networking, printers, telecom)
-         "civil" (Civil Works: construction, roads, buildings, renovation, waterproofing, flooring)
-         "electrical" (Electrical: transformers, cables, UPS, solar panels, LED lights, generators, switchgear)
-         "medical" (Medical: hospital equipment, medicines, surgical supplies, lab equipment, diagnostics)
-         "furniture" (Furniture: chairs, tables, almirahs, modular workstations, racks, shelving)
-         "vehicles" (Vehicles: cars, trucks, buses, tractors, electric vehicles, vehicle hiring)
-         "manpower" (Manpower: staffing, labour outsourcing, data entry operators, contractual workers)
-         "security" (Security: security guards, surveillance, fire safety, access control, metal detectors)
-         "transport" (Transport & Logistics: freight, cargo, courier, goods shifting, packers and movers)
-         "printing" (Printing: flex printing, banners, brochures, publications, stationery printing)
-         "catering" (Catering & Food: food supply, canteen, mess services, rations, grocery, edible oil)
-         "textile" (Textile & Uniform: uniforms, fabric, linen, bedsheets, blankets, towels, curtains)
-         "maintenance" (Maintenance/AMC: annual maintenance contracts, overhauling, facility management, repair services)
-         "pipes-hardware" (Pipes & Hardware: pipes, valves, pumps, bolts, nuts, steel structures, hardware items)
-         "cleaning" (Cleaning: housekeeping, pest control, waste management, sanitation, horticulture)
-         "events-training" (Events & Training: events, seminars, workshops, conferences, training programs)
-         "supplies" (Supplies & Stationery: stationery, office supplies, toners, consumables, safety equipment)
-         "survey-consulting" (Survey & Consulting: surveys, consultancy, audits, inspections, DPRs, GIS mapping)
-         "water-environment" (Water & Environment: water treatment, ETP, STP, water purifiers, borewell, pollution control)
-         "defence" (Defence & Specialized: military equipment, army stores, ordnance, tactical/defence items)
-       - procurement_type: "Goods" if buying physical products, "Works" if construction/civil/installation work, "Services" if hiring people or services.
-       - keywords: Array of 5-8 most specific and relevant English keywords describing what is being procured.
+       - category: Pick EXACTLY ONE ID: "it","office","transport","medical","furniture","electrical","industrial","security","services","civil","textile","environment","professional","defence","others"
+    9. PROCUREMENT TYPE:
+       - procurement_type: Choose "Goods" if buying physical products, "Works" if construction/installation/repair work, "Services" if hiring people or services.
+    10. KEYWORDS:
+       - keywords: Array of 5-8 most specific English keywords describing what is being procured (e.g. ["16 channel IP DVR", "2MP dome camera"]).
 
     Output ONLY valid JSON matching this schema exactly:
     {
       "tender_title": "string (FULL, UNTRUNCATED title/category)",
-      "category": "string (one of the 20 category IDs listed in Rule 8)",
+      "category": "string (one of the 15 category IDs listed in Rule 8)",
       "procurement_type": "Goods | Works | Services",
       "keywords": ["string", "string"],
       "authority": {

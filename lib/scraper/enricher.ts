@@ -1,23 +1,81 @@
 import { createClient } from '@supabase/supabase-js';
+import https from 'https';
+import axios from 'axios';
+import { createRequire } from 'module';
+import { extractTenderDataGroq } from '../groq-ai';
+import { normalizeState, normalizeCity, cityToState } from '../locations';
+import { detectCategory } from '../categories';
+import { parseGeMDate } from './gem-scraper';
+
+const require = createRequire(import.meta.url);
+const pdfParse = require('pdf-parse');
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
-import { extractTenderDataGroq as extractTenderData } from '../groq-ai';
-import { chromium } from 'playwright';
-import path from 'path';
-import fs from 'fs';
-import { normalizeState, normalizeCity, extractCityStateFromConsigneeTable, cityToState } from '../locations';
-import { detectCategory } from '../categories';
-import { parseGeMDate } from './gem-scraper';
 
-function detectBidType(bidNo: string, title: string): string {
-  if (/\/RA\//i.test(bidNo) || /reverse\s*auction/i.test(title)) return "Reverse Auction";
-  if (/custom\s*bid/i.test(title)) return "Custom Bid";
-  return "Open Bid";
+const httpsAgent = new https.Agent({ rejectUnauthorized: false });
+const HEADERS = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36' };
+
+// ─── Session management ───────────────────────────────────────────────────────
+
+async function getSession(): Promise<string> {
+  const res = await axios.get('https://bidplus.gem.gov.in/all-bids', {
+    httpsAgent,
+    headers: HEADERS,
+    timeout: 30000,
+  });
+  const setCookie = res.headers['set-cookie'];
+  if (!Array.isArray(setCookie) || setCookie.length === 0) throw new Error('No cookies from GeM session');
+  return setCookie.map((c: string) => c.split(';')[0]).join('; ');
 }
 
+// ─── HTML field extraction ────────────────────────────────────────────────────
+
+function parseHtmlFields(html: string): Record<string, string> {
+  const fields: Record<string, string> = {};
+  // Extract <strong>Label:</strong> <span>Value</span> pairs
+  for (const [, label, value] of html.matchAll(/<strong>([^<]+):<\/strong>\s*<span>([\s\S]*?)<\/span>/g)) {
+    const key = label.trim().toLowerCase().replace(/\s+/g, '_');
+    const val = value.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+    if (val) fields[key] = val;
+  }
+  return fields;
+}
+
+function parseCityStateFromAddress(html: string): { city: string | null; state: string | null } {
+  const match = html.match(/Address:\s*([\s\S]*?)(?:Ministry:|<\/p>|$)/i);
+  if (!match) return { city: null, state: null };
+
+  const addressText = match[1].replace(/<[^>]+>/g, '').trim();
+  const parts = addressText.split(',').map(p => p.trim()).filter(Boolean);
+
+  // Format (from end): India, Pincode(6-digits), State, District, City, ...
+  if (parts.length < 5) return { city: null, state: null };
+
+  const fromEnd = [...parts].reverse();
+  const pinIdx = fromEnd.findIndex(p => /^\d{6}$/.test(p));
+
+  if (pinIdx === -1) {
+    // No pincode found — try last 3 from end (skip "India")
+    const state = normalizeState(fromEnd[1] || null);
+    const city = normalizeCity(fromEnd[2] || null);
+    return { state, city };
+  }
+
+  const state = normalizeState(fromEnd[pinIdx + 1] || null);
+  const city = normalizeCity(fromEnd[pinIdx + 3] || null);
+  return { state, city };
+}
+
+function detectBidType(bidNo: string, title: string): string {
+  if (/\/RA\//i.test(bidNo) || /reverse\s*auction/i.test(title)) return 'Reverse Auction';
+  if (/custom\s*bid/i.test(title)) return 'Custom Bid';
+  return 'Open Bid';
+}
+
+// ─── Main enrichment run ──────────────────────────────────────────────────────
 
 export async function runEnrichment(limit: number = 20, reprocess: boolean = false) {
   console.log(`\n>>> [ENRICHER] Starting enrichment run. Processing up to ${limit} tenders...\n`);
@@ -33,168 +91,178 @@ export async function runEnrichment(limit: number = 20, reprocess: boolean = fal
     query = query.gte('end_date', new Date().toISOString());
   }
 
-  const { data: pendingTenders, error } = await query;
+  const { data: pending, error } = await query;
 
-  if (error || !pendingTenders || pendingTenders.length === 0) {
-    return { success: true, processed: 0, message: "No pending tenders found." };
+  if (error || !pending || pending.length === 0) {
+    console.log('>>> [ENRICHER] No pending tenders found.');
+    return { success: true, processed: 0 };
   }
 
-  const browser = await chromium.launch({
-    headless: true,
-    args: [
-      '--disable-blink-features=AutomationControlled',
-      '--no-sandbox', 
-      '--disable-setuid-sandbox', 
-      '--disable-gpu'
-    ],
-  });
-  const context = await browser.newContext({
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-  });
+  console.log(`>>> [ENRICHER] Found ${pending.length} tenders to enrich.`);
 
+  let cookies = await getSession();
+  let requestCount = 0;
   let successCount = 0;
-  const CONCURRENCY = 1; // Download and AI process 1 PDF at a time locally to prevent socket timeout
-  const chunks = [];
-  for (let i = 0; i < pendingTenders.length; i += CONCURRENCY) {
-    chunks.push(pendingTenders.slice(i, i + CONCURRENCY));
-  }
 
-  for (const chunk of chunks) {
-    await Promise.all(chunk.map(async (tender) => {
-    const pdfLink = tender.details_url || `https://bidplus.gem.gov.in/showbiddata/${tender.bid_number}`;
-    let pdfPublicUrl: string | null = null;
-    let aiData: any = null;
+  const CONCURRENCY = 3;
 
-    try {
-      let buffer: Buffer | undefined;
-      const downloadPage = await context.newPage();
+  for (let i = 0; i < pending.length; i += CONCURRENCY) {
+    const batch = pending.slice(i, i + CONCURRENCY);
+
+    await Promise.all(batch.map(async (tender) => {
+      // Refresh session every 50 requests
+      if (requestCount > 0 && requestCount % 50 === 0) {
+        try { cookies = await getSession(); } catch { /* keep old */ }
+      }
+      requestCount++;
+
+      const bId = tender.details_url?.split('/').pop();
+      if (!bId) return;
+
+      const gemHeaders = {
+        ...HEADERS,
+        Referer: 'https://bidplus.gem.gov.in/all-bids',
+        Cookie: cookies,
+      };
 
       try {
-        let downloadPromise = downloadPage.waitForEvent('download', { timeout: 15000 });
-        let gotoPromise = downloadPage.goto(pdfLink, { waitUntil: 'load', timeout: 15000 }).catch(e => {
-          // Playwright intentionally aborts navigation if it results in a download
-          return null;
-        });
-        
-        const result = await Promise.race([
-          downloadPromise.then(d => ({ type: 'download', data: d })),
-          gotoPromise.then(() => ({ type: 'page' }))
-        ]);
+        // ── Step 1: HTML enrichment ──────────────────────────────────────────
+        let htmlFields: Record<string, string> = {};
+        let cityState: { city: string | null; state: string | null } = { city: null, state: null };
 
-        if (result.type === 'download' && 'data' in result) {
-          const download = result.data as any;
-          const tempPath = path.join(process.cwd(), 'tmp', `admin_enr_${tender.bid_number.replace(/\//g, '-')}.pdf`);
-          await download.saveAs(tempPath);
-          buffer = fs.readFileSync(tempPath);
-          fs.unlinkSync(tempPath);
-        } else {
-          const response = await context.request.get(pdfLink).catch(() => null);
-          if (response) {
-            const contentType = response.headers()['content-type'] || '';
-            const body = await response.body();
-            if (contentType.includes('pdf')) buffer = Buffer.from(body);
+        try {
+          const htmlRes = await axios.get(
+            `https://bidplus.gem.gov.in/bidding/bid/getBidResultView/${bId}`,
+            { httpsAgent, headers: gemHeaders, timeout: 20000 }
+          );
+
+          if (typeof htmlRes.data === 'string' && htmlRes.data.includes('BID DETAILS')) {
+            htmlFields = parseHtmlFields(htmlRes.data);
+            cityState = parseCityStateFromAddress(htmlRes.data);
           }
-        }
-      } catch (e: any) {
-        // Fallback
-        const response = await context.request.get(pdfLink).catch(() => null);
-        if (response) {
-          const contentType = response.headers()['content-type'] || '';
-          const body = await response.body();
-          if (contentType.includes('pdf')) buffer = Buffer.from(body);
-        }
-      } finally {
-        await downloadPage.close();
-      }
-
-      if (buffer && buffer.length > 1000) {
-        const fileName = `${tender.bid_number.replace(/\//g, '-')}.pdf`;
-        const { data: uploadData } = await supabase.storage
-          .from('tender-documents')
-          .upload(fileName, buffer, { contentType: 'application/pdf', upsert: true });
-
-        if (uploadData) {
-          const { data: urlData } = supabase.storage.from('tender-documents').getPublicUrl(uploadData.path);
-          pdfPublicUrl = urlData.publicUrl;
+        } catch (e: any) {
+          console.warn(`  [HTML] ${tender.bid_number}: ${e.message}`);
         }
 
-        const _lib: any = await import('pdf-parse');
-        const pdfLib = _lib.default || _lib;
-        const ParserClass = pdfLib.PDFParse || pdfLib;
-        
-        let extractedText = '';
-        if (typeof ParserClass === 'function' && ParserClass.toString().includes('class')) {
-          const instance = new ParserClass({ data: buffer, max: 0 });
-          const result = await instance.getText();
-          extractedText = result.text || '';
-          await instance.destroy?.();
-        } else {
-          const fn = typeof pdfLib === 'function' ? pdfLib : pdfLib.default;
-          const textData = await fn(buffer, { max: 0 });
-          extractedText = textData.text || '';
-        }
+        // ── Step 2: PDF download ─────────────────────────────────────────────
+        let pdfPublicUrl: string | null = null;
+        let pdfText = '';
 
-        if (extractedText.length > 50) {
-          aiData = await extractTenderData(extractedText.substring(0, 6000));
-        }
+        try {
+          const pdfRes = await axios.get(
+            `https://bidplus.gem.gov.in/showbidDocument/${bId}`,
+            { httpsAgent, headers: gemHeaders, responseType: 'arraybuffer', timeout: 30000 }
+          );
 
-        const auth = aiData?.authority;
-        const updatePayload: any = { pdf_url: pdfPublicUrl };
+          const buffer = Buffer.from(pdfRes.data);
+          if (buffer.length > 1000) {
+            const fileName = `${tender.bid_number.replace(/\//g, '-')}.pdf`;
+            const { data: uploadData } = await supabase.storage
+              .from('tender-documents')
+              .upload(fileName, buffer, { contentType: 'application/pdf', upsert: true });
 
-        if (aiData) {
-          updatePayload.title = aiData.tender_title;
-          updatePayload.ministry_name = auth?.ministry;
-          updatePayload.department_name = auth?.department;
-          updatePayload.organisation_name = auth?.organisation;
-          updatePayload.office_name = auth?.office;
-          updatePayload.state = normalizeState(auth?.consignee_state || auth?.state);
-          updatePayload.city = normalizeCity(auth?.consignee_city || auth?.city);
-
-          // Regex fallback on full (non-truncated) text when AI misses city/state
-          if (!updatePayload.city || !updatePayload.state) {
-            const loc = extractCityStateFromConsigneeTable(extractedText);
-            if (!updatePayload.city && loc.city) updatePayload.city = loc.city;
-            if (!updatePayload.state && loc.state) updatePayload.state = loc.state;
-            if (updatePayload.city && !updatePayload.state) {
-              updatePayload.state = cityToState(updatePayload.city);
+            if (uploadData) {
+              const { data: urlData } = supabase.storage.from('tender-documents').getPublicUrl(uploadData.path);
+              pdfPublicUrl = urlData.publicUrl;
             }
+
+            try {
+              const parsed = await pdfParse(buffer, { max: 0 });
+              pdfText = parsed.text || '';
+            } catch { /* pdf parse failed, continue without text */ }
           }
-          updatePayload.emd_amount = aiData.emd_amount;
-          updatePayload.quantity = aiData.quantity;
-          updatePayload.ai_summary = aiData.technical_summary;
-          updatePayload.eligibility_msme = aiData.eligibility?.msme || false;
-          updatePayload.eligibility_mii = aiData.eligibility?.mii || false;
-          updatePayload.mse_relaxation = aiData.relaxations?.mse_experience || null;
-          updatePayload.mse_turnover_relaxation = aiData.relaxations?.mse_turnover || null;
-          updatePayload.startup_relaxation = aiData.relaxations?.startup_experience || null;
-          updatePayload.startup_turnover_relaxation = aiData.relaxations?.startup_turnover || null;
-          updatePayload.documents_required = aiData.documents_required || [];
-          updatePayload.category = aiData.category || detectCategory((aiData.tender_title || '') + ' ' + (aiData.technical_summary || '')) || null;
+        } catch (e: any) {
+          console.warn(`  [PDF] ${tender.bid_number}: ${e.message}`);
+        }
+
+        // ── Step 3: AI enrichment from PDF text ──────────────────────────────
+        let aiData: any = null;
+        if (pdfText.length > 50) {
+          try {
+            aiData = await extractTenderDataGroq(pdfText);
+          } catch { /* AI failed, continue */ }
+        }
+
+        // ── Step 4: Build update payload ─────────────────────────────────────
+        const updatePayload: any = {};
+
+        if (pdfPublicUrl) updatePayload.pdf_url = pdfPublicUrl;
+
+        // HTML-derived fields (fast, no AI needed)
+        if (htmlFields['ministry']) updatePayload.ministry_name = htmlFields['ministry'];
+        if (htmlFields['department']) updatePayload.department_name = htmlFields['department'];
+
+        if (cityState.city) updatePayload.city = cityState.city;
+        if (cityState.state) updatePayload.state = cityState.state;
+
+        // AI-derived fields (summary, keywords, category — things not in the HTML)
+        if (aiData) {
+          const auth = aiData.authority;
+          if (!updatePayload.ministry_name && auth?.ministry) updatePayload.ministry_name = auth.ministry;
+          if (!updatePayload.department_name && auth?.department) updatePayload.department_name = auth.department;
+          if (auth?.organisation) updatePayload.organisation_name = auth.organisation;
+          if (auth?.office) updatePayload.office_name = auth.office;
+
+          if (!updatePayload.city && (auth?.consignee_city || auth?.city))
+            updatePayload.city = normalizeCity(auth.consignee_city || auth.city);
+          if (!updatePayload.state && (auth?.consignee_state || auth?.state))
+            updatePayload.state = normalizeState(auth.consignee_state || auth.state);
+
+          // Infer state from city if still missing
+          if (updatePayload.city && !updatePayload.state)
+            updatePayload.state = cityToState(updatePayload.city);
+
+          if (aiData.tender_title) updatePayload.title = aiData.tender_title;
+          if (aiData.emd_amount != null) updatePayload.emd_amount = aiData.emd_amount;
+          if (aiData.quantity != null) updatePayload.quantity = aiData.quantity;
+          if (aiData.technical_summary) updatePayload.ai_summary = aiData.technical_summary;
+          if (aiData.eligibility) {
+            updatePayload.eligibility_msme = aiData.eligibility.msme || false;
+            updatePayload.eligibility_mii = aiData.eligibility.mii || false;
+          }
+          if (aiData.relaxations) {
+            updatePayload.mse_relaxation = aiData.relaxations.mse_experience || null;
+            updatePayload.mse_turnover_relaxation = aiData.relaxations.mse_turnover || null;
+            updatePayload.startup_relaxation = aiData.relaxations.startup_experience || null;
+            updatePayload.startup_turnover_relaxation = aiData.relaxations.startup_turnover || null;
+          }
+          if (aiData.documents_required?.length) updatePayload.documents_required = aiData.documents_required;
+
+          updatePayload.category = aiData.category
+            || detectCategory((aiData.tender_title || '') + ' ' + (aiData.technical_summary || ''))
+            || null;
           updatePayload.bid_type = detectBidType(tender.bid_number, aiData.tender_title || '');
-          updatePayload.procurement_type = aiData.procurement_type || null;
-          updatePayload.keywords = aiData.keywords || [];
+          if (aiData.procurement_type) updatePayload.procurement_type = aiData.procurement_type;
+          if (aiData.keywords?.length) updatePayload.keywords = aiData.keywords;
+
           if (aiData.dates) {
             const od = parseGeMDate(aiData.dates.bid_opening_date); if (od) updatePayload.opening_date = od;
-            const sd = parseGeMDate(aiData.dates.bid_start_date);   if (sd) updatePayload.start_date   = sd;
-            const ed = parseGeMDate(aiData.dates.bid_end_date);     if (ed) updatePayload.end_date     = ed;
+            const sd = parseGeMDate(aiData.dates.bid_start_date);   if (sd) updatePayload.start_date = sd;
+            const ed = parseGeMDate(aiData.dates.bid_end_date);     if (ed) updatePayload.end_date = ed;
           }
         }
 
-        const nowMs = Date.now();
-        if (updatePayload.end_date && new Date(updatePayload.end_date).getTime() < nowMs) {
-          console.warn(`    ! Skipping expired tender ${tender.bid_number} (end_date: ${updatePayload.end_date})`);
+        // Skip if tender expired by AI-parsed end_date
+        if (updatePayload.end_date && new Date(updatePayload.end_date).getTime() < Date.now()) {
+          console.log(`  ! Skipping expired ${tender.bid_number}`);
+          return;
+        }
+
+        if (Object.keys(updatePayload).length === 0) {
+          console.log(`  ~ No data extracted for ${tender.bid_number}`);
           return;
         }
 
         await supabase.from('tenders').update(updatePayload).eq('id', tender.id);
         successCount++;
-      }
-    } catch (err) {
-      console.error(`    ✗ Error scraping ${tender.bid_number}:`, err);
-    }
-  }));
-}
+        console.log(`  ✓ ${tender.bid_number} | pdf=${!!pdfPublicUrl} ai=${!!aiData} city=${updatePayload.city || '-'}`);
 
-  await browser.close();
+      } catch (err: any) {
+        console.error(`  ✗ ${tender.bid_number}:`, err.message);
+      }
+    }));
+  }
+
+  console.log(`\n>>> [ENRICHER] Done. ${successCount}/${pending.length} enriched.\n`);
   return { success: true, processed: successCount };
 }

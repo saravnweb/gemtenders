@@ -75,7 +75,11 @@ async function fetchGeMBidsPage(pageNum: number, csrf: string, cookies: string):
   const postdata = {
     page: pageNum,
     param: { searchParam: "searchbid" },
-    filter: {}
+    filter: { 
+      bidStatusType: "ongoing_bids",
+      byType: "all",
+      sort: "Bid-End-Date-Oldest"
+    }
   };
 
   const formData = new URLSearchParams();
@@ -158,6 +162,11 @@ function mapBidToRow(bid: any) {
     start_date:  startDate,
     end_date:    endDate,
     details_url: `https://bidplus.gem.gov.in/showbidDocument/${pdfId}`,
+    is_high_value: bid.is_high_value?.[0] !== undefined ? bid.is_high_value[0] : false,
+    is_single_packet: bid.ba_is_single_packet?.[0] === 1,
+    is_bunch: bid.b_is_bunch?.[0] === 1,
+    quantity: bid.b_total_quantity?.[0] !== undefined ? bid.b_total_quantity[0] : null,
+    gem_category: bid.bd_category_name?.[0] || bid.b_category_name?.[0] || null,
   };
 }
 
@@ -168,7 +177,7 @@ export async function runFastScrape(maxPages: number, concurrency: number = 5, s
   console.log(`>>> [FAST-SCRAPE] Session obtained. CSRF: ${session.csrf}`);
   console.log(`>>> [FAST-SCRAPE] Pages: ${startPage} → ${maxPages === Infinity ? 'auto' : maxPages} | Concurrency: ${concurrency}\n`);
 
-  const { supabase } = await import('@/lib/supabase');
+  const { supabase } = await import('../lib/supabase.js');
 
   let page         = startPage;
   let totalSaved   = 0;
@@ -268,7 +277,16 @@ export async function runFastScrape(maxPages: number, concurrency: number = 5, s
       const updateResults = await Promise.all(
         rows.map(b =>
           supabase.from('tenders')
-            .update({ start_date: b.start_date, end_date: b.end_date, details_url: b.details_url })
+            .update({ 
+              start_date: b.start_date, 
+              end_date: b.end_date, 
+              details_url: b.details_url,
+              is_high_value: b.is_high_value,
+              is_single_packet: b.is_single_packet,
+              is_bunch: b.is_bunch,
+              quantity: b.quantity,
+              gem_category: b.gem_category
+            })
             .eq('bid_number', b.bid_number)
         )
       );

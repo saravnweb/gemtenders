@@ -657,13 +657,15 @@ function TendersClient({
         // Strict location filter — must match saved state/city exactly.
         // Tenders without state/city won't show until enriched by the backfill script.
         const alertStates = p.states || (p.state ? [p.state] : []);
-        if (alertStates.length) {
-          if (!tender.state || !alertStates.some((s: string) => s.toLowerCase() === tender.state.toLowerCase())) match = false;
+        if (alertStates.length && tender.state) {
+          // If state is known, it MUST match one of the alert states.
+          // If state is unknown, we include it as a potential match (don't set match to false).
+          if (!alertStates.some((s: string) => s.toLowerCase() === tender.state.toLowerCase())) match = false;
         }
 
         const alertCities = p.cities || [];
         if (alertCities.length && tender.city) {
-          // Only exclude when city IS known and doesn't match — null city means "unresolved, still in state"
+          // If city is known, it MUST match one of the alert cities.
           if (!alertCities.some((c: string) => c.toLowerCase() === tender.city.toLowerCase())) match = false;
         }
 
@@ -947,9 +949,9 @@ function TendersClient({
                   </span>
                   {loading ? (
                     <span className="text-[10px] opacity-60">…</span>
-                  ) : cnt !== null ? (
+                  ) : (cnt !== null || tab === 'all') ? (
                     <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${activeTab === tab ? "bg-white/20 text-white" : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300"}`}>
-                      {cnt.toLocaleString()}
+                      {(cnt ?? (tab === 'all' ? tenders.length : 0)).toLocaleString()}
                     </span>
                   ) : null}
                 </button>
@@ -1031,8 +1033,8 @@ function TendersClient({
                 {loading ? "…" : activeTab === "foryou"
                   ? `${forYouTenders.length} results`
                   : activeTab === "archived"
-                    ? archivedCount !== null ? `${archivedCount.toLocaleString()} results` : `${displayTenders.length}${hasMore ? "+" : ""} results`
-                    : activeCount !== null ? `${activeCount.toLocaleString()} results` : `${displayTenders.length}${hasMore ? "+" : ""} results`}
+                    ? `${(archivedCount ?? displayTenders.length).toLocaleString()}${hasMore ? "+" : ""} results`
+                    : `${(activeCount ?? displayTenders.length).toLocaleString()}${hasMore ? "+" : ""} results`}
               </div>
               <div className="flex items-center space-x-2 font-medium">
                 <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Sort by :</span>

@@ -158,3 +158,23 @@ WITH CHECK (auth.uid() = user_id);
 -- ALTER TABLE tenders ADD COLUMN IF NOT EXISTS keywords TEXT[] DEFAULT '{}';
 -- CREATE INDEX IF NOT EXISTS idx_tenders_category ON tenders(category);
 -- CREATE INDEX IF NOT EXISTS idx_tenders_bid_type ON tenders(bid_type);
+-- ALTER TABLE tenders ADD COLUMN IF NOT EXISTS gem_category TEXT DEFAULT NULL;
+-- CREATE INDEX IF NOT EXISTS idx_tenders_gem_category ON tenders(gem_category);
+
+-- Priority 2: Promoted JSON Fields
+-- ALTER TABLE tenders ADD COLUMN IF NOT EXISTS estimated_value    NUMERIC;
+-- ALTER TABLE tenders ADD COLUMN IF NOT EXISTS epbg_percentage    NUMERIC;
+-- ALTER TABLE tenders ADD COLUMN IF NOT EXISTS min_turnover_lakhs NUMERIC;
+-- ALTER TABLE tenders ADD COLUMN IF NOT EXISTS experience_years   NUMERIC;
+-- ALTER TABLE tenders ADD COLUMN IF NOT EXISTS delivery_days      INTEGER;
+-- ALTER TABLE tenders ADD COLUMN IF NOT EXISTS num_consignees     INTEGER;
+-- ALTER TABLE tenders ADD COLUMN IF NOT EXISTS is_high_value      BOOLEAN DEFAULT false;
+-- ALTER TABLE tenders ADD COLUMN IF NOT EXISTS pre_bid_date       TIMESTAMPTZ;
+
+-- CREATE INDEX IF NOT EXISTS idx_tenders_estimated_value    ON tenders(estimated_value);
+-- CREATE INDEX IF NOT EXISTS idx_tenders_min_turnover_lakhs ON tenders(min_turnover_lakhs);
+-- CREATE INDEX IF NOT EXISTS idx_tenders_is_high_value      ON tenders(is_high_value) WHERE is_high_value = true;
+
+-- Leaf Detail Enricher (run before using npm run leaf-enrich)
+-- ALTER TABLE tenders ADD COLUMN IF NOT EXISTS leaf_tried_at TIMESTAMPTZ DEFAULT NULL;
+-- CREATE INDEX IF NOT EXISTS idx_tenders_leaf_tried ON tenders(leaf_tried_at) WHERE leaf_tried_at IS NULL;

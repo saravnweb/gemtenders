@@ -142,18 +142,18 @@ export default function Navbar() {
               {/* Notification Icon and Dropdown */}
               {user && (
                 <div className="relative" ref={notificationRef}>
-                  <button
-                    onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-                    aria-expanded={isNotificationsOpen}
-                    aria-haspopup="true"
-                    className={`p-2 rounded-full transition-colors relative group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-blue-500 ${isNotificationsOpen ? 'bg-fresh-sky-100 dark:bg-zinc-800 text-atomic-tangerine-600' : 'text-fresh-sky-700 dark:text-fresh-sky-300 hover:bg-fresh-sky-50 dark:hover:bg-fresh-sky-900/30'}`}
-                    aria-label={`Notifications${notifications.some(n => !n.is_read) ? ' — you have unread alerts' : ''}`}
-                  >
-                    <Bell className="w-5 h-5 sm:w-6 sm:h-6 transition-transform group-hover:rotate-12" />
-                    {notifications.some(n => !n.is_read) && (
-                      <span className="absolute top-2 right-2 w-2 h-2 bg-atomic-tangerine-600 rounded-full border border-white dark:border-zinc-950" aria-hidden="true"></span>
-                    )}
-                  </button>
+                    <button
+                      onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+                      aria-expanded={isNotificationsOpen}
+                      aria-haspopup="true"
+                      className={`h-9 w-9 sm:h-10 sm:w-10 flex items-center justify-center rounded-full transition-colors relative group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-blue-500 ${isNotificationsOpen ? 'bg-fresh-sky-100 dark:bg-zinc-800 text-atomic-tangerine-600' : 'text-fresh-sky-700 dark:text-fresh-sky-300 hover:bg-fresh-sky-50 dark:hover:bg-fresh-sky-900/30'}`}
+                      aria-label={`Notifications${notifications.some(n => !n.is_read) ? ' — you have unread alerts' : ''}`}
+                    >
+                      <Bell className="w-5 h-5 transition-transform group-hover:rotate-12" />
+                      {notifications.some(n => !n.is_read) && (
+                        <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-atomic-tangerine-600 rounded-full border-1.5 border-white dark:border-zinc-950" aria-hidden="true"></span>
+                      )}
+                    </button>
 
                   {isNotificationsOpen && (
                     <div role="dialog" aria-label="Notifications panel" className="absolute right-0 mt-2 w-[min(20rem,calc(100vw-1rem))] bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800 rounded-2xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-200">

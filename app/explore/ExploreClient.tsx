@@ -175,7 +175,7 @@ export default function ExploreClient({
             <div id="tabpanel-category" role="tabpanel" aria-labelledby="tab-category" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xs font-black tracking-[0.2em] uppercase text-slate-400 dark:text-slate-500">
-                  ALL 20 CATEGORIES
+                  ALL {CATEGORIES.length} CATEGORIES
                 </h2>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">

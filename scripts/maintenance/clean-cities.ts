@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
 import { createClient } from '@supabase/supabase-js';
-import { extractVerifiedCity, normalizeCity } from '../lib/locations';
+import { extractVerifiedCity, normalizeCity } from '../../lib/locations';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,

@@ -15,11 +15,20 @@
  *   npm run solr-enrich -- --concurrency=5       # more parallel Groq calls
  *   npm run solr-enrich -- --reset               # clear checkpoint and restart
  *   npm run solr-enrich -- --all                 # include already-enriched tenders
+ *   npm run solr-enrich -- --solr-only           # only populate SOLR fields (no AI cost)
  */
 
 import dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL) dotenv.config({ path: '.env' });
+
+process.on('unhandledRejection', (reason) => {
+  console.error('\n🛑 UNHANDLED REJECTION:', reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('\n🛑 UNCAUGHT EXCEPTION:', err);
+  process.exit(1);
+});
 
 import { createClient } from '@supabase/supabase-js';
 import axios from 'axios';
@@ -28,14 +37,25 @@ import fs from 'fs';
 import path from 'path';
 import { detectCategory } from '../lib/categories.js';
 import { normalizeState, normalizeCity, cityToState } from '../lib/locations.js';
+import { getComputedFields } from '../lib/computed-fields.js';
 
 // ─── CONFIG ──────────────────────────────────────────────────────────────────
 const argv        = process.argv.slice(2);
 const LIMIT       = parseInt(argv.find(a => a.startsWith('--limit='))?.split('=')[1]       || '50000', 10);
-const CONCURRENCY = parseInt(argv.find(a => a.startsWith('--concurrency='))?.split('=')[1] || '3',     10);
-const BATCH_SIZE  = 10;   // tenders per Groq call (smaller = more reliable JSON parsing)
+const CONCURRENCY = parseInt(argv.find(a => a.startsWith('--concurrency='))?.split('=')[1] || '5',     10);
+const BATCH_SIZE  = 10;   // Safe-Fast batch size
 const RESET       = argv.includes('--reset');
 const ALL         = argv.includes('--all');   // re-enrich even already-enriched tenders
+const SOLR_ONLY   = argv.includes('--solr-only'); // skip Groq AI calls
+// --since=2h / --since=24h / --since=7d  — only process tenders created in the last N hours/days
+const SINCE_ARG   = argv.find(a => a.startsWith('--since='))?.split('=')[1] ?? null;
+const SINCE_DATE: string | null = (() => {
+  if (!SINCE_ARG) return null;
+  const m = SINCE_ARG.match(/^(\d+)(h|d)$/);
+  if (!m) return null;
+  const ms = parseInt(m[1]) * (m[2] === 'h' ? 3600000 : 86400000);
+  return new Date(Date.now() - ms).toISOString();
+})();
 const CHECKPOINT  = path.join(process.cwd(), 'solr-enrich-progress.json');
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
@@ -52,6 +72,8 @@ type TenderRow = {
   id: string;
   bid_number: string;
   title: string;
+  slug: string;
+  end_date: string;
   department: string | null;
   details_url: string | null;
   quantity: number | null;
@@ -69,7 +91,10 @@ type SolrDoc = {
   ba_official_details_deptName?: string[];
   b_total_quantity?: number[];
   b_bid_type?: number[];   // 1=Open, 2=RA
-  is_high_value?: boolean;
+  is_high_value?: boolean[];
+  ba_is_single_packet?: number[];
+  b_is_bunch?: number[];
+  emd_amount?: number[];
 };
 
 type GroqResult = {
@@ -109,8 +134,8 @@ async function querySolr(bidNumber: string): Promise<SolrDoc | null> {
   const form = new URLSearchParams();
   form.append('payload', JSON.stringify({
     page: 1,
-    param: { searchParam: 'searchbid', search: bidNumber },
-    filter: {},
+    param: { searchBid: bidNumber, searchType: 'fullText' },
+    filter: { bidStatusType: 'ongoing_bids', byType: 'all', sort: 'Bid-End-Date-Oldest' },
   }));
   form.append('csrf_bd_gem_nk', solrCsrf);
 
@@ -218,99 +243,142 @@ function saveCheckpoint(offset: number, totalDone: number) {
 }
 function sleep(ms: number) { return new Promise(r => setTimeout(r, ms)); }
 
-// ─── Process a sub-batch ──────────────────────────────────────────────────────
 async function processBatch(
   batch: TenderRow[],
   stats: { ok: number; fail: number; solrHit: number }
 ): Promise<void> {
   const now = new Date().toISOString();
 
-  // Step 1: Query SOLR for each tender (sequentially to avoid hammering)
-  const enrichedBatch: (TenderRow & { gem_category?: string; solrDoc?: SolrDoc })[] = [];
-  for (const tender of batch) {
-    const doc = await querySolr(tender.bid_number);
+  // Step 1: Query SOLR with randomized jitter (Stealth Mode)
+  const docs = await Promise.all(batch.map(async (tender, i) => {
+    // 200ms stagger + up to 300ms random jitter = human-like "pulsing"
+    const delay = (i * 200) + (Math.random() * 300);
+    await sleep(delay); 
+    return querySolr(tender.bid_number);
+  }));
+
+  const enrichedBatch = batch.map((tender, i) => {
+    const doc = docs[i];
     const gemCategory = doc?.b_category_name?.[0] || doc?.bd_category_name?.[0] || undefined;
     if (doc) stats.solrHit++;
-    enrichedBatch.push({ ...tender, gem_category: gemCategory, solrDoc: doc });
-    await sleep(200); // gentle rate-limit on SOLR
-  }
+    return { ...tender, gem_category: gemCategory, solrDoc: doc };
+  });
 
-  // Step 2: Groq batch call
+  // Step 2: Groq batch call (if not SOLR_ONLY)
   let results: GroqResult[] = [];
-  try {
-    results = await callGroq(enrichedBatch);
-  } catch (e: any) {
-    if (e.retryable) {
-      await sleep(15000);
-      try { results = await callGroq(enrichedBatch); }
-      catch { /* fall through */ }
+  if (!SOLR_ONLY) {
+    try {
+      results = await callGroq(enrichedBatch);
+    } catch (e: any) {
+      if (e.retryable) {
+        await sleep(15000);
+        try { results = await callGroq(enrichedBatch); }
+        catch { /* fall through */ }
+      }
     }
   }
   const resultMap = new Map(results.map(r => [r.id, r]));
 
   // Step 3: Build update payloads
-  await Promise.all(enrichedBatch.map(async (tender) => {
-    const groq = resultMap.get(tender.id);
-    const doc  = tender.solrDoc;
+  const payloads: any[] = [];
 
-    // Category: detectCategory locally (fast), or from SOLR
-    const localCategory = detectCategory(tender.title);
-    const gemCategory   = tender.gem_category || null;
+  for (const tender of enrichedBatch) {
+    try {
+      const groq = resultMap.get(tender.id);
+      const doc  = tender.solrDoc;
 
-    // State/city: prefer existing DB values, then Groq inference, then normalize
-    let state = tender.state;
-    let city  = tender.city;
-    if (!state && groq?.state) state = normalizeState(groq.state);
-    if (!city  && groq?.city)  city  = normalizeCity(groq.city);
-    if (city && !state) {
-      const inferred = cityToState(city);
-      if (inferred) state = inferred;
-    }
+      // Category: detectCategory locally (fast), or from SOLR
+      const localCategory = detectCategory(tender.title);
+      const gemCategory   = tender.gem_category || null;
 
-    const payload: Record<string, any> = {
-      enrichment_tried_at: now,
-      bid_type:     doc ? solrBidType(doc, tender.bid_number) : (/\/RA\//i.test(tender.bid_number) ? 'Reverse Auction' : 'Open Bid'),
-      category:     localCategory || null,
-    };
+      // State/city: prefer existing DB values, then Groq inference, then normalize
+      let state = tender.state;
+      let city  = tender.city;
+      if (!state && groq?.state) state = normalizeState(groq.state);
+      if (!city  && groq?.city)  city  = normalizeCity(groq.city);
+      if (city && !state) {
+        const inferred = cityToState(city);
+        if (inferred) state = inferred;
+      }
 
-    // SOLR structured fields
-    if (doc) {
-      if (!tender.ministry_name    && doc.ba_official_details_minName?.[0])
-        payload.ministry_name    = doc.ba_official_details_minName[0];
-      if (!tender.department_name  && doc.ba_official_details_deptName?.[0])
-        payload.department_name  = doc.ba_official_details_deptName[0];
-      if (!tender.quantity         && doc.b_total_quantity?.[0])
-        payload.quantity         = doc.b_total_quantity[0];
-      // Store the GeM catalog category in ai_summary prefix if no existing summary
-    }
+      const payload: Record<string, any> = {
+        id: tender.id, // REQUIRED for upsert
+        bid_number: tender.bid_number, // REQUIRED to avoid null constraint on upsert
+        slug: tender.slug, // REQUIRED to avoid null constraint
+        end_date: tender.end_date, // REQUIRED
+        title: tender.title, // REQUIRED
+        enrichment_tried_at: now,
+        bid_type:     doc ? solrBidType(doc, tender.bid_number) : (/\/RA\//i.test(tender.bid_number) ? 'Reverse Auction' : 'Open Bid'),
+        category:     localCategory || null,
+        gem_category: gemCategory ?? '',
+      };
 
-    // Groq enrichment
-    if (groq) {
-      if (groq.ai_summary)       payload.ai_summary       = gemCategory
-        ? `[${gemCategory}] ${groq.ai_summary}`
-        : groq.ai_summary;
-      if (groq.keywords?.length) payload.keywords         = groq.keywords;
-      if (groq.procurement_type) payload.procurement_type = groq.procurement_type;
-    }
+      // SOLR structured fields
+      if (doc) {
+        if (!tender.ministry_name    && doc.ba_official_details_minName?.[0])
+          payload.ministry_name    = doc.ba_official_details_minName[0];
+        if (!tender.department_name  && doc.ba_official_details_deptName?.[0])
+          payload.department_name  = doc.ba_official_details_deptName[0];
+        if (!tender.quantity         && doc.b_total_quantity?.[0])
+          payload.quantity         = doc.b_total_quantity[0];
 
-    if (state) payload.state = state;
-    if (city)  payload.city  = city;
+        // New mass fields
+        if (doc.is_high_value?.[0] !== undefined)  payload.is_high_value   = doc.is_high_value[0];
+        if (doc.ba_is_single_packet?.[0] !== undefined) payload.is_single_packet = doc.ba_is_single_packet[0] === 1;
+        if (doc.b_is_bunch?.[0] !== undefined)          payload.is_bunch         = doc.b_is_bunch[0] === 1;
+      }
 
-    const { error } = await supabase.from('tenders').update(payload).eq('id', tender.id);
-    if (error) {
-      console.error(`\n  DB error for ${tender.bid_number}: ${error.message}`);
+      // Groq enrichment
+      if (groq) {
+        if (groq.ai_summary)       payload.ai_summary       = gemCategory
+          ? `[${gemCategory}] ${groq.ai_summary}`
+          : groq.ai_summary;
+        if (groq.keywords?.length) payload.keywords         = groq.keywords;
+        if (groq.procurement_type) payload.procurement_type = groq.procurement_type;
+      }
+
+      if (state) payload.state = state;
+      if (city)  payload.city  = city;
+
+      // Computed fields
+      const computed = getComputedFields({
+        emd_amount:         doc?.emd_amount?.[0] || null,
+        eligibility_msme:   payload.eligibility_msme,
+        eligibility_mii:    payload.eligibility_mii,
+        estimated_value:    payload.estimated_value || null,
+        min_turnover_lakhs: payload.min_turnover_lakhs || null,
+        startup_relaxation: payload.startup_relaxation || null,
+        epbg_percentage:    payload.epbg_percentage || null,
+      });
+      Object.assign(payload, computed);
+
+      payloads.push(payload);
+    } catch (e: any) {
+      console.error(`\n  ✗ Error building payload for ${tender.bid_number}: ${e.message}`);
       stats.fail++;
-    } else {
-      stats.ok++;
     }
-  }));
+  }
+
+  // Final Action: Parallel Updates
+  if (payloads.length > 0) {
+    await Promise.all(payloads.map(async (payload) => {
+      const { id, ...updateData } = payload;
+      const { error } = await supabase.from('tenders').update(updateData).eq('id', id);
+      if (error) {
+        console.error(`\n  DB error for row ${id}: ${error.message}`);
+        stats.fail++;
+      } else {
+        stats.ok++;
+      }
+    }));
+  }
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 async function main() {
   console.log(`\n>>> [SOLR-ENRICH] PDF-free enrichment via SOLR API + Groq AI`);
   console.log(`    Limit: ${LIMIT} | Batch: ${BATCH_SIZE} | Concurrency: ${CONCURRENCY}`);
-  console.log(`    Mode: ${ALL ? 'ALL tenders (including enriched)' : 'unenriched only'}\n`);
+  console.log(`    Mode: ${ALL ? 'ALL tenders' : 'unenriched'}${SOLR_ONLY ? ' | SOLR-ONLY (Fast)' : ''}\n`);
 
   if (!process.env.GROQ_API_KEY) {
     console.error('ERROR: GROQ_API_KEY not set in .env.local');
@@ -327,28 +395,50 @@ async function main() {
 
   const stats     = { ok: 0, fail: 0, solrHit: 0 };
   const startTime = Date.now();
-  const FETCH_SIZE = BATCH_SIZE * CONCURRENCY * 2;
+  const FETCH_SIZE = 500; // Increased from 60 for fewer DB roundtrips
 
   while (totalDone < LIMIT) {
     const fetchSize = Math.min(FETCH_SIZE, LIMIT - totalDone);
 
     let query = supabase
       .from('tenders')
-      .select('id, bid_number, title, department, details_url, quantity, ministry_name, department_name, state, city')
+      .select('id, bid_number, slug, end_date, title, department, details_url, quantity, ministry_name, department_name, state, city')
       .gte('end_date', new Date().toISOString())
-      .order('created_at', { ascending: false })
-      .range(offset, offset + fetchSize - 1);
+      .order('created_at', { ascending: false });
 
     if (!ALL) {
       query = query.is('ai_summary', null).is('enrichment_tried_at', null);
     }
+    if (SINCE_DATE) {
+      query = query.gte('created_at', SINCE_DATE);
+    }
 
-    const { data: tenders, error } = await query;
-    if (error) { console.error('DB error:', error.message); break; }
-    if (!tenders?.length) { console.log('\n>>> No more tenders to enrich.'); break; }
+    // Since we filter for NULL ai_summary, we always pull from offset 0
+    // Added retry logic for DB timeouts
+    let tenders: TenderRow[] | null = null;
+    let retries = 3;
+    while (retries > 0) {
+      const { data, error } = await query.range(0, fetchSize - 1);
+      if (error) {
+        console.error(`\n  DB error (retries=${retries}): ${error.message}`);
+        if (error.message.includes('timeout')) {
+          retries--;
+          await sleep(5000);
+          continue;
+        }
+        break;
+      }
+      tenders = data as TenderRow[];
+      break;
+    }
+
+    if (!tenders?.length) { 
+      console.log('\n>>> No more tenders to enrich or DB permanently timed out.'); 
+      break; 
+    }
 
     const elapsed = ((Date.now() - startTime) / 1000 / 60).toFixed(1);
-    console.log(`[offset=${offset}] ${tenders.length} fetched | done=${totalDone} | elapsed=${elapsed}m | SOLR hits=${stats.solrHit}`);
+    console.log(`\n[done=${totalDone}] ${tenders.length} fetched | elapsed=${elapsed}m | SOLR hits=${stats.solrHit}`);
 
     const subBatches: TenderRow[][] = [];
     for (let i = 0; i < tenders.length; i += BATCH_SIZE) {
@@ -359,7 +449,11 @@ async function main() {
       const chunk = subBatches.slice(ci, ci + CONCURRENCY);
       await Promise.all(chunk.map(b => processBatch(b, stats)));
       process.stdout.write(`\r  ok=${stats.ok} fail=${stats.fail} solr_hits=${stats.solrHit}   `);
-      if (ci + CONCURRENCY < subBatches.length) await sleep(1000);
+      
+      // Random "Human Rest" between chunks (1-2 seconds)
+      if (ci + CONCURRENCY < subBatches.length) {
+        await sleep(1000 + Math.random() * 1000);
+      }
     }
 
     totalDone += tenders.length;

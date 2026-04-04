@@ -164,12 +164,19 @@ async function enrichFromBuffer(
     bid_type:     detectBidType(tender.bid_number, aiData.tender_title || ''),
     procurement_type: aiData.procurement_type || null,
     keywords:     aiData.keywords || [],
+    estimated_value:    aiData.estimated_value || null,
+    epbg_percentage:    aiData.epbg_percentage || null,
+    min_turnover_lakhs: aiData.min_turnover_lakhs || null,
+    experience_years:   aiData.experience_years || null,
+    delivery_days:      aiData.delivery_days || null,
+    num_consignees:     aiData.num_consignees || null,
     enrichment_tried_at: new Date().toISOString(),
   });
 
   if (aiData.dates) {
     const od = parseGeMDate(aiData.dates.bid_opening_date); if (od) updatePayload.opening_date = od;
     const sd = parseGeMDate(aiData.dates.bid_start_date);   if (sd) updatePayload.start_date   = sd;
+    const pd = parseGeMDate(aiData.pre_bid_date);           if (pd) updatePayload.pre_bid_date = pd;
     const ed = parseGeMDate(aiData.dates.bid_end_date);
     if (ed && new Date(ed) > new Date()) updatePayload.end_date = ed;
   }

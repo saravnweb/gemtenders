@@ -170,23 +170,35 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
 
   let parsedAiSummary: any = null;
   let aiInsight: string | null = null;
-  
-  if (tender.ai_summary && typeof tender.ai_summary === 'string' && tender.ai_summary.startsWith('{')) {
-    try {
-      const rawParsed = JSON.parse(tender.ai_summary);
-      parsedAiSummary = {};
-      for (const [k, v] of Object.entries(rawParsed)) {
-        if (!v || typeof v !== 'string') continue;
-        const normalizedKey = k.replace(/\n/g, ' ').toUpperCase().trim();
-        parsedAiSummary[normalizedKey] = v.trim();
-      }
 
-      if (parsedAiSummary.AI_INSIGHT) {
-        aiInsight = parsedAiSummary.AI_INSIGHT;
-        delete parsedAiSummary.AI_INSIGHT;
-      }
-    } catch (e) {}
+  if (tender.ai_summary && typeof tender.ai_summary === 'string') {
+    if (tender.ai_summary.startsWith('{')) {
+      try {
+        const rawParsed = JSON.parse(tender.ai_summary);
+        parsedAiSummary = {};
+        for (const [k, v] of Object.entries(rawParsed)) {
+          if (!v || typeof v !== 'string') continue;
+          const normalizedKey = k.replace(/\n/g, ' ').toUpperCase().trim();
+          parsedAiSummary[normalizedKey] = v.trim();
+        }
+        if (parsedAiSummary.AI_INSIGHT) {
+          aiInsight = parsedAiSummary.AI_INSIGHT;
+          delete parsedAiSummary.AI_INSIGHT;
+        }
+      } catch (e) {}
+    } else {
+      // Plain-text summary — show directly as insight
+      aiInsight = tender.ai_summary;
+    }
   }
+
+  // Formatted DB-column values used across cards
+  const fmtCurrency = (n: number | null | undefined) =>
+    n == null ? null : new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
+  const fmtLakhs = (n: number | null | undefined) =>
+    n == null ? null : `₹${n.toLocaleString('en-IN')} Lakhs`;
+  const fmtDate = (d: string | null | undefined) =>
+    d ? new Date(d).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : null;
 
   const isClosingSoon = new Date(tender.end_date).getTime() - Date.now() < 86400000;
   const isClosed = new Date(tender.end_date).getTime() < Date.now();
@@ -437,11 +449,12 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 divide-slate-100 dark:divide-slate-700">
                 {[
-                  { icon: Clock, label: "Bid Start Date/Time", val: tender.start_date ? new Date(tender.start_date).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : "Not Specified" },
-                  { icon: Clock, label: "Bid End Date/Time", val: tender.end_date ? new Date(tender.end_date).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : "Not Specified" },
-                  { icon: Clock, label: "Bid Opening Date/Time", val: tender.opening_date ? new Date(tender.opening_date).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : "Not Specified" },
-                  { icon: FileCheck, label: "Bid Offer Validity / Contract Period", val: parsedAiSummary?.["CONTRACT PERIOD"]?.replace(/\n/g, ' ') || "120 Days" },
-                  { icon: Package, label: "Total Quantity", val: parsedAiSummary?.["QUANTITY"]?.replace(/\n/g, ' ') || tender.quantity || "Not Specified" }
+                  { icon: Clock, label: "Bid Start Date/Time", val: fmtDate(tender.start_date) ?? "Not Specified" },
+                  { icon: Clock, label: "Bid End Date/Time", val: fmtDate(tender.end_date) ?? "Not Specified" },
+                  { icon: Clock, label: "Bid Opening Date/Time", val: fmtDate(tender.opening_date) ?? parsedAiSummary?.["BID OPENING DATE/TIME"]?.replace(/\n/g, ' ') ?? "Not Specified" },
+                  { icon: FileCheck, label: "Bid Offer Validity / Contract Period", val: tender.delivery_days ? `${tender.delivery_days} Days` : parsedAiSummary?.["CONTRACT PERIOD"]?.replace(/\n/g, ' ') ?? "Not Specified" },
+                  { icon: Package, label: "Total Quantity", val: tender.quantity != null ? String(tender.quantity) : parsedAiSummary?.["QUANTITY"]?.replace(/\n/g, ' ') ?? "Not Specified" },
+                  { icon: Calendar, label: "Pre-Bid Meeting Date", val: fmtDate(tender.pre_bid_date) ?? "Not Applicable" }
                 ].map((row, i) => (
                   <div key={i} className={`p-5 flex items-start space-x-4 hover:bg-slate-50/50 dark:hover:bg-slate-800 transition-colors ${i % 2 !== 0 ? 'md:border-l md:border-slate-100 dark:md:border-slate-700' : ''} ${i > 1 && i !== 2 ? 'md:border-t md:border-slate-100 dark:md:border-slate-700' : ''}`}>
                     <div className="mt-0.5 w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 text-slate-600 dark:text-slate-400">
@@ -464,9 +477,11 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 divide-slate-100 dark:divide-slate-700">
                 {[
-                  { icon: Layers, label: "Item Category", val: parsedAiSummary?.["ITEM CATEGORY"]?.replace(/\n/g, ' ') || (tender.title ? tender.title.substring(0, 100) + (tender.title.length > 100 ? '...' : '') : "Not Specified") },
-                  { icon: IndianRupee, label: "Estimated Bid Value", val: parsedAiSummary?.["ESTIMATED BID VALUE"]?.replace(/\n/g, ' ') || "Not Specified" },
-                  { icon: ShieldCheck, label: "ePBG Detail", val: parsedAiSummary?.["EPBG DETAIL"]?.replace(/\n/g, ' ') || "Not Specified" }
+                  { icon: Layers, label: "Item Category", val: tender.gem_category || parsedAiSummary?.["ITEM CATEGORY"]?.replace(/\n/g, ' ') || tender.title || "Not Specified" },
+                  { icon: IndianRupee, label: "Estimated Bid Value", val: fmtCurrency(tender.estimated_value) ?? parsedAiSummary?.["ESTIMATED BID VALUE"]?.replace(/\n/g, ' ') ?? "Not Specified" },
+                  { icon: ShieldCheck, label: "ePBG Detail", val: tender.epbg_percentage != null ? `${tender.epbg_percentage}%` : parsedAiSummary?.["EPBG DETAIL"]?.replace(/\n/g, ' ') ?? "Not Specified" },
+                  { icon: Info, label: "Bid Type", val: tender.bid_type || tender.procurement_type || "Open Bid" },
+                  { icon: Package, label: "Is High Value", val: tender.is_high_value ? "Yes" : "No" }
                 ].map((row, i) => (
                   <div key={i} className={`p-5 flex items-start space-x-4 hover:bg-slate-50/50 dark:hover:bg-slate-800 transition-colors ${i % 2 !== 0 ? 'md:border-l md:border-slate-100 dark:md:border-slate-700' : ''} ${i > 1 ? 'md:border-t md:border-slate-100 dark:md:border-slate-700' : ''}`}>
                     <div className="mt-0.5 w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 text-slate-600 dark:text-slate-400">
@@ -489,10 +504,10 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 divide-slate-100 dark:divide-slate-700">
                 {[
-                  { icon: Briefcase, label: "Years of Past Experience Required", val: parsedAiSummary?.["YEARS OF PAST EXPERIENCE REQUIRED FOR SAME/SIMILAR SERVICE"]?.replace(/\n/g, ' ') || "Not Specified" },
-                  { icon: BookOpen, label: "Past Experience of Similar Services", val: parsedAiSummary?.["PAST EXPERIENCE OF SIMILAR SERVICES REQUIRED"]?.replace(/\n/g, ' ') || "Not Specified" },
-                  { icon: FileSpreadsheet, label: "Minimum Average Annual Turnover of Bidder", val: parsedAiSummary?.["MINIMUM AVERAGE ANNUAL TURNOVER OF THE BIDDER"]?.replace(/\n/g, ' ') || "Not Specified" },
-                  { icon: ClipboardList, label: "Additional Qualification / Data Required", val: parsedAiSummary?.["ADDITIONAL QUALIFICATION/DATA REQUIRED"]?.replace(/\n/g, ' ') || "Not Specified" }
+                  { icon: Briefcase, label: "Years of Past Experience (with Govt.)", val: tender.experience_years != null ? `${tender.experience_years} Year(s)` : parsedAiSummary?.["YEARS OF PAST EXPERIENCE REQUIRED FOR SAME/SIMILAR SERVICE"]?.replace(/\n/g, ' ') ?? "Not Specified" },
+                  { icon: BookOpen, label: "Project / Similar Work Experience Required", val: tender.past_experience_required ?? parsedAiSummary?.["PAST EXPERIENCE OF SIMILAR SERVICES REQUIRED"]?.replace(/\n/g, ' ') ?? "Not Specified" },
+                  { icon: FileSpreadsheet, label: "Minimum Average Annual Turnover", val: fmtLakhs(tender.min_turnover_lakhs) ?? parsedAiSummary?.["MINIMUM AVERAGE ANNUAL TURNOVER OF THE BIDDER"]?.replace(/\n/g, ' ') ?? "Not Specified" },
+                  { icon: ClipboardList, label: "Additional Terms & Conditions", val: "Refer to Tender Document (ATC section in PDF)" }
                 ].map((row, i) => (
                   <div key={i} className={`p-5 flex items-start space-x-4 hover:bg-slate-50/50 dark:hover:bg-slate-800 transition-colors ${i % 2 !== 0 ? 'md:border-l md:border-slate-100 dark:md:border-slate-700' : ''} ${i > 1 ? 'md:border-t md:border-slate-100 dark:md:border-slate-700' : ''}`}>
                     <div className="mt-0.5 w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 text-slate-600 dark:text-slate-400">
@@ -557,7 +572,8 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 divide-slate-100 dark:divide-slate-700">
                 {[
-                  { icon: Users, label: "Consignees / Reporting Officer", val: (parsedAiSummary?.["CONSIGNEES/REPORTING OFFICER AND QUANTITY"] || parsedAiSummary?.["CONSIGNEES/REPORTING OFFICER"])?.replace(/\n/g, ' ') || "Not Specified" },
+                  { icon: Users, label: "Consignees / Delivery Locations", val: tender.num_consignees != null ? `${tender.num_consignees} Location(s)` : (parsedAiSummary?.["CONSIGNEES/REPORTING OFFICER AND QUANTITY"] || parsedAiSummary?.["CONSIGNEES/REPORTING OFFICER"])?.replace(/\n/g, ' ') ?? "Not Specified" },
+                  { icon: MapPin, label: "Delivery State / City", val: [tender.state, tender.city].filter(Boolean).join(', ') || "Not Specified" },
                   { icon: Search, label: "GeMARPTS Result", val: tender.gemarpts_result || "Not Specified", highlighted: true }
                 ].map((row, i) => (
                   <div key={i} className={`p-5 flex items-start space-x-4 hover:bg-slate-50/50 dark:hover:bg-slate-800 transition-colors ${i % 2 !== 0 ? 'md:border-l md:border-slate-100 dark:md:border-slate-700' : ''} ${i > 1 ? 'md:border-t md:border-slate-100 dark:md:border-slate-700' : ''}`}>
