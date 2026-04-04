@@ -9,9 +9,9 @@ export async function POST(req: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY! // Bypass RLS to update user profile
     );
 
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, plan, userId } = await req.json();
+    const { razorpay_subscription_id, razorpay_payment_id, razorpay_signature, plan, userId } = await req.json();
 
-    const body = razorpay_order_id + "|" + razorpay_payment_id;
+    const body = razorpay_payment_id + "|" + razorpay_subscription_id;
     const expectedSignature = crypto
       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET || "dummy_secret")
       .update(body.toString())
@@ -27,12 +27,13 @@ export async function POST(req: Request) {
     if (userId && plan) {
       const { error } = await supabaseAdmin
         .from("profiles")
-        .upsert({
-          id: userId,
+        .update({
           membership_plan: plan,
           subscription_status: "active",
+          subscription_id: razorpay_subscription_id,
           updated_at: new Date().toISOString(),
         })
+        .eq("id", userId);
 
       if (error) {
          console.error("Supabase Admin Error:", error);

@@ -947,13 +947,9 @@ function TendersClient({
                     {tab === "archived" && <Clock className="w-3.5 h-3.5 shrink-0" />}
                     {tab === "all" ? "Active Bids" : "Archived Bids"}
                   </span>
-                  {loading ? (
-                    <span className="text-[10px] opacity-60">…</span>
-                  ) : (cnt !== null || tab === 'all') ? (
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${activeTab === tab ? "bg-white/20 text-white" : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300"}`}>
-                      {(cnt ?? (tab === 'all' ? tenders.length : 0)).toLocaleString()}
-                    </span>
-                  ) : null}
+                  <span suppressHydrationWarning className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${activeTab === tab ? "bg-white/20 text-white" : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300"}`}>
+                    {(cnt ?? (tab === 'all' ? tenders.length : 0)).toLocaleString()}
+                  </span>
                 </button>
               );
             })}
@@ -976,7 +972,7 @@ function TendersClient({
                 <span className="w-1.5 h-1.5 rounded-full bg-green-400 shrink-0" />
                 Active Bids
                 {activeCount !== null && !loading && (
-                  <span className="ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">
+                  <span suppressHydrationWarning className="ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">
                     {activeCount.toLocaleString()}
                   </span>
                 )}
@@ -990,7 +986,7 @@ function TendersClient({
                 <Clock className="w-3 h-3 shrink-0" />
                 Archived Bids
                 {archivedCount !== null && !loading && (
-                  <span className="ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                  <span suppressHydrationWarning className="ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
                     {archivedCount.toLocaleString()}
                   </span>
                 )}
@@ -1029,7 +1025,7 @@ function TendersClient({
             )}
 
             <div className="flex items-center space-x-3 shrink-0">
-              <div className="hidden md:block text-xs font-bold text-slate-500 dark:text-slate-400">
+              <div suppressHydrationWarning className="hidden md:block text-xs font-bold text-slate-500 dark:text-slate-400">
                 {loading ? "…" : activeTab === "foryou"
                   ? `${forYouTenders.length} results`
                   : activeTab === "archived"
@@ -1118,17 +1114,17 @@ function TendersClient({
           </div>
         ) : (
           <>
-            <table role="table" className="w-full block" aria-label="Tenders List">
-              <thead className="sr-only block">
-                <tr className="block">
-                  <th scope="col" className="block">Title & Summary</th>
-                  <th scope="col" className="block">Department</th>
-                  <th scope="col" className="block">Location & ID</th>
-                  <th scope="col" className="block">Dates & EMD</th>
-                  <th scope="col" className="block">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
+            <div role="table" className="w-full block" aria-label="Tenders List">
+              <div role="rowgroup" className="sr-only">
+                <div role="row">
+                  <div role="columnheader">Title & Summary</div>
+                  <div role="columnheader">Department</div>
+                  <div role="columnheader">Location & ID</div>
+                  <div role="columnheader">Dates & EMD</div>
+                  <div role="columnheader">Actions</div>
+                </div>
+              </div>
+              <div role="rowgroup" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
                 {displayTenders.map((tender) => (
                   <TenderCard
                     key={tender.id}
@@ -1140,8 +1136,8 @@ function TendersClient({
                     highlightTerms={activeKeywords}
                   />
                 ))}
-              </tbody>
-            </table>
+              </div>
+            </div>
 
             {hasMore && activeTab !== "foryou" && (
               <div className="mt-8 mb-4 flex justify-center">
@@ -1151,7 +1147,7 @@ function TendersClient({
                   className="bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold py-3 px-8 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-all focus:ring-2 focus:ring-blue-500 focus:outline-none flex items-center space-x-2 disabled:opacity-60"
                 >
                   {loadingMore ? <Loader2 className="w-4 h-4 animate-spin text-slate-600" /> : <RefreshCw className="w-4 h-4 text-slate-600" />}
-                  <span>
+                  <span suppressHydrationWarning>
                     {loadingMore
                       ? "Loading…"
                       : totalCount !== null && totalCount > displayTenders.length
@@ -1234,13 +1230,13 @@ function TenderCard({
   useEffect(() => {
     setIsClosingSoon(!isFallbackDate && (new Date(tender.end_date).getTime() - Date.now() < 86400000));
   }, [isFallbackDate, tender.end_date]);
-  const formattedEMD   = tender.emd_amount === 0
+
+  const formattedEMD = tender.emd_amount === 0
     ? "No EMD"
     : tender.emd_amount
       ? new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(tender.emd_amount)
       : "Not Specified";
 
-  const bidId = tender.bid_number?.replace(/\//g, "/");
   const departmentDisplay = formatDepartmentInfo(tender.ministry_name, tender.department_name || tender.department, tender.organisation_name);
   const category = (tender.category ? getCategoryById(tender.category) : null) ?? getCategory(tender.title, tender.ai_summary);
 
@@ -1252,11 +1248,11 @@ function TenderCard({
       if (parsed.ai_insight) {
         displayInsight = parsed.ai_insight;
       } else {
-        hasValidInsight = false; // Hide the insight box if it's JSON but no insight generated yet
+        hasValidInsight = false; 
       }
     }
-  } catch(e) { /* fallback to old raw string */ }
-  // Suppress insight if empty, too long, or contains Devanagari/Hindi script
+  } catch(e) { /* fallback */ }
+
   if (!displayInsight || displayInsight.trim().length === 0 || displayInsight.length > 400 || /[\u0900-\u097F]/.test(displayInsight)) {
     hasValidInsight = false;
   }
@@ -1274,10 +1270,10 @@ function TenderCard({
   };
 
   return (
-    <tr role="row" className="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-4 transition-all duration-200 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-md flex flex-col h-full relative overflow-hidden">
+    <div role="row" className="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-4 transition-all duration-200 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-md flex flex-col h-full relative overflow-hidden">
 
       {/* Title */}
-      <td role="cell" className="mb-2 w-full">
+      <div role="cell" className="mb-2 w-full">
         <Link href={`/bids/${encodeURIComponent(tender.slug || "")}`} className="hover:no-underline group/title focus:outline-none">
           <h3 className={`text-sm sm:text-[15px] font-medium text-slate-800 dark:text-slate-200 leading-snug transition-colors group-hover/title:text-blue-700 dark:group-hover/title:text-blue-300 after:absolute after:inset-0 after:z-0 ${isExpanded ? "" : "line-clamp-2"}`}>
             <HighlightedText text={tender.title} highlightTerms={highlightTerms} />
@@ -1302,10 +1298,10 @@ function TenderCard({
             </span>
           </div>
         )}
-      </td>
+      </div>
 
       {/* Department */}
-      <td role="cell" className="mb-3 relative z-20 w-full">
+      <div role="cell" className="mb-3 relative z-20 w-full">
         <div className="flex flex-wrap gap-x-1.5 gap-y-1 text-xs text-slate-500 dark:text-slate-400 leading-tight">
           {departmentDisplay.split(", ").filter(Boolean).map((part, idx, arr) => (
             <span key={idx} className="flex items-center">
@@ -1316,11 +1312,11 @@ function TenderCard({
             </span>
           ))}
         </div>
-      </td>
+      </div>
 
       {/* AI Insight */}
       {hasValidInsight && (
-        <td role="cell" className="mb-3 p-2 sm:p-2.5 bg-blue-50/50 dark:bg-blue-900/20 rounded-lg border border-blue-50 dark:border-blue-900 relative z-10 w-full">
+        <div role="cell" className="mb-3 p-2 sm:p-2.5 bg-blue-50/50 dark:bg-blue-900/20 rounded-lg border border-blue-50 dark:border-blue-900 relative z-10 w-full">
           <div className="flex items-center space-x-1 mb-1 opacity-60">
             <Zap className="w-2.5 h-2.5 text-blue-500" />
             <span className="text-[9px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-tighter">AI Insight</span>
@@ -1328,11 +1324,11 @@ function TenderCard({
           <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed italic">
             "<HighlightedText text={displayInsight} highlightTerms={highlightTerms} />"
           </p>
-        </td>
+        </div>
       )}
 
       {/* Location & Bid ID */}
-      <td role="cell" className="flex items-center justify-between mb-3 relative z-20 w-full">
+      <div role="cell" className="flex items-center justify-between mb-3 relative z-20 w-full">
         <div className="flex items-center text-xs text-slate-600 dark:text-slate-400 space-x-1.5 min-w-0">
           <MapPin className="w-3 h-3 text-slate-300 dark:text-slate-600 shrink-0" />
           <div className="flex items-center truncate">
@@ -1366,17 +1362,17 @@ function TenderCard({
           )}
           <span className="text-xs font-medium px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded">GeM</span>
         </div>
-      </td>
+      </div>
 
       {/* 4: EMD & Dates */}
-      <td role="cell" className="grid grid-cols-3 gap-2 py-2 sm:py-2.5 border-y border-slate-100 dark:border-slate-700 mb-4 bg-slate-50 dark:bg-slate-800 -mx-4 px-4 relative z-10 pointer-events-none mt-auto w-full">
+      <div role="cell" className="grid grid-cols-3 gap-2 py-2 sm:py-2.5 border-y border-slate-100 dark:border-slate-700 mb-4 bg-slate-50 dark:bg-slate-800 -mx-4 px-4 relative z-10 pointer-events-none mt-auto w-full">
         <div className="flex flex-col items-center">
           <span className="text-xs text-slate-500 dark:text-slate-400 mb-0.5">EMD Amount</span>
-          <span className="text-[13px] font-medium text-slate-700 dark:text-slate-300 truncate">{formattedEMD}</span>
+          <span suppressHydrationWarning className="text-[13px] font-medium text-slate-700 dark:text-slate-300 truncate">{formattedEMD}</span>
         </div>
         <div className="flex flex-col items-center border-l border-slate-200 dark:border-slate-700">
           <span className="text-xs text-slate-500 dark:text-slate-400 mb-0.5">Start Date</span>
-          <span className="text-[13px] font-medium text-slate-700 dark:text-slate-300">
+          <span suppressHydrationWarning className="text-[13px] font-medium text-slate-700 dark:text-slate-300">
             {isFallbackDate ? "Pending" : (tender.start_date ? formatDate(tender.start_date) : "N/A")}
           </span>
         </div>
@@ -1385,14 +1381,14 @@ function TenderCard({
             <Clock className="w-2.5 h-2.5 text-slate-500 dark:text-slate-400" />
             <span className="text-xs text-slate-500 dark:text-slate-400">Close Date</span>
           </div>
-          <span className={`text-[13px] font-medium ${isClosingSoon ? 'text-red-500 dark:text-red-400' : 'text-slate-700 dark:text-slate-300'}`}>
+          <span suppressHydrationWarning className={`text-[13px] font-medium ${isClosingSoon ? 'text-red-500 dark:text-red-400' : 'text-slate-700 dark:text-slate-300'}`}>
             {isFallbackDate ? "Pending" : formatDate(tender.end_date)}
           </span>
         </div>
-      </td>
+      </div>
 
       {/* 5: Actions */}
-      <td role="cell" className="flex gap-2 items-center relative z-20 mt-auto w-full">
+      <div role="cell" className="flex gap-2 items-center relative z-20 mt-auto w-full">
         <Link
           href={`/bids/${encodeURIComponent(tender.slug || '')}`}
           className="flex-1 h-10 rounded-xl border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs sm:text-sm font-bold flex items-center justify-center transition-all hover:bg-blue-100 dark:hover:bg-blue-800/30 active:scale-[0.98]"
@@ -1430,8 +1426,8 @@ function TenderCard({
         >
           <Bookmark className={`w-4 h-4 ${isSaved ? "fill-current text-blue-600 dark:text-blue-400" : ""}`} />
         </button>
-      </td>
-    </tr>
+      </div>
+    </div>
   );
 }
 
@@ -1604,7 +1600,7 @@ function FilterDropdown({
               )}
               <span className="truncate flex-1">{lbl}</span>
               {cnt !== undefined && cnt > 0 && (
-                <span className={`shrink-0 tabular-nums text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                <span suppressHydrationWarning className={`shrink-0 tabular-nums text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
                   checked ? "bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200" : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
                 }`}>
                   {cnt.toLocaleString()}

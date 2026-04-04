@@ -64,6 +64,26 @@ async function ExploreDataFetcher() {
     return <div>Error loading data or no active tenders found.</div>;
   }
 
+  // 4. Overall stats for Types & MSE
+  // "Closing Today": end_date is today
+  // "Added Today": created_at is today
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const todayEnd = new Date(todayStart);
+  todayEnd.setDate(todayEnd.getDate() + 1);
+
+  let activeCount = totalCount ?? tenders.length;
+  let msePreferredCount = 0;
+  let startupRelaxationCount = 0;
+  let miiPreferenceCount = 0;
+  let zeroEmdCount = 0;
+  let closingTodayCount = 0;
+  let addedTodayCount = 0;
+  
+  let openBidCount = 0;
+  let reverseAuctionCount = 0;
+  let customBidCount = 0;
+
   // 1. Calculate By State Counts — only real Indian states/UTs
   const stateCounts: Record<string, number> = {};
   const stateFieldMinistries: Record<string, number> = {}; 
@@ -94,9 +114,15 @@ async function ExploreDataFetcher() {
       ministryCounts[name] = (ministryCounts[name] || 0) + count;
     }
   }
+  const sumOfMinistries = Object.values(ministryCounts).reduce((a, b) => a + b, 0);
+  const othersCount = activeCount - sumOfMinistries;
+  if (othersCount > 0) {
+    ministryCounts["Others / State Tenders"] = othersCount;
+  }
+
   const topMinistries = Object.entries(ministryCounts)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 15)
+    .slice(0, 100)
     .map(([ministry, count]) => ({ ministry, count }));
 
   // 3. By Organisation Counts
@@ -106,30 +132,17 @@ async function ExploreDataFetcher() {
       orgCounts[t.organisation_name!] = (orgCounts[t.organisation_name!] || 0) + 1;
     }
   });
+  const sumOfOrgs = Object.values(orgCounts).reduce((a, b) => a + b, 0);
+  const otherOrgsCount = activeCount - sumOfOrgs;
+  if (otherOrgsCount > 0) {
+    orgCounts["Others / Unlisted Organizations"] = otherOrgsCount;
+  }
+
   const orgList = Object.entries(orgCounts)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 50)
+    .slice(0, 150)
     .map(([org, count]) => ({ org, count }));
 
-  // 4. Overall stats for Types & MSE
-  // "Closing Today": end_date is today
-  // "Added Today": created_at is today
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
-  const todayEnd = new Date(todayStart);
-  todayEnd.setDate(todayEnd.getDate() + 1);
-
-  let activeCount = totalCount ?? tenders.length;
-  let msePreferredCount = 0;
-  let startupRelaxationCount = 0;
-  let miiPreferenceCount = 0;
-  let zeroEmdCount = 0;
-  let closingTodayCount = 0;
-  let addedTodayCount = 0;
-  
-  let openBidCount = 0;
-  let reverseAuctionCount = 0;
-  let customBidCount = 0;
 
   tenders.forEach(t => {
     if (t.eligibility_msme) msePreferredCount++;

@@ -187,7 +187,7 @@ export default function Navbar() {
                                   {!notif.is_read && <span className="w-1.5 h-1.5 shrink-0 bg-blue-500 rounded-full mt-1.5"></span>}
                                 </div>
                                 <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">{notif.message}</p>
-                                <span className="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-wider">{new Date(notif.created_at).toLocaleDateString()}</span>
+                                <span suppressHydrationWarning className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-wider">{new Date(notif.created_at).toLocaleDateString()}</span>
                               </button>
                             ))}
                           </div>
@@ -223,7 +223,7 @@ export default function Navbar() {
                     </Link>
                   </>
                 ) : (
-                    <Link href="/" className="text-xs font-black uppercase tracking-widest text-fresh-sky-700 dark:text-fresh-sky-300 hover:text-atomic-tangerine-600 transition-colors">
+                    <Link href="/explore" className="text-xs font-black uppercase tracking-widest text-fresh-sky-700 dark:text-fresh-sky-300 hover:text-atomic-tangerine-600 transition-colors">
                       Explore Bids
                     </Link>
                 )}

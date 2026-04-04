@@ -1,13 +1,7 @@
-import { Zap, Play, CheckCircle, Database, Shield, LayoutDashboard, Globe, Cpu, ArrowRight, Users } from "lucide-react";
+import { Zap, CheckCircle, Database, Shield, LayoutDashboard, Cpu, ArrowRight, Users, FileText, Brain, Banknote, MapPin, Building2, AlertCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
-import { revalidatePath } from "next/cache";
 import Link from "next/link";
-import { ScrapeButton, EnrichButton } from "./client-buttons";
-import { exec } from "child_process";
-import util from "util";
-
-const execAsync = util.promisify(exec);
 
 export const dynamic = 'force-dynamic';
 
@@ -24,13 +18,48 @@ export default async function AdminPage() {
     .select("*", { count: "exact", head: true })
     .not("pdf_url", "is", null);
 
-  const { count: pendingCount } = await supabase
-    .from("tenders")
-    .select("*", { count: "exact", head: true })
-    .is("pdf_url", null)
-    .gte("end_date", new Date().toISOString());
+  // ── Data Quality Stats ───────────────────────────────────────────────────
+  const [
+    { count: hasAiSummary },
+    { count: hasEmd },
+    { count: hasState },
+    { count: hasCity },
+    { count: hasMinistry },
+    { count: hasOrg },
+    { count: enrichmentTried },
+    { count: nullBidNumber },
+  ] = await Promise.all([
+    supabase.from("tenders").select("*", { count: "exact", head: true }).not("ai_summary", "is", null),
+    supabase.from("tenders").select("*", { count: "exact", head: true }).not("emd_amount", "is", null),
+    supabase.from("tenders").select("*", { count: "exact", head: true }).not("state", "is", null),
+    supabase.from("tenders").select("*", { count: "exact", head: true }).not("city", "is", null),
+    supabase.from("tenders").select("*", { count: "exact", head: true }).not("ministry_name", "is", null),
+    supabase.from("tenders").select("*", { count: "exact", head: true }).not("organisation_name", "is", null),
+    supabase.from("tenders").select("*", { count: "exact", head: true }).not("enrichment_tried_at", "is", null),
+    supabase.from("tenders").select("*", { count: "exact", head: true }).is("bid_number", null),
+  ]);
 
-  const pendingEnrichment = pendingCount || 0;
+  const total = totalCount || 0;
+  const pct = (n: number | null) => total ? Math.round((n || 0) / total * 100) : 0;
+
+  // ── Detail rows for missing data (up to 100 each) ────────────────────────
+  const [
+    { data: missingPdfRows },
+    { data: missingAiRows },
+    { data: missingEmdRows },
+    { data: missingStateRows },
+    { data: missingCityRows },
+    { data: missingMinistryRows },
+    { data: missingOrgRows },
+  ] = await Promise.all([
+    supabase.from("tenders").select("bid_number, title, slug").is("pdf_url", null).order("created_at", { ascending: false }).limit(100),
+    supabase.from("tenders").select("bid_number, title, slug").is("ai_summary", null).order("created_at", { ascending: false }).limit(100),
+    supabase.from("tenders").select("bid_number, title, slug").is("emd_amount", null).order("created_at", { ascending: false }).limit(100),
+    supabase.from("tenders").select("bid_number, title, slug").is("state", null).order("created_at", { ascending: false }).limit(100),
+    supabase.from("tenders").select("bid_number, title, slug").is("city", null).order("created_at", { ascending: false }).limit(100),
+    supabase.from("tenders").select("bid_number, title, slug").is("ministry_name", null).order("created_at", { ascending: false }).limit(100),
+    supabase.from("tenders").select("bid_number, title, slug").is("organisation_name", null).order("created_at", { ascending: false }).limit(100),
+  ]);
 
   // Subscriptions & Users Stats (bypassing RLS)
   const supabaseAdmin = createSupabaseClient(
@@ -55,28 +84,6 @@ export default async function AdminPage() {
     });
   }
 
-  async function startScrapeAction() {
-    "use server";
-    try {
-      await execAsync("npm run scrape --prefix scraper");
-      revalidatePath("/admin");
-      revalidatePath("/");
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
-  async function startEnrichAction() {
-    "use server";
-    try {
-      await execAsync("npm run enrich --prefix scraper");
-      revalidatePath("/admin");
-      revalidatePath("/");
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
   return (
     <div className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6">
       <div className="max-w-4xl mx-auto">
@@ -93,33 +100,6 @@ export default async function AdminPage() {
             <span>View Live Site</span>
             <ArrowRight className="w-4 h-4" />
           </Link>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-            <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-4">
-              <Database className="w-5 h-5" />
-            </div>
-            <p className="text-xs font-bold text-slate-600 uppercase tracking-widest mb-1">Total Indexed</p>
-            <p className="text-3xl font-black text-slate-800">{totalCount || 0}</p>
-          </div>
-          
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-            <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center mb-4">
-              <Shield className="w-5 h-5" />
-            </div>
-            <p className="text-xs font-bold text-slate-600 uppercase tracking-widest mb-1">AI Enriched</p>
-            <p className="text-3xl font-black text-slate-800">{enrichedCount || 0}</p>
-          </div>
-
-          <div className="bg-blue-600 p-6 rounded-3xl shadow-xl shadow-blue-200 text-white relative overflow-hidden">
-            <Zap className="absolute -right-4 -top-4 w-24 h-24 text-white/10 rotate-12" />
-            <div className="w-10 h-10 bg-white/20 text-white rounded-xl flex items-center justify-center mb-4">
-              <Cpu className="w-5 h-5" />
-            </div>
-            <p className="text-xs font-bold text-white/80 uppercase tracking-widest mb-1">Queue Pending</p>
-            <p className="text-3xl font-black">{pendingEnrichment}</p>
-          </div>
         </div>
 
         {/* Subscriptions Section */}
@@ -148,55 +128,225 @@ export default async function AdminPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Main Action: Full Pipeline */}
-          <div className="bg-slate-900 rounded-4xl p-8 border border-slate-800 shadow-xl relative overflow-hidden text-white">
-            <Zap className="absolute -right-4 -top-4 w-32 h-32 text-white/5 rotate-12" />
-            <div className="flex items-center space-x-3 mb-6 relative">
-              <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-md shadow-blue-500/50">1</div>
-              <h2 className="text-xl font-bold">Run Full Pipeline (Crawl + AI)</h2>
-            </div>
-            <p className="text-slate-600 text-sm leading-relaxed mb-8 relative">
-              This completely unified process launches a stealth browser, scans GeM BidPlus, downloads latest PDFs, runs them through Gemini AI for deep extraction, and saves fully enriched tenders. No partial data is saved.
-            </p>
-            <form action={startScrapeAction} className="relative">
-              <ScrapeButton />
-            </form>
-          </div>
+        {/* ── Data Quality Section ── */}
+        <div className="mt-14">
+          <h2 className="text-xl font-bold text-slate-800 mb-2 flex items-center">
+            <AlertCircle className="w-6 h-6 mr-2 text-slate-400" />
+            Data Quality
+          </h2>
+          <p className="text-sm text-slate-500 mb-6">Coverage across all {total} indexed tenders</p>
 
-          {/* Secondary Action: Backlog */}
-          <div className="bg-white rounded-4xl p-8 border border-slate-200 shadow-sm relative overflow-hidden">
-            {pendingEnrichment > 0 && (
-              <div className="absolute top-4 right-4 animate-bounce">
-                <div className="bg-amber-100 text-amber-600 p-1.5 rounded-full">
-                  <Database className="w-4 h-4 fill-current" />
-                </div>
+          {/* Stat cards */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-10">
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+              <div className="flex items-center space-x-2 mb-2">
+                <FileText className="w-4 h-4 text-blue-500" />
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">PDF</span>
               </div>
-            )}
-            <div className="flex items-center space-x-3 mb-6">
-              <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center text-slate-500 font-bold text-sm">2</div>
-              <h2 className="text-xl font-bold text-slate-800">Process Backlog Queue</h2>
+              <p className="text-2xl font-black text-slate-800">{pct(enrichedCount)}%</p>
+              <p className="text-xs text-slate-400 mt-0.5">{enrichedCount ?? 0} / {total}</p>
+              {(total - (enrichedCount || 0)) > 0 && (
+                <p className="text-xs text-red-500 font-semibold mt-1">Missing: {total - (enrichedCount || 0)}</p>
+              )}
             </div>
-            <p className="text-slate-500 text-sm leading-relaxed mb-8">
-              This tool processes <strong>15 items per click</strong> to prevent server timeouts. Since you have a large backlog, it is highly recommended to run <code className="bg-slate-100 px-1 py-0.5 rounded text-slate-700 font-mono text-xs">npm run enrich -- --limit=1000</code> in your terminal instead of clicking this button manually!
-            </p>
-            <form action={startEnrichAction}>
-              <EnrichButton pendingEnrichment={pendingEnrichment} />
-            </form>
-          </div>
-        </div>
 
-        <div className="mt-12 p-6 bg-slate-100 rounded-3xl flex items-center justify-center space-x-8">
-           <div className="flex items-center space-x-2">
-             <CheckCircle className="w-4 h-4 text-emerald-500" />
-             <span className="text-xs font-bold text-slate-600 uppercase tracking-widest">Supabase Connected</span>
-           </div>
-           <div className="flex items-center space-x-2">
-             <CheckCircle className="w-4 h-4 text-emerald-500" />
-             <span className="text-xs font-bold text-slate-600 uppercase tracking-widest">Gemini-2.0 Ready</span>
-           </div>
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+              <div className="flex items-center space-x-2 mb-2">
+                <Brain className="w-4 h-4 text-purple-500" />
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">AI Summary</span>
+              </div>
+              <p className="text-2xl font-black text-slate-800">{pct(hasAiSummary)}%</p>
+              <p className="text-xs text-slate-400 mt-0.5">{hasAiSummary ?? 0} / {total}</p>
+              {(total - (hasAiSummary || 0)) > 0 && (
+                <p className="text-xs text-red-500 font-semibold mt-1">Missing: {total - (hasAiSummary || 0)}</p>
+              )}
+            </div>
+
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+              <div className="flex items-center space-x-2 mb-2">
+                <Banknote className="w-4 h-4 text-emerald-500" />
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">EMD</span>
+              </div>
+              <p className="text-2xl font-black text-slate-800">{pct(hasEmd)}%</p>
+              <p className="text-xs text-slate-400 mt-0.5">{hasEmd ?? 0} / {total}</p>
+              {(total - (hasEmd || 0)) > 0 && (
+                <p className="text-xs text-red-500 font-semibold mt-1">Missing: {total - (hasEmd || 0)}</p>
+              )}
+            </div>
+
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+              <div className="flex items-center space-x-2 mb-2">
+                <MapPin className="w-4 h-4 text-orange-500" />
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">State</span>
+              </div>
+              <p className="text-2xl font-black text-slate-800">{pct(hasState)}%</p>
+              <p className="text-xs text-slate-400 mt-0.5">{hasState ?? 0} / {total}</p>
+              {(total - (hasState || 0)) > 0 && (
+                <p className="text-xs text-red-500 font-semibold mt-1">Missing: {total - (hasState || 0)}</p>
+              )}
+            </div>
+
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+              <div className="flex items-center space-x-2 mb-2">
+                <Building2 className="w-4 h-4 text-pink-500" />
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">City</span>
+              </div>
+              <p className="text-2xl font-black text-slate-800">{pct(hasCity)}%</p>
+              <p className="text-xs text-slate-400 mt-0.5">{hasCity ?? 0} / {total}</p>
+              {(total - (hasCity || 0)) > 0 && (
+                <p className="text-xs text-red-500 font-semibold mt-1">Missing: {total - (hasCity || 0)}</p>
+              )}
+            </div>
+
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+              <div className="flex items-center space-x-2 mb-2">
+                <Shield className="w-4 h-4 text-indigo-500" />
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Ministry</span>
+              </div>
+              <p className="text-2xl font-black text-slate-800">{pct(hasMinistry)}%</p>
+              <p className="text-xs text-slate-400 mt-0.5">{hasMinistry ?? 0} / {total}</p>
+              {(total - (hasMinistry || 0)) > 0 && (
+                <p className="text-xs text-red-500 font-semibold mt-1">Missing: {total - (hasMinistry || 0)}</p>
+              )}
+            </div>
+
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+              <div className="flex items-center space-x-2 mb-2">
+                <Database className="w-4 h-4 text-cyan-500" />
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Org</span>
+              </div>
+              <p className="text-2xl font-black text-slate-800">{pct(hasOrg)}%</p>
+              <p className="text-xs text-slate-400 mt-0.5">{hasOrg ?? 0} / {total}</p>
+              {(total - (hasOrg || 0)) > 0 && (
+                <p className="text-xs text-red-500 font-semibold mt-1">Missing: {total - (hasOrg || 0)}</p>
+              )}
+            </div>
+
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+              <div className="flex items-center space-x-2 mb-2">
+                <Cpu className="w-4 h-4 text-slate-500" />
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Enriched</span>
+              </div>
+              <p className="text-2xl font-black text-slate-800">{pct(enrichmentTried)}%</p>
+              <p className="text-xs text-slate-400 mt-0.5">{enrichmentTried ?? 0} / {total}</p>
+              {(nullBidNumber || 0) > 0 && (
+                <p className="text-xs text-red-500 font-semibold mt-1">Null Bid#: {nullBidNumber}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Detail Tables */}
+          <div className="space-y-6">
+            <DataQualityTable
+              title="Missing PDF"
+              icon={<FileText className="w-4 h-4 text-blue-500" />}
+              rows={missingPdfRows ?? []}
+              totalMissing={total - (enrichedCount || 0)}
+            />
+            <DataQualityTable
+              title="Missing AI Summary"
+              icon={<Brain className="w-4 h-4 text-purple-500" />}
+              rows={missingAiRows ?? []}
+              totalMissing={total - (hasAiSummary || 0)}
+            />
+            <DataQualityTable
+              title="Missing EMD Amount"
+              icon={<Banknote className="w-4 h-4 text-emerald-500" />}
+              rows={missingEmdRows ?? []}
+              totalMissing={total - (hasEmd || 0)}
+            />
+            <DataQualityTable
+              title="Missing State"
+              icon={<MapPin className="w-4 h-4 text-orange-500" />}
+              rows={missingStateRows ?? []}
+              totalMissing={total - (hasState || 0)}
+            />
+            <DataQualityTable
+              title="Missing City"
+              icon={<Building2 className="w-4 h-4 text-pink-500" />}
+              rows={missingCityRows ?? []}
+              totalMissing={total - (hasCity || 0)}
+            />
+            <DataQualityTable
+              title="Missing Ministry"
+              icon={<Shield className="w-4 h-4 text-indigo-500" />}
+              rows={missingMinistryRows ?? []}
+              totalMissing={total - (hasMinistry || 0)}
+            />
+            <DataQualityTable
+              title="Missing Organisation"
+              icon={<Database className="w-4 h-4 text-cyan-500" />}
+              rows={missingOrgRows ?? []}
+              totalMissing={total - (hasOrg || 0)}
+            />
+          </div>
         </div>
       </div>
     </div>
+  );
+}
+
+// ── Reusable detail table ──────────────────────────────────────────────────
+function DataQualityTable({
+  title,
+  icon,
+  rows,
+  totalMissing,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  rows: { bid_number: string | null; title: string | null; slug: string | null }[];
+  totalMissing: number;
+}) {
+  if (totalMissing === 0) {
+    return (
+      <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center space-x-3">
+        <CheckCircle className="w-5 h-5 text-emerald-500 shrink-0" />
+        <span className="text-sm font-semibold text-emerald-700">{title}: All complete</span>
+      </div>
+    );
+  }
+
+  return (
+    <details className="group bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+      <summary className="flex items-center justify-between px-5 py-4 cursor-pointer select-none list-none">
+        <div className="flex items-center space-x-3">
+          {icon}
+          <span className="font-bold text-slate-800">{title}</span>
+          <span className="text-xs bg-red-100 text-red-600 font-bold px-2 py-0.5 rounded-full">{totalMissing} missing</span>
+        </div>
+        <span className="text-xs text-slate-400 font-medium group-open:hidden">Show {Math.min(rows.length, 100)}</span>
+        <span className="text-xs text-slate-400 font-medium hidden group-open:inline">Hide</span>
+      </summary>
+      <div className="border-t border-slate-100 overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50">
+            <tr>
+              <th className="text-left px-4 py-2 text-xs font-bold text-slate-500 uppercase tracking-wider w-40">Bid Number</th>
+              <th className="text-left px-4 py-2 text-xs font-bold text-slate-500 uppercase tracking-wider">Title</th>
+              <th className="px-4 py-2 w-16"></th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {rows.map((row, i) => (
+              <tr key={i} className="hover:bg-slate-50">
+                <td className="px-4 py-2 font-mono text-xs text-slate-600 whitespace-nowrap">{row.bid_number ?? <span className="text-red-400 italic">null</span>}</td>
+                <td className="px-4 py-2 text-slate-700 text-xs line-clamp-1">{row.title ?? "—"}</td>
+                <td className="px-4 py-2 text-right">
+                  {row.slug && (
+                    <Link href={`/bids/${row.slug}`} target="_blank" className="text-xs text-blue-500 hover:underline font-medium">View</Link>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {totalMissing > rows.length && (
+          <p className="text-xs text-slate-400 text-center py-3 border-t border-slate-100">
+            Showing first {rows.length} of {totalMissing} — run enrichment to reduce this list
+          </p>
+        )}
+      </div>
+    </details>
   );
 }

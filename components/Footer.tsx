@@ -109,7 +109,7 @@ export default function Footer() {
         {/* Bottom bar */}
         <div className="border-t border-slate-100 dark:border-zinc-900 pt-4">
           <p className="text-[11px] font-medium text-slate-500 dark:text-zinc-400 text-center leading-relaxed">
-            &copy; {new Date().getFullYear()} GeMTenders.org &mdash; Data sourced from Government e-Marketplace (gem.gov.in). Not affiliated with the Government of India.
+            &copy; <span suppressHydrationWarning>{new Date().getFullYear()}</span> GeMTenders.org &mdash; Data sourced from Government e-Marketplace (gem.gov.in). Not affiliated with the Government of India.
           </p>
         </div>
       </div>

@@ -31,25 +31,47 @@ export async function POST(req: Request) {
 
     if (event === "order.paid") {
       const order = payload.order.entity;
-      // Get the metadata we sent carefully from Notes
       const plan = order.notes?.plan || "free";
       const userId = order.notes?.userId;
+      if (userId) {
+        await supabaseAdmin.from("profiles").update({
+          membership_plan: plan,
+          subscription_status: "active",
+          updated_at: new Date().toISOString(),
+        }).eq("id", userId);
+      }
+    }
+
+    if (event === "subscription.charged") {
+      const subscription = payload.subscription.entity;
+      const plan = subscription.notes?.plan || "starter";
+      const userId = subscription.notes?.userId;
+      const nextCharge = subscription.charge_at || subscription.current_end;
 
       if (userId) {
-        // Update profile using Admin role
-        const { error } = await supabaseAdmin
-          .from("profiles")
-          .update({
-            membership_plan: plan,
-            subscription_status: "active",
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", userId);
+        await supabaseAdmin.from("profiles").update({
+          membership_plan: plan,
+          subscription_status: "active",
+          next_billing_date: nextCharge ? new Date(nextCharge * 1000).toISOString() : null,
+          subscription_id: subscription.id,
+          updated_at: new Date().toISOString(),
+        }).eq("id", userId);
+      }
+    }
 
-        if (error) {
-           console.error("Supabase Admin Error:", error);
-           return NextResponse.json({ error: "Database update failed" }, { status: 500 });
-        }
+    if (event === "subscription.cancelled" || event === "subscription.expired") {
+      const subscription = payload.subscription.entity;
+      const userId = subscription.notes?.userId;
+
+      if (userId) {
+        await supabaseAdmin.from("profiles").update({
+          subscription_status: event === "subscription.cancelled" ? "cancelled" : "expired",
+          // If cancelled, we don't immediately set plan to free, 
+          // because they paid for the current month.
+          // The middleware/frontend should check next_billing_date.
+          membership_plan: event === "subscription.expired" ? "free" : undefined, 
+          updated_at: new Date().toISOString(),
+        }).eq("id", userId);
       }
     }
 

@@ -10,40 +10,59 @@ const instance = new Razorpay({
   key_secret: process.env.RAZORPAY_KEY_SECRET || "dummy_secret",
 });
 
-export async function createRazorpayOrder(plan: "starter" | "pro", isAnnual: boolean) {
+// Prices: Starter = ₹99/mo, Pro = ₹199/mo (monthly recurring only)
+// Create these plans in Razorpay Dashboard → Subscriptions → Plans
+const PLAN_IDS = {
+  starter: process.env.RAZORPAY_PLAN_STARTER_MONTHLY || "plan_dummy_starter_m",
+  pro: process.env.RAZORPAY_PLAN_PRO_MONTHLY || "plan_dummy_pro_m",
+};
+
+export async function createRazorpaySubscription(plan: "starter" | "pro") {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    throw new Error("Must be logged in to create an order");
+    throw new Error("Must be logged in to subscribe");
   }
-
-  // Calculate amount (in paise)
-  let amount = 0;
-  if (plan === "starter") {
-    amount = isAnnual ? 79 * 12 : 99;
-  } else if (plan === "pro") {
-    amount = isAnnual ? 239 * 12 : 299;
-  }
-
-  amount = Math.round(amount * 100); // Convert to paise and ensure it's an integer
-
-  const options = {
-    amount,
-    currency: "INR",
-    receipt: `rcpt_${user.id.substring(0, 8)}_${Date.now()}`,
-    notes: {
-      userId: user.id,
-      plan,
-      isAnnual: isAnnual ? "true" : "false",
-    },
-  };
 
   try {
-    const order = await instance.orders.create(options);
-    return JSON.parse(JSON.stringify(order));
+    const subscription = await instance.subscriptions.create({
+      plan_id: PLAN_IDS[plan],
+      total_count: 120, // Up to 120 months (10 years)
+      customer_notify: 1,
+      notes: {
+        userId: user.id,
+        plan,
+      },
+    });
+
+    return JSON.parse(JSON.stringify(subscription));
   } catch (error) {
-    console.error("Razorpay error:", error);
-    throw new Error("Could not create Razorpay order");
+    console.error("Razorpay Sub error:", error);
+    throw new Error("Could not create Razorpay subscription");
+  }
+}
+export async function cancelRazorpaySubscription() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Unauthorized");
+  }
+
+  // Get user's subscription ID from DB
+  const { data: profile } = await supabase.from("profiles").select("subscription_id").eq("id", user.id).single();
+
+  if (!profile?.subscription_id) {
+    throw new Error("No active subscription found to cancel");
+  }
+
+  try {
+    // Cancel at end of cycle: true (don't refund/stop immediately)
+    const cancelled = await instance.subscriptions.cancel(profile.subscription_id, false);
+    return JSON.parse(JSON.stringify(cancelled));
+  } catch (error) {
+    console.error("Cancelation Error:", error);
+    throw new Error("Could not cancel subscription");
   }
 }

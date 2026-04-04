@@ -35,6 +35,8 @@ const nextConfig = {
             },
         ];
     },
+    // Allow Playwright (which uses 127.0.0.1) to access the dev server without cross-origin warnings
+    allowedDevOrigins: ['127.0.0.1'],
     experimental: {
         cpus: 2,
         workerThreads: false,

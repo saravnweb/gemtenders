@@ -16,6 +16,7 @@
     "notify": "tsx scripts/notify.ts",
     "leaf-enrich": "tsx scripts/leaf-detail-enricher.ts",
     "pdf-scrape": "tsx scripts/pdf-scraper.ts",
+    "playwright-pdf": "tsx scripts/playwright-pdf-downloader.ts",
     "pipeline": "npm run fast-scrape -- --today && npm run enrich && npm run leaf-enrich && npm run fix-locations && npm run notify",
     "─── UTILS ───": "──────────────────",
     "stats": "tsx scripts/db-stats.ts",
@@ -23,7 +24,9 @@
     "db-check": "tsx scripts/maintenance/db-check.ts",
     "─── LEGACY ───": "──────────────────",
     "old-enrich": "tsx scripts/enrich-tenders.ts",
-    "bulk-enrich": "tsx scripts/archive/bulk-enrich.ts"
+    "bulk-enrich": "tsx scripts/archive/bulk-enrich.ts",
+    "test:e2e": "playwright test",
+    "test:report": "playwright show-report"
   },
   "keywords": [],
   "author": "",
@@ -31,7 +34,6 @@
   "type": "module",
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
-    "@playwright/test": "^1.59.1",
     "@supabase/ssr": "^0.9.0",
     "@supabase/supabase-js": "^2.98.0",
     "@tailwindcss/postcss": "^4.2.1",
@@ -54,8 +56,8 @@
     "nodemailer": "^8.0.3",
     "pdf-lib": "^1.17.1",
     "pdf-parse": "^2.4.5",
-    "playwright": "^1.58.2",
-    "playwright-core": "^1.58.2",
+    "playwright": "^1.59.1",
+    "playwright-core": "^1.59.1",
     "playwright-extra": "^4.3.6",
     "postcss": "^8.5.8",
     "puppeteer-extra-plugin-stealth": "^2.11.2",
@@ -67,6 +69,7 @@
     "typescript": "^5.9.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "@types/nodemailer": "^7.0.11",
     "tsx": "^4.21.0"
   }
