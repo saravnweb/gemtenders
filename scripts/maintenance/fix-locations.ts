@@ -26,6 +26,16 @@ const GROQ_MODEL   = 'llama-3.3-70b-versatile';
 const CONCURRENCY  = 5;
 const BATCH        = 200;
 
+const argv      = process.argv.slice(2);
+const SINCE_ARG = argv.find(a => a.startsWith('--since='))?.split('=')[1] ?? null;
+const SINCE_DATE: string | null = (() => {
+  if (!SINCE_ARG) return null;
+  const m = SINCE_ARG.match(/^(\d+)(h|d)$/);
+  if (!m) return null;
+  const ms = parseInt(m[1]) * (m[2] === 'h' ? 3600000 : 86400000);
+  return new Date(Date.now() - ms).toISOString();
+})();
+
 function isValidState(s: string | null | undefined): boolean {
   if (!s) return false;
   return INDIAN_STATES.has(s);
@@ -117,11 +127,12 @@ async function fixLocations() {
     let rows: any[] | null = null;
     let retries = 3;
     while (retries > 0) {
-      const { data, error: fetchErr } = await supabase
+      let q = supabase
         .from('tenders')
         .select('id, bid_number, state, city, ai_summary, office_name, organisation_name, department_name, ministry_name, title')
-        .or('state.is.null,city.is.null')
-        .range(0, BATCH - 1);
+        .or('state.is.null,city.is.null');
+      if (SINCE_DATE) q = q.gte('created_at', SINCE_DATE);
+      const { data, error: fetchErr } = await q.range(0, BATCH - 1);
 
       if (fetchErr) {
         console.error(`\n  DB error (retries=${retries}): ${fetchErr.message}`);
