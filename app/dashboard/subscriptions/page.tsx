@@ -54,21 +54,33 @@ export default function SubscriptionsPage() {
         name: "GeMTenders.org",
         description: `${plan === 'starter' ? 'Starter – ₹99/mo' : 'Pro – ₹199/mo'} · Auto-renews monthly`,
         handler: async function (response: any) {
-          const res = await fetch("/api/billing/verify", {
-             method: "POST",
-             headers: { "Content-Type": "application/json" },
-             body: JSON.stringify({
-                 razorpay_subscription_id: response.razorpay_subscription_id || subscription.id,
-                 razorpay_payment_id: response.razorpay_payment_id || "dummy_payment",
-                 razorpay_signature: response.razorpay_signature || "dummy",
-                 plan,
-                 userId: profile?.id
-             })
-          });
-          await res.json();
-          const { data } = await supabase.from("profiles").select("*").eq("id", profile?.id).single();
-          setProfile({ ...data, email: profile?.email });
-          alert(`You're now on the ${plan} plan! 🎉`);
+          try {
+            const res = await fetch("/api/billing/verify", {
+               method: "POST",
+               headers: { "Content-Type": "application/json" },
+               body: JSON.stringify({
+                   razorpay_subscription_id: response.razorpay_subscription_id || subscription.id,
+                   razorpay_payment_id: response.razorpay_payment_id || "dummy_payment",
+                   razorpay_signature: response.razorpay_signature || "dummy",
+                   plan,
+                   userId: profile?.id
+               })
+            });
+            const result = await res.json();
+            
+            if (!res.ok) {
+               throw new Error(result.error || "Payment verification failed on server.");
+            }
+
+            const { data, error } = await supabase.from("profiles").select("*").eq("id", profile?.id).single();
+            if (error) throw error;
+            
+            setProfile({ ...data, email: profile?.email });
+            alert(`You're now on the ${plan} plan! 🎉`);
+          } catch (err: any) {
+            console.error("Verification error:", err);
+            alert(`Payment succeeded but verification failed: ${err.message}`);
+          }
         },
         prefill: {
           name: profile?.full_name || undefined,

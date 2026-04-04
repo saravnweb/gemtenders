@@ -31,14 +31,24 @@ export async function POST(req: Request) {
 
     if (event === "order.paid") {
       const order = payload.order.entity;
-      const plan = order.notes?.plan || "free";
+      const plan = order.notes?.plan;
       const userId = order.notes?.userId;
-      if (userId) {
-        await supabaseAdmin.from("profiles").update({
-          membership_plan: plan,
-          subscription_status: "active",
-          updated_at: new Date().toISOString(),
-        }).eq("id", userId);
+      if (userId && plan) {
+        const { data: profileCheck } = await supabaseAdmin.from("profiles").select("id").eq("id", userId).single();
+        if (profileCheck) {
+          await supabaseAdmin.from("profiles").update({
+            membership_plan: plan,
+            subscription_status: "active",
+            updated_at: new Date().toISOString(),
+          }).eq("id", userId);
+        } else {
+          await supabaseAdmin.from("profiles").insert({
+            id: userId,
+            membership_plan: plan,
+            subscription_status: "active",
+            updated_at: new Date().toISOString(),
+          });
+        }
       }
     }
 
@@ -49,13 +59,25 @@ export async function POST(req: Request) {
       const nextCharge = subscription.charge_at || subscription.current_end;
 
       if (userId) {
-        await supabaseAdmin.from("profiles").update({
-          membership_plan: plan,
-          subscription_status: "active",
-          next_billing_date: nextCharge ? new Date(nextCharge * 1000).toISOString() : null,
-          subscription_id: subscription.id,
-          updated_at: new Date().toISOString(),
-        }).eq("id", userId);
+        const { data: profileCheck } = await supabaseAdmin.from("profiles").select("id").eq("id", userId).single();
+        if (profileCheck) {
+          await supabaseAdmin.from("profiles").update({
+            membership_plan: plan,
+            subscription_status: "active",
+            next_billing_date: nextCharge ? new Date(nextCharge * 1000).toISOString() : null,
+            subscription_id: subscription.id,
+            updated_at: new Date().toISOString(),
+          }).eq("id", userId);
+        } else {
+          await supabaseAdmin.from("profiles").insert({
+            id: userId,
+            membership_plan: plan,
+            subscription_status: "active",
+            next_billing_date: nextCharge ? new Date(nextCharge * 1000).toISOString() : null,
+            subscription_id: subscription.id,
+            updated_at: new Date().toISOString(),
+          });
+        }
       }
     }
 
