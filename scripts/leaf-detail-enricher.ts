@@ -53,6 +53,7 @@ const BATCH_SIZE  = 5;
 const RESET       = argv.includes('--reset');
 const ALL         = argv.includes('--all');
 const NO_GROQ     = argv.includes('--no-groq');
+const RETRY       = argv.includes('--retry'); // retry only previously failed tenders
 const CHECKPOINT  = path.join(process.cwd(), 'leaf-enrich-progress.json');
 const SINCE_ARG   = argv.find(a => a.startsWith('--since='))?.split('=')[1] ?? null;
 const SINCE_DATE: string | null = (() => {
@@ -477,7 +478,7 @@ async function processTender(
 
   const html = await fetchLeafPage(bId);
   if (!html) {
-    await supabase.from('tenders').update({ leaf_tried_at: new Date().toISOString() }).eq('id', tender.id);
+    await supabase.from('tenders').update({ leaf_tried_at: new Date().toISOString(), leaf_error: 'fetch_failed' }).eq('id', tender.id);
     stats.fail++;
     return;
   }
@@ -529,6 +530,7 @@ async function processTender(
   // Build DB update payload — only include fields with actual values
   const payload: Record<string, any> = {
     leaf_tried_at: new Date().toISOString(),
+    leaf_error: null, // clear any previous error on success
   };
 
   const fields: (keyof LeafData)[] = [
@@ -566,6 +568,7 @@ async function processTender(
   const { error } = await supabase.from('tenders').update(payload).eq('id', tender.id);
   if (error) {
     console.error(`\n  DB error for ${tender.bid_number}: ${error.message}`);
+    await supabase.from('tenders').update({ leaf_error: `db_error: ${error.message.slice(0, 120)}` }).eq('id', tender.id);
     stats.fail++;
   } else {
     stats.ok++;
@@ -577,7 +580,7 @@ async function main() {
   console.log(`\n>>> [LEAF-ENRICH] Full leaf page extraction`);
   console.log(`    Limit: ${LIMIT} | Batch: ${BATCH_SIZE} | Concurrency: ${CONCURRENCY}`);
   console.log(`    Groq fallback: ${NO_GROQ ? 'DISABLED' : 'ENABLED'}`);
-  console.log(`    Mode: ${ALL ? 'ALL tenders' : 'un-tried only'}\n`);
+  console.log(`    Mode: ${RETRY ? 'RETRY failed' : ALL ? 'ALL tenders' : 'un-tried only'}\n`);
 
   process.stdout.write('Establishing GeM session... ');
   const sessionOk = await refreshSession();
@@ -587,7 +590,19 @@ async function main() {
   }
   console.log('Session ready');
 
-  let { offset, totalDone } = loadCheckpoint();
+  // --retry: reset leaf_tried_at for all failed tenders so they get re-queried
+  if (RETRY) {
+    const { count: failCount } = await supabase.from('tenders')
+      .select('*', { count: 'exact', head: true })
+      .not('leaf_error', 'is', null);
+    await supabase.from('tenders')
+      .update({ leaf_tried_at: null, leaf_error: null })
+      .not('leaf_error', 'is', null);
+    console.log(`>>> [RETRY] Reset ${failCount ?? 0} failed tenders for re-processing.\n`);
+  }
+
+  // --retry always starts from offset 0 (ignore checkpoint)
+  let { offset, totalDone } = RETRY ? { offset: 0, totalDone: 0 } : loadCheckpoint();
   if (offset > 0) console.log(`>>> Resuming from offset ${offset}\n`);
 
   const stats     = { ok: 0, fail: 0, groqUsed: 0, empty: 0 };
@@ -605,7 +620,10 @@ async function main() {
       .not('details_url', 'is', null)
       .order('created_at', { ascending: false });
 
-    if (!ALL) {
+    if (RETRY) {
+      // Only tenders that were tried but failed (leaf_error IS NOT NULL)
+      query = query.not('leaf_error', 'is', null);
+    } else if (!ALL) {
       query = query.is('leaf_tried_at', null);
     }
     if (SINCE_DATE) {

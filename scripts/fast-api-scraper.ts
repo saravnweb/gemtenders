@@ -71,14 +71,14 @@ async function getGeMSessionInfo() {
 }
 
 // ─── Single page fetch ────────────────────────────────────────────────────────
-async function fetchGeMBidsPage(pageNum: number, csrf: string, cookies: string): Promise<{ docs: any[]; numFound: number | null }> {
+async function fetchGeMBidsPage(pageNum: number, csrf: string, cookies: string, sort = "Bid-End-Date-Oldest"): Promise<{ docs: any[]; numFound: number | null }> {
   const postdata = {
     page: pageNum,
     param: { searchParam: "searchbid" },
-    filter: { 
+    filter: {
       bidStatusType: "ongoing_bids",
       byType: "all",
-      sort: "Bid-End-Date-Oldest"
+      sort,
     }
   };
 
@@ -171,11 +171,15 @@ function mapBidToRow(bid: any) {
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
-export async function runFastScrape(maxPages: number, concurrency: number = 5, startPage: number = 1) {
+export async function runFastScrape(maxPages: number, concurrency: number = 5, startPage: number = 1, todayOnly = false) {
+  const sort = todayOnly ? "Bid-Start-Date-Latest" : "Bid-End-Date-Oldest";
+  const todayCutoff    = new Date(); todayCutoff.setHours(0, 0, 0, 0);    // midnight today
+  const tomorrowCutoff = new Date(todayCutoff.getTime() + 24 * 60 * 60 * 1000); // midnight tomorrow
+
   console.log(`\n>>> [FAST-SCRAPE] Initializing GeM Session...`);
   let session = await getGeMSessionInfo();
   console.log(`>>> [FAST-SCRAPE] Session obtained. CSRF: ${session.csrf}`);
-  console.log(`>>> [FAST-SCRAPE] Pages: ${startPage} → ${maxPages === Infinity ? 'auto' : maxPages} | Concurrency: ${concurrency}\n`);
+  console.log(`>>> [FAST-SCRAPE] Pages: ${startPage} → ${maxPages === Infinity ? 'auto' : maxPages} | Concurrency: ${concurrency} | Mode: ${todayOnly ? 'TODAY-ONLY' : 'ALL'}\n`);
 
   const { supabase } = await import('../lib/supabase.js');
 
@@ -191,7 +195,7 @@ export async function runFastScrape(maxPages: number, concurrency: number = 5, s
     for (let c = 0; c < concurrency && page <= dynamicMax; c++, page++) {
       const p = page;
       promises.push(
-        fetchGeMBidsPage(p, session.csrf, session.cookies)
+        fetchGeMBidsPage(p, session.csrf, session.cookies, sort)
           .then(({ docs, numFound }) => ({ pageNum: p, docs, numFound, ok: true }))
           .catch(e  => ({ pageNum: p, docs: [], numFound: null, ok: false, err: String(e.message) }))
       );
@@ -250,6 +254,18 @@ export async function runFastScrape(maxPages: number, concurrency: number = 5, s
       break;
     }
 
+    // --today mode: stop when all docs on this batch started before today
+    if (todayOnly) {
+      const allOld = allDocs.every(bid => {
+        const s = bid.final_start_date_sort?.[0];
+        return s && new Date(s) < todayCutoff;
+      });
+      if (allOld) {
+        console.log(`\n>>> [FAST-SCRAPE] All bids in batch started before today. Stopping early.`);
+        break;
+      }
+    }
+
     // Split docs: RA bids vs regular bids
     const rowMap   = new Map<string, any>();
     const raUpdates: ReturnType<typeof mapRaToUpdate>[] = [];
@@ -261,7 +277,10 @@ export async function runFastScrape(maxPages: number, concurrency: number = 5, s
       } else {
         const row = mapBidToRow(bid);
         if (row.bid_number === "UNKNOWN") continue;
-        if (row.end_date && new Date(row.end_date) <= new Date()) continue;
+        // Skip tenders closing today or earlier — only keep closing tomorrow onwards
+        if (row.end_date && new Date(row.end_date) < tomorrowCutoff) continue;
+        // --today: skip bids that started before today
+        if (todayOnly && row.start_date && new Date(row.start_date) < todayCutoff) continue;
         if (!rowMap.has(row.bid_number)) rowMap.set(row.bid_number, row);
       }
     }
@@ -346,16 +365,18 @@ export async function runFastScrape(maxPages: number, concurrency: number = 5, s
 async function run() {
   const args = process.argv.slice(2);
 
-  const pagesArg   = args.find(a => a.startsWith('--pages='))?.split('=')[1];
-  const maxPages   = pagesArg ? parseInt(pagesArg, 10) : Infinity;
-  const concurrency = parseInt(args.find(a => a.startsWith('--concurrency='))?.split('=')[1] || '5',    10);
+  const pagesArg    = args.find(a => a.startsWith('--pages='))?.split('=')[1];
+  const maxPages    = pagesArg ? parseInt(pagesArg, 10) : Infinity;
+  const concurrency = parseInt(args.find(a => a.startsWith('--concurrency='))?.split('=')[1] || '5', 10);
+  const todayOnly   = args.includes('--today');
 
   // Explicit --start overrides checkpoint
   let startPage = 1;
   const explicitStart = args.find(a => a.startsWith('--start='));
   if (explicitStart) {
     startPage = parseInt(explicitStart.split('=')[1], 10);
-  } else {
+  } else if (!todayOnly) {
+    // Only resume from checkpoint in full-scrape mode
     const cp = loadCheckpoint();
     if (cp) {
       startPage = cp + 1;
@@ -363,7 +384,7 @@ async function run() {
     }
   }
 
-  await runFastScrape(maxPages, concurrency, startPage);
+  await runFastScrape(maxPages, concurrency, startPage, todayOnly);
 }
 
 run().catch(e => {

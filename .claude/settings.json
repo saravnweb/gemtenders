@@ -54,7 +54,8 @@
       "Bash(ls -lah d:/websites/Tenders/*.csv d:/websites/Tenders/*.json d:/websites/Tenders/*.sql)",
       "Bash(node --input-type=module)",
       "Bash(npm list:*)",
-      "Bash(node -e \"const { CATEGORIES, detectCategory } = require\\('./lib/categories.ts'\\); console.log\\('Count:', CATEGORIES.length\\);\")"
+      "Bash(node -e \"const { CATEGORIES, detectCategory } = require\\('./lib/categories.ts'\\); console.log\\('Count:', CATEGORIES.length\\);\")",
+      "Bash(node --input-type=module -e ':*)"
     ],
     "additionalDirectories": [
       "d:\\websites\\Tenders\\scripts"

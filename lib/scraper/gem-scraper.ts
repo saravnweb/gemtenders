@@ -293,19 +293,23 @@ export async function scrapeGeMBids(options?: { lightMode?: boolean; maxPages?: 
   let uniqueBids = Array.from(new Map(allBids.map(b => [b.bidNo, b])).values());
   const now = new Date();
   
-  // Filter for active tenders only (end date > current time)
+  // Filter: only keep tenders closing tomorrow or later (skip today and past)
+  const tomorrow = new Date(now); tomorrow.setHours(0, 0, 0, 0); tomorrow.setDate(tomorrow.getDate() + 1);
   uniqueBids = uniqueBids.filter(bid => {
     if (bid.bidNo && bid.bidNo.match(/GEM\/(2018|2019|2020|2021|2022|2023|2024|2025)\//)) return false;
-    
+
     const parsedEnd = parseGeMDate(bid.endDate);
     if (!parsedEnd) return true; // Keep if we can't parse date, to be safe
-    return new Date(parsedEnd) > now;
+    return new Date(parsedEnd) >= tomorrow;
   });
 
   console.log(`>>> [SCRAPER] Total active unique bids found: ${uniqueBids.length}. Bid Nos: ${uniqueBids.map(b => b.bidNo).join(', ')}`);
 
-  for (const bid of uniqueBids) {
-    console.log(`\n>>> [SCRAPER] Processing: ${bid.bidNo}`);
+  const stats = { total: uniqueBids.length, new: 0, skipped: 0, aiCalls: 0, pdfBytes: 0, errors: 0 };
+  const startTime = Date.now();
+
+  for (const [bidIdx, bid] of uniqueBids.entries()) {
+    console.log(`\n>>> [SCRAPER] [${bidIdx + 1}/${stats.total}] Processing: ${bid.bidNo}`);
     console.log(`>>> [SCRAPER]   Raw dates — start: "${bid.startDate}" | end: "${bid.endDate}"`);
     
     const { data: existing } = await supabase
@@ -320,7 +324,8 @@ export async function scrapeGeMBids(options?: { lightMode?: boolean; maxPages?: 
     const isMissingLocation = !existing?.state || !existing?.city;
 
     if (existing && (isLightMode || (!isGeneric && !isMissingPdf && !isMissingLocation))) {
-      console.log(`>>> [SCRAPER] Found ${bid.bidNo}: Skipping AI (already enriched). Updating basic dates/url info only.`);
+      stats.skipped++;
+      console.log(`>>> [SCRAPER] [${bidIdx + 1}/${stats.total}] Found ${bid.bidNo}: Skipping AI (already enriched). Updating basic dates/url info only.`);
       
       // Update basic info just in case end dates or URLs were updated on GeM
       const parsedEndDate = parseGeMDate(bid.endDate);
@@ -388,7 +393,8 @@ export async function scrapeGeMBids(options?: { lightMode?: boolean; maxPages?: 
           }
         }
 
-        if (buffer && buffer.length > 5000) { 
+        if (buffer && buffer.length > 5000) {
+          stats.pdfBytes += buffer.length;
           const fileName = `${bid.bidNo.replace(/\//g, "-")}.pdf`;
           
           console.log(`>>> [SCRAPER] Uploading PDF (${(buffer.length / 1024).toFixed(1)} KB)...`);
@@ -428,7 +434,8 @@ export async function scrapeGeMBids(options?: { lightMode?: boolean; maxPages?: 
             if (extractedText && extractedText.length > 50) {
               console.log(`>>> [SCRAPER] PDF text extracted (${extractedText.length} chars). Calling AI...`);
               try {
-                aiData = await extractTenderData(extractedText);
+                stats.aiCalls++;
+              aiData = await extractTenderData(extractedText);
               } catch (e: any) {
                 if (e.message?.includes('429') || e.message?.includes('quota')) {
                   console.warn(`>>> [SCRAPER] AI Rate Limit hit. Proceeding with fallback extraction only.`);
@@ -530,17 +537,37 @@ export async function scrapeGeMBids(options?: { lightMode?: boolean; maxPages?: 
     }, { onConflict: 'bid_number' });
 
     if (error) {
+      stats.errors++;
       console.error(`>>> [SCRAPER] Database Error: ${error.message}`);
     } else {
+      stats.new++;
       const storedEmd = aiData?.emd_amount === 0 ? "No" : (aiData?.emd_amount || "N/A");
-      console.log(`>>> [SCRAPER] SUCCESS! Saved: ${bid.bidNo} (EMD: ${storedEmd})`);
+      const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
+      const remaining = stats.total - (bidIdx + 1);
+      console.log(`>>> [SCRAPER] [${bidIdx + 1}/${stats.total}] SUCCESS: ${bid.bidNo} (EMD: ${storedEmd}) | ${remaining} remaining | ${elapsed}s elapsed`);
     }
-    
+
     // Increased delay to 5 seconds to avoid AI rate limits on free tier
     await new Promise(r => setTimeout(r, 5000));
   }
 
-  console.log("\n>>> [SCRAPER] Scrape cycle complete.");
+  // ── Cost & progress summary ────────────────────────────────────────────────
+  const elapsedMin = ((Date.now() - startTime) / 60000).toFixed(1);
+  // Gemini 2.5 Flash pricing: input ~$0.075/1M tokens, output ~$0.30/1M tokens
+  // Average PDF ~20K chars ≈ ~5K tokens input + ~500 tokens output per call
+  const estimatedCostUSD = stats.aiCalls * ((5000 * 0.075 + 500 * 0.30) / 1_000_000);
+  console.log(`
+>>> [SCRAPER] ── Run Summary ──────────────────────────────
+  Total bids found : ${stats.total}
+  New / enriched   : ${stats.new}
+  Skipped (exist.) : ${stats.skipped}
+  AI calls made    : ${stats.aiCalls}
+  PDF data         : ${(stats.pdfBytes / 1024 / 1024).toFixed(1)} MB
+  Errors           : ${stats.errors}
+  Elapsed          : ${elapsedMin} min
+  Est. Gemini cost : ~$${estimatedCostUSD.toFixed(4)} USD (~₹${(estimatedCostUSD * 84).toFixed(2)})
+──────────────────────────────────────────────────`);
+
   await browser.close();
 }
 
