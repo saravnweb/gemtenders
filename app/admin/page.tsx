@@ -1,12 +1,20 @@
 import { Zap, CheckCircle, Database, Shield, LayoutDashboard, Cpu, ArrowRight, Users, FileText, Brain, Banknote, MapPin, Building2, AlertCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminPage() {
   const supabase = await createClient();
+
+  // Auth guard — only the admin email may access this page
+  const { data: { user } } = await supabase.auth.getUser();
+  const adminEmail = process.env.ADMIN_EMAIL;
+  if (!user || !adminEmail || user.email !== adminEmail) {
+    redirect("/");
+  }
 
   // Fetch detailed stats on server
   const { count: totalCount } = await supabase
@@ -52,13 +60,13 @@ export default async function AdminPage() {
     { data: missingMinistryRows },
     { data: missingOrgRows },
   ] = await Promise.all([
-    supabase.from("tenders").select("bid_number, title, slug").is("pdf_url", null).order("created_at", { ascending: false }).limit(100),
-    supabase.from("tenders").select("bid_number, title, slug").is("ai_summary", null).order("created_at", { ascending: false }).limit(100),
-    supabase.from("tenders").select("bid_number, title, slug").is("emd_amount", null).order("created_at", { ascending: false }).limit(100),
-    supabase.from("tenders").select("bid_number, title, slug").is("state", null).order("created_at", { ascending: false }).limit(100),
-    supabase.from("tenders").select("bid_number, title, slug").is("city", null).order("created_at", { ascending: false }).limit(100),
-    supabase.from("tenders").select("bid_number, title, slug").is("ministry_name", null).order("created_at", { ascending: false }).limit(100),
-    supabase.from("tenders").select("bid_number, title, slug").is("organisation_name", null).order("created_at", { ascending: false }).limit(100),
+    supabase.from("tenders").select("bid_number, title, slug, details_url").is("pdf_url", null).order("created_at", { ascending: false }).limit(100),
+    supabase.from("tenders").select("bid_number, title, slug, details_url").is("ai_summary", null).order("created_at", { ascending: false }).limit(100),
+    supabase.from("tenders").select("bid_number, title, slug, details_url").is("emd_amount", null).order("created_at", { ascending: false }).limit(100),
+    supabase.from("tenders").select("bid_number, title, slug, details_url").is("state", null).order("created_at", { ascending: false }).limit(100),
+    supabase.from("tenders").select("bid_number, title, slug, details_url").is("city", null).order("created_at", { ascending: false }).limit(100),
+    supabase.from("tenders").select("bid_number, title, slug, details_url").is("ministry_name", null).order("created_at", { ascending: false }).limit(100),
+    supabase.from("tenders").select("bid_number, title, slug, details_url").is("organisation_name", null).order("created_at", { ascending: false }).limit(100),
   ]);
 
   // Subscriptions & Users Stats (bypassing RLS)
@@ -295,7 +303,7 @@ function DataQualityTable({
 }: {
   title: string;
   icon: React.ReactNode;
-  rows: { bid_number: string | null; title: string | null; slug: string | null }[];
+  rows: { bid_number: string | null; title: string | null; slug: string | null; details_url?: string | null }[];
   totalMissing: number;
 }) {
   if (totalMissing === 0) {
@@ -324,18 +332,25 @@ function DataQualityTable({
             <tr>
               <th className="text-left px-4 py-2 text-xs font-bold text-slate-500 uppercase tracking-wider w-40">Bid Number</th>
               <th className="text-left px-4 py-2 text-xs font-bold text-slate-500 uppercase tracking-wider">Title</th>
-              <th className="px-4 py-2 w-16"></th>
+              <th className="px-4 py-2 w-32"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {rows.map((row, i) => (
               <tr key={i} className="hover:bg-slate-50">
-                <td className="px-4 py-2 font-mono text-xs text-slate-600 whitespace-nowrap">{row.bid_number ?? <span className="text-red-400 italic">null</span>}</td>
-                <td className="px-4 py-2 text-slate-700 text-xs line-clamp-1">{row.title ?? "—"}</td>
-                <td className="px-4 py-2 text-right">
-                  {row.slug && (
-                    <Link href={`/bids/${row.slug}`} target="_blank" className="text-xs text-blue-500 hover:underline font-medium">View</Link>
-                  )}
+                <td className="px-4 py-3 font-mono text-[10px] text-slate-500 whitespace-nowrap">{row.bid_number ?? <span className="text-red-400 italic">null</span>}</td>
+                <td className="px-4 py-3 text-slate-700 text-xs font-medium leading-relaxed max-w-sm">
+                   <div className="line-clamp-2" title={row.title || ""}>{row.title ?? "—"}</div>
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <div className="flex items-center justify-end space-x-4">
+                    {row.details_url && (
+                      <a href={row.details_url} target="_blank" rel="noopener noreferrer" className="text-xs text-slate-400 hover:text-blue-600 hover:underline font-bold transition-colors">GeM Portal</a>
+                    )}
+                    {row.slug && (
+                      <Link href={`/bids/${row.slug}`} target="_blank" className="text-xs px-3 py-1 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 font-bold transition-colors">View Bid</Link>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}

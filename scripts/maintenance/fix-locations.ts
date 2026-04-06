@@ -12,7 +12,7 @@ process.on('uncaughtException', (err) => {
 
 import { createClient } from '@supabase/supabase-js';
 import { State } from 'country-state-city';
-import { normalizeState, normalizeCity, cityToState, INDIAN_STATES } from '../../lib/locations';
+import { normalizeState, normalizeCity, cityToState, INDIAN_STATES, extractCityStateFromConsigneeTable } from '../../lib/locations';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -66,6 +66,12 @@ function blobsFromRow(row: any): string {
 
   for (const f of ['office_name', 'organisation_name', 'department_name', 'ministry_name', 'title']) {
     if (row[f]) parts.push(row[f]);
+  }
+
+  // Include raw_text consignee section as last-resort context
+  if (row.raw_text) {
+    const idx = row.raw_text.search(/Consignees\/Reporting Officer/i);
+    if (idx >= 0) parts.push(row.raw_text.substring(idx, idx + 500));
   }
 
   // Strip GeM's asterisk masking (e.g. "**********Alwar" → "Alwar")
@@ -129,7 +135,7 @@ async function fixLocations() {
     while (retries > 0) {
       let q = supabase
         .from('tenders')
-        .select('id, bid_number, state, city, ai_summary, office_name, organisation_name, department_name, ministry_name, title')
+        .select('id, bid_number, state, city, ai_summary, office_name, organisation_name, department_name, ministry_name, title, raw_text')
         .or('state.is.null,city.is.null');
       if (SINCE_DATE) q = q.gte('created_at', SINCE_DATE);
       const { data, error: fetchErr } = await q.range(0, BATCH - 1);
@@ -172,7 +178,16 @@ async function fixLocations() {
             }
           }
 
-          // ── AI pass: ask Groq for missing fields ────────────────────────────
+          // ── Deterministic pass: regex + PIN map on raw_text ────────────────
+          if ((missingCity && !update.city) || (missingState && !update.state)) {
+            if (row.raw_text) {
+              const { city: rCity, state: rState } = extractCityStateFromConsigneeTable(row.raw_text);
+              if (missingState && !update.state && rState && isValidState(rState)) update.state = rState;
+              if (missingCity  && !update.city  && rCity  && isValidCity(rCity))   update.city  = rCity;
+            }
+          }
+
+          // ── AI pass: ask Groq for remaining missing fields ──────────────────
           if ((missingCity && !update.city) || (missingState && !update.state)) {
             const text = blobsFromRow(row);
             if (!text.trim()) { skipped++; return; }

@@ -175,6 +175,10 @@ WITH CHECK (auth.uid() = user_id);
 -- CREATE INDEX IF NOT EXISTS idx_tenders_min_turnover_lakhs ON tenders(min_turnover_lakhs);
 -- CREATE INDEX IF NOT EXISTS idx_tenders_is_high_value      ON tenders(is_high_value) WHERE is_high_value = true;
 
+-- PDF Enricher (run before using npm run pdf-enrich)
+-- ALTER TABLE tenders ADD COLUMN IF NOT EXISTS pdf_enriched_at TIMESTAMPTZ DEFAULT NULL;
+-- CREATE INDEX IF NOT EXISTS idx_tenders_pdf_enriched_at ON tenders(pdf_enriched_at) WHERE pdf_enriched_at IS NULL;
+
 -- Leaf Detail Enricher (run before using npm run leaf-enrich)
 -- ALTER TABLE tenders ADD COLUMN IF NOT EXISTS leaf_tried_at TIMESTAMPTZ DEFAULT NULL;
 -- CREATE INDEX IF NOT EXISTS idx_tenders_leaf_tried ON tenders(leaf_tried_at) WHERE leaf_tried_at IS NULL;

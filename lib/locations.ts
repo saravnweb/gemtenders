@@ -15,7 +15,11 @@ export const INDIAN_STATES = new Set([
 
 export function normalizeState(state: string | null | undefined): string | null {
   if (!state || state.trim() === "") return null;
-  const s = state.trim().toLowerCase().replace(/[\.\,]/g, '').replace(/\s+state$/, '');
+  const s = state.trim().toLowerCase()
+    .replace(/[\.\,]/g, '')
+    .replace(/\s+islands?$/i, '')
+    .replace(/\s+state$/i, '')
+    .trim();
 
   const map: Record<string, string> = {
     'ap': 'Andhra Pradesh', 'andhrapradesh': 'Andhra Pradesh', 'andhra pradesh': 'Andhra Pradesh',
@@ -185,8 +189,11 @@ export function extractCityStateFromConsigneeTable(
   const empty = { city: null, state: null };
   if (!fullText) return empty;
 
-  // Find consignee section — look for the table header keywords
-  const sectionIdx = fullText.search(/consign|reporting\s+officer/i);
+  // Find consignee table section — use the specific header to avoid matching "consignment" in boilerplate.
+  // Try precise header first; fall back to looser match if absent.
+  const preciseIdx = fullText.search(/Consignees\s*\/\s*Reporting\s+Officer\s+and\s+Quantity/i);
+  const looseIdx   = fullText.search(/Consignees\s*[\/|]\s*Reporting\s+Officer/i);
+  const sectionIdx = preciseIdx >= 0 ? preciseIdx : looseIdx;
   const section = sectionIdx >= 0
     ? fullText.substring(sectionIdx, sectionIdx + 3000)
     : fullText; // fall back to full text if header not found

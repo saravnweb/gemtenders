@@ -31,8 +31,14 @@ import { createRequire } from 'module';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { extractTenderDataGroq } from '../lib/groq-ai.js';
 
+// pdf-parse v2 changed API: new PDFParse({ data: buffer }).getText()
 const require = createRequire(import.meta.url);
-const pdfParse = require('pdf-parse');
+const { PDFParse } = require('pdf-parse');
+async function parsePdf(buffer: Buffer): Promise<string> {
+  const parser = new PDFParse({ data: buffer });
+  try { return (await parser.getText())?.text ?? ''; }
+  finally { await parser.destroy?.(); }
+}
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 const argv        = process.argv.slice(2);
@@ -203,8 +209,7 @@ async function main() {
         // ── AI enrichment from PDF text ──────────────────────────────────────
         if (!NO_AI && !tender.ai_summary) {
           try {
-            const parsed = await pdfParse(buffer, { max: 0 });
-            const pdfText: string = parsed.text || '';
+            const pdfText: string = await parsePdf(buffer);
             if (pdfText.length > 50) {
               const aiData = await extractTenderDataGroq(pdfText);
               if (aiData) {

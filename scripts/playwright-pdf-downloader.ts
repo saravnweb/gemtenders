@@ -258,6 +258,10 @@ async function main() {
   console.log(`>>> Found ${tenders.length} tenders to process.\n`);
 
   let { done } = loadCheckpoint();
+  if (done >= tenders.length) {
+    done = 0;
+    saveCheckpoint(0);
+  }
   const toProcess = tenders.slice(done);
   if (done > 0) console.log(`>>> Resuming from ${done}\n`);
 

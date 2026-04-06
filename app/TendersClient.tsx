@@ -11,6 +11,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
+import { INDIAN_STATES, normalizeState, normalizeCity } from "@/lib/locations";
 const PAGE_SIZE = 21;
 const COLUMNS =
   "id,title,bid_number,ra_number,state,city,department,ministry_name,department_name,organisation_name,office_name,emd_amount,start_date,end_date,ai_summary,eligibility_msme,eligibility_mii,created_at,slug";
@@ -51,7 +52,7 @@ function formatDepartmentInfo(ministry?: string, dept?: string, org?: string): s
   let deptStr = dept || "";
   let orgStr = isNAValue(org) ? "" : (org || "");
 
-  const states = ["Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Goa","Gujarat","Haryana","Himachal Pradesh","Jharkhand","Karnataka","Kerala","Madhya Pradesh","Maharashtra","Manipur","Meghalaya","Mizoram","Nagaland","Odisha","Punjab","Rajasthan","Sikkim","Tamil Nadu","Telangana","Tripura","Uttar Pradesh","Uttarakhand","West Bengal","Delhi","Puducherry","Chandigarh","Ladakh","Jammu And Kashmir"];
+  const states = ["Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Goa","Gujarat","Haryana","Himachal Pradesh","Jharkhand","Karnataka","Kerala","Madhya Pradesh","Maharashtra","Manipur","Meghalaya","Mizoram","Nagaland","Odisha","Punjab","Rajasthan","Sikkim","Tamil Nadu","Telangana","Tripura","Uttar Pradesh","Uttarakhand","West Bengal","Delhi","Puducherry","Chandigarh","Ladakh","Jammu And Kashmir", "Andaman And Nicobar", "Lakshadweep", "Dadra And Nagar Haveli And Daman And Diu"];
 
   if (!ministryStr && deptStr) {
     const splitRegex = /(Ministry Of .+?)(Department Of.*|Office Of.*|Organisation Of.*|Division Of.*|Central Public Sector Enterprise.*)/i;
@@ -146,10 +147,10 @@ async function queryTendersCount(filters: Filters): Promise<number> {
     q = q.or(orClauses.join(','));
   }
 
-  if (filters.states.length > 0)     q = q.in("state", filters.states);
-  if (filters.cities.length > 0)     q = q.in("city", filters.cities);
-  if (filters.ministries.length > 0) q = q.in("ministry_name", filters.ministries);
-  if (filters.orgs.length > 0)       q = q.in("organisation_name", filters.orgs);
+  if (filters.states.length > 0)     q = q.or(filters.states.map(s => `state.ilike."${s}"`).join(','));
+  if (filters.cities.length > 0)     q = q.or(filters.cities.map(c => `city.ilike."${c}"`).join(','));
+  if (filters.ministries.length > 0) q = q.or(filters.ministries.map(m => `ministry_name.ilike."${m}"`).join(','));
+  if (filters.orgs.length > 0)       q = q.or(filters.orgs.map(o => `organisation_name.ilike."${o}"`).join(','));
   if (filters.msmeOnly) q = q.eq("eligibility_msme", true);
   if (filters.miiOnly)  q = q.eq("eligibility_mii",  true);
 
@@ -246,10 +247,10 @@ async function queryTenders(filters: Filters, page: number): Promise<any[]> {
   }
 
   // Location
-  if (filters.states.length > 0)     q = q.in("state", filters.states);
-  if (filters.cities.length > 0)     q = q.in("city", filters.cities);
-  if (filters.ministries.length > 0) q = q.in("ministry_name", filters.ministries);
-  if (filters.orgs.length > 0)       q = q.in("organisation_name", filters.orgs);
+  if (filters.states.length > 0)     q = q.or(filters.states.map(s => `state.ilike."${s}"`).join(','));
+  if (filters.cities.length > 0)     q = q.or(filters.cities.map(c => `city.ilike."${c}"`).join(','));
+  if (filters.ministries.length > 0) q = q.or(filters.ministries.map(m => `ministry_name.ilike."${m}"`).join(','));
+  if (filters.orgs.length > 0)       q = q.or(filters.orgs.map(o => `organisation_name.ilike."${o}"`).join(','));
 
   // Eligibility
   if (filters.msmeOnly) q = q.eq("eligibility_msme", true);
@@ -483,7 +484,29 @@ function TendersClient({
   // ── Helper: row array → sorted counted items ──
   function toCounted(rows: any[], key: string) {
     const map: Record<string, number> = {};
-    rows.forEach((r) => { const v = r[key]; if (v) map[v] = (map[v] || 0) + 1; });
+    rows.forEach((r) => {
+      let v = r[key];
+      if (v) {
+        v = v.trim();
+        // Custom normalization for common issues
+        let normalized = "";
+        if (key === 'state') {
+          normalized = normalizeState(v) || "";
+        } else if (key === 'city') {
+          normalized = normalizeCity(v) || "";
+        } else {
+          // General cleanup for other filters (ministries/organisations)
+          v = v.replace(/\s+/g, ' '); // Replace double spaces
+          v = v.replace(/\.+$/, '');   // Remove trailing dots
+          v = v.replace(/[\*\_\#]+$/, ''); // Remove trailing stars/hashes
+          normalized = toTitleCase(v);
+        }
+        
+        if (normalized) {
+           map[normalized] = (map[normalized] || 0) + 1;
+        }
+      }
+    });
     return Object.entries(map)
       .map(([v, c]) => ({ label: v, value: v, count: c }))
       .sort((a, b) => a.label.localeCompare(b.label));
@@ -644,13 +667,14 @@ function TendersClient({
         if (p.q) {
            const kws = p.q.split(",").map((k: string) => k.trim()).filter(Boolean);
            if (kws.length && !kws.some((kw: string) => {
-             const kwLower = kw.toLowerCase();
-             return (tender.title || "").toLowerCase().includes(kwLower) ||
-                    (tender.bid_number || "").toLowerCase().includes(kwLower) ||
-                    (tender.department || "").toLowerCase().includes(kwLower) ||
-                    (tender.organisation_name || "").toLowerCase().includes(kwLower) ||
-                    (tender.ministry_name || "").toLowerCase().includes(kwLower) ||
-                    (tender.ai_summary || "").toLowerCase().includes(kwLower);
+             const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+             const regex = new RegExp(`\\b${escaped}\\b`, "i");
+             return regex.test(tender.title || "") ||
+                    regex.test(tender.bid_number || "") ||
+                    regex.test(tender.department || "") ||
+                    regex.test(tender.organisation_name || "") ||
+                    regex.test(tender.ministry_name || "") ||
+                    regex.test(tender.ai_summary || "");
            })) match = false;
         }
 
@@ -1335,14 +1359,14 @@ function TenderCard({
             {tender.city && (
               <>
                 <button aria-label={`Search for city ${tender.city}`} onClick={(e) => { e.stopPropagation(); setSearchQuery(tender.city); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="hover:text-blue-600 hover:underline transition-colors truncate">
-                  {tender.city}
+                  {toTitleCase(tender.city)}
                 </button>
                 {tender.state && <span className="mx-1">,</span>}
               </>
             )}
             {tender.state && (
               <button aria-label={`Filter by state ${tender.state}`} onClick={(e) => { e.stopPropagation(); setSelectedStates([tender.state]); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="hover:text-blue-600 hover:underline transition-colors truncate">
-                {tender.state}
+                {toTitleCase(tender.state)}
               </button>
             )}
             {!tender.city && !tender.state && <span className="truncate">{tender.location || "N/A"}</span>}
@@ -1509,7 +1533,10 @@ function FilterDropdown({
   // Close on scroll/resize (panel is fixed, won't track the button)
   useEffect(() => {
     if (!open) return;
-    function close() { setOpen(false); }
+    function close(e: any) {
+      if (panelRef.current && panelRef.current.contains(e.target)) return;
+      setOpen(false);
+    }
     window.addEventListener("scroll", close, { passive: true, capture: true });
     window.addEventListener("resize", close);
     return () => {
@@ -1523,7 +1550,7 @@ function FilterDropdown({
     if (!open && !opened.current) { opened.current = true; onOpen?.(); }
     if (!open && btnRef.current) {
       const rect = btnRef.current.getBoundingClientRect();
-      const panelW = 240;
+      const panelW = 360;
       const vw = window.innerWidth;
       let left = rect.left;
       if (left + panelW > vw - 8) left = Math.max(8, vw - panelW - 8);
@@ -1560,13 +1587,13 @@ function FilterDropdown({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={searchPlaceholder}
-              className="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 dark:text-slate-300 placeholder:text-slate-400"
+              className="w-full pl-8 pr-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 dark:text-slate-300 placeholder:text-slate-400"
             />
           </div>
         </div>
       )}
 
-      <div className="max-h-60 overflow-y-auto no-scrollbar">
+      <div className="max-h-[480px] overflow-y-auto">
         {loading ? (
           <div className="py-8 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
             <Loader2 className="w-3.5 h-3.5 animate-spin" />Loading…
@@ -1585,7 +1612,7 @@ function FilterDropdown({
                 if (mode === "single") { onSelect?.(val); setOpen(false); }
                 else { onToggle?.(val); }
               }}
-              className={`w-full flex items-center gap-2 px-4 py-2.5 text-xs text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800 ${
+              className={`w-full flex items-center gap-2 px-4 py-2.5 text-sm text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800 ${
                 checked ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-bold" : "text-slate-700 dark:text-slate-300"
               }`}
             >
@@ -1598,7 +1625,7 @@ function FilterDropdown({
                   {checked && <span className="w-2 h-2 rounded-full bg-blue-600 block" />}
                 </span>
               )}
-              <span className="truncate flex-1">{lbl}</span>
+              <span className="flex-1 leading-tight">{lbl}</span>
               {cnt !== undefined && cnt > 0 && (
                 <span suppressHydrationWarning className={`shrink-0 tabular-nums text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
                   checked ? "bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200" : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
@@ -1615,7 +1642,7 @@ function FilterDropdown({
         <div className="p-2 border-t border-slate-100 dark:border-slate-800">
           <button
             onClick={() => { onClear(); setOpen(false); }}
-            className="w-full py-1.5 text-xs font-bold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+            className="w-full py-1.5 text-sm font-bold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
           >
             Clear {label}
           </button>
@@ -1631,7 +1658,7 @@ function FilterDropdown({
         ref={btnRef}
         onClick={handleToggle}
         disabled={disabled}
-        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-all whitespace-nowrap ${
+        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold border transition-all whitespace-nowrap ${
           disabled
             ? "opacity-40 cursor-not-allowed bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-400"
             : isActive
@@ -1639,7 +1666,7 @@ function FilterDropdown({
               : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600"
         }`}
       >
-        <span className="max-w-[120px] truncate">{buttonLabel}</span>
+        <span className="max-w-[180px] sm:max-w-[240px] truncate">{buttonLabel}</span>
         {isActive ? (
           <span
             role="button"
@@ -1667,7 +1694,7 @@ function TogglePill({ label, active, onClick }: { label: string; active: boolean
   return (
     <button
       onClick={onClick}
-      className={`shrink-0 px-3 py-2 rounded-xl text-xs font-bold border transition-all whitespace-nowrap ${
+      className={`shrink-0 px-3 py-2 rounded-xl text-sm font-bold border transition-all whitespace-nowrap ${
         active
           ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
           : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600"
