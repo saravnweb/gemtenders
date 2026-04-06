@@ -1148,19 +1148,27 @@ function TendersClient({
                   <div role="columnheader">Actions</div>
                 </div>
               </div>
-              <div role="rowgroup" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
-                {displayTenders.map((tender) => (
-                  <TenderCard
-                    key={tender.id}
-                    tender={tender}
-                    setSearchQuery={setSearchQuery}
-                    setSelectedStates={setSelectedStates}
-                    isSaved={savedTenderIds.has(tender.id)}
-                    onToggleSave={() => handleToggleSaveTender(tender.id)}
-                    highlightTerms={activeKeywords}
-                  />
-                ))}
-              </div>
+              <Suspense fallback={
+                <div role="rowgroup" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="h-72 bg-white dark:bg-slate-800 rounded-xl animate-pulse border border-slate-100 dark:border-slate-700" />
+                  ))}
+                </div>
+              }>
+                <div role="rowgroup" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
+                  {displayTenders.map((tender) => (
+                    <TenderCard
+                      key={tender.id}
+                      tender={tender}
+                      setSearchQuery={setSearchQuery}
+                      setSelectedStates={setSelectedStates}
+                      isSaved={savedTenderIds.has(tender.id)}
+                      onToggleSave={() => handleToggleSaveTender(tender.id)}
+                      highlightTerms={activeKeywords}
+                    />
+                  ))}
+                </div>
+              </Suspense>
             </div>
 
             {hasMore && activeTab !== "foryou" && (

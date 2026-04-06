@@ -314,10 +314,10 @@ export default function Navbar() {
           <div id="mobile-menu" className="fixed inset-y-0 left-0 w-[240px] h-dvh bg-white dark:bg-zinc-950 shadow-2xl flex flex-col border-r border-slate-100 dark:border-zinc-800 animate-in slide-in-from-left duration-300 ease-out" role="dialog" aria-modal="true" aria-label="Mobile Navigation">
             {/* Drawer Header */}
             <div className="p-4 border-b border-slate-50 dark:border-zinc-800 flex items-center justify-between h-14 sm:h-16 shrink-0 bg-white dark:bg-zinc-950">
-              <span className="text-xs font-bold text-slate-600 uppercase tracking-[0.2em] ml-2">Navigation</span>
+              <span className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em] ml-2">Navigation</span>
               <button
                 onClick={() => setIsMenuOpen(false)}
-                className="p-2 text-slate-600 hover:text-slate-900 transition-colors rounded-lg bg-slate-50 border border-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+                className="p-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors rounded-lg bg-slate-50 dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:focus-visible:ring-zinc-700"
                 aria-label="Close Navigation Menu"
               >
                 <X className="w-5 h-5" />
@@ -331,8 +331,8 @@ export default function Navbar() {
                   <>
                     {user ? (
                       /* User Profile Summary - Only when logged in */
-                      <div className="flex items-center space-x-3 p-4 bg-slate-50 rounded-xl border border-slate-200/50">
-                        <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 border border-slate-200 shadow-md bg-white flex items-center justify-center">
+                      <div className="flex items-center space-x-3 p-4 bg-slate-50 dark:bg-zinc-900/50 rounded-xl border border-slate-200/50 dark:border-zinc-800/50">
+                        <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 border border-slate-200 dark:border-zinc-800 shadow-md bg-white dark:bg-zinc-900 flex items-center justify-center">
                           {user.user_metadata?.avatar_url ? (
                             <img src={user.user_metadata.avatar_url} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                           ) : (
@@ -340,8 +340,8 @@ export default function Navbar() {
                           )}
                         </div>
                         <div className="flex flex-col min-w-0">
-                          <span className="text-xs font-bold text-slate-900 truncate tracking-tight">{user.email?.split('@')[0]}</span>
-                          <span className="text-[9px] font-medium text-slate-600 uppercase tracking-widest">Active Account</span>
+                          <span className="text-xs font-bold text-slate-900 dark:text-white truncate tracking-tight">{user.email?.split('@')[0]}</span>
+                          <span className="text-[9px] font-medium text-slate-600 dark:text-slate-400 uppercase tracking-widest">Active Account</span>
                         </div>
                       </div>
                     ) : (
@@ -349,7 +349,7 @@ export default function Navbar() {
                       <button 
                         onClick={() => { signInWithGoogle(); setIsMenuOpen(false); }} 
                         disabled={isSigningIn}
-                        className="w-full text-center py-3.5 text-slate-900 font-bold text-xs uppercase tracking-widest border border-slate-200 rounded-xl hover:bg-slate-50 transition-all disabled:opacity-50"
+                        className="w-full text-center py-3.5 text-slate-900 dark:text-white font-bold text-xs uppercase tracking-widest border border-slate-200 dark:border-zinc-800 rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-900 transition-all disabled:opacity-50"
                       >
                         {isSigningIn ? "Connecting..." : "Sign In"}
                       </button>
@@ -359,42 +359,42 @@ export default function Navbar() {
                     <div className="flex flex-col space-y-1">
                       <MenuListItem 
                         href="/explore" 
-                        icon={<LayoutDashboard className="w-4 h-4 text-slate-600" />} 
+                        icon={<LayoutDashboard className="w-4 h-4 text-slate-600 dark:text-slate-400" />} 
                         label="Explore" 
                         onClick={() => setIsMenuOpen(false)} 
                       />
                       <MenuListItem 
                         href="/dashboard/saved" 
-                        icon={<Bookmark className="w-4 h-4 text-slate-600" />} 
+                        icon={<Bookmark className="w-4 h-4 text-slate-600 dark:text-slate-400" />} 
                         label="Saved Bids" 
                         onClick={() => setIsMenuOpen(false)} 
                       />
                       <MenuListItem 
                         href="/dashboard/keywords" 
-                        icon={<Zap className="w-4 h-4 text-slate-600" />} 
+                        icon={<Zap className="w-4 h-4 text-slate-600 dark:text-slate-400" />} 
                         label="Saved Keywords" 
                         onClick={() => setIsMenuOpen(false)} 
                       />
                       <MenuListItem
                         href="/dashboard/subscriptions"
-                        icon={<CreditCard className="w-4 h-4 text-slate-600" />}
+                        icon={<CreditCard className="w-4 h-4 text-slate-600 dark:text-slate-400" />}
                         label="Plans"
                         onClick={() => setIsMenuOpen(false)}
                       />
                       <MenuListItem
                         href="/about"
-                        icon={<Info className="w-4 h-4 text-slate-600" />}
+                        icon={<Info className="w-4 h-4 text-slate-600 dark:text-slate-400" />}
                         label="About"
                         onClick={() => setIsMenuOpen(false)}
                       />
                     </div>
 
                     {/* Conditional Bottom Action: Sign Out or Register */}
-                    <div className="pt-4 border-t border-slate-100 space-y-2">
+                    <div className="pt-4 border-t border-slate-100 dark:border-zinc-800 space-y-2">
                       {user ? (
                         <button
                           onClick={() => { handleSignOut(); setIsMenuOpen(false); }}
-                          className="w-full flex items-center justify-center space-x-2 py-3.5 text-red-500 font-bold text-xs uppercase tracking-widest border border-red-50 rounded-xl bg-red-50/50 hover:bg-red-50 transition-all"
+                          className="w-full flex items-center justify-center space-x-2 py-3.5 text-red-500 dark:text-red-400 font-bold text-xs uppercase tracking-widest border border-red-50 dark:border-red-900/30 rounded-xl bg-red-50/50 dark:bg-red-900/10 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
                         >
                             <LogOut className="w-4 h-4" />
                             <span>Sign Out Account</span>
@@ -403,7 +403,7 @@ export default function Navbar() {
                         <button
                           onClick={() => { signInWithGoogle(); setIsMenuOpen(false); }}
                           disabled={isSigningIn}
-                          className="w-full text-center py-3.5 text-white font-bold text-xs uppercase tracking-widest bg-slate-900 rounded-xl shadow-lg active:scale-95 transition-all disabled:opacity-50"
+                          className="w-full text-center py-3.5 text-white dark:text-zinc-950 font-bold text-xs uppercase tracking-widest bg-slate-900 dark:bg-white rounded-xl shadow-lg active:scale-95 transition-all disabled:opacity-50"
                         >
                           {isSigningIn ? "Creating Account..." : "Register Free"}
                         </button>
@@ -453,13 +453,13 @@ function MenuListItem({ href, icon, label, onClick }: { href: string, icon: Reac
     <Link 
       href={href} 
       onClick={onClick} 
-      className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-xl hover:bg-slate-50 transition-all group"
+      className="flex items-center justify-between p-4 bg-white dark:bg-zinc-900/50 border border-slate-100 dark:border-zinc-800 rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800 transition-all group"
     >
       <div className="flex items-center space-x-3">
         {icon}
-        <span className="text-xs font-bold text-slate-700 uppercase tracking-wide leading-none">{label}</span>
+        <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide leading-none">{label}</span>
       </div>
-      <ChevronRight className="w-4 h-4 text-slate-300 group-hover:translate-x-1 transition-transform" />
+      <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600 group-hover:translate-x-1 transition-transform" />
     </Link>
   );
 }

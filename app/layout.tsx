@@ -75,11 +75,17 @@ export const metadata: Metadata = {
     creator: "@GeMTenders",
   },
   icons: {
-    icon: "/favicon.png",
-    shortcut: "/favicon.png",
+    icon: [
+      { url: '/favicon.png', sizes: '32x32', type: 'image/png' },
+    ],
+    shortcut: '/favicon.png',
+    apple: '/favicon.png',
   },
   alternates: {
     canonical: siteUrl,
+    languages: {
+      'en-IN': siteUrl,
+    },
   },
 };
 

@@ -1,17 +1,15 @@
 import { NextResponse } from "next/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
-import https from "https";
+import { createClient as createServerClient } from "@/lib/supabase/server";
 import axios from "axios";
 
 const BUCKET = "tender-documents";
-const httpsAgent = new https.Agent({ rejectUnauthorized: false });
 const GEM_HEADERS = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
 };
 
 async function getGemSession(): Promise<string> {
   const res = await axios.get("https://bidplus.gem.gov.in/all-bids", {
-    httpsAgent,
     headers: GEM_HEADERS,
     timeout: 20000,
   });
@@ -20,6 +18,10 @@ async function getGemSession(): Promise<string> {
 
 export async function GET(request: Request, context: { params: Promise<{ slug: string }> }) {
   try {
+    const supabase = await createServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return new NextResponse("Unauthorized", { status: 401 });
+
     const { slug } = await context.params;
     if (!slug) return new NextResponse("Missing slug", { status: 400 });
 
@@ -57,7 +59,6 @@ export async function GET(request: Request, context: { params: Promise<{ slug: s
     const pdfRes = await axios.get(
       `https://bidplus.gem.gov.in/showbidDocument/${bId}`,
       {
-        httpsAgent,
         headers: { ...GEM_HEADERS, Referer: "https://bidplus.gem.gov.in/all-bids", Cookie: cookies },
         responseType: "arraybuffer",
         timeout: 30000,

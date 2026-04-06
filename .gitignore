@@ -81,3 +81,17 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+# Claude / editor config
+.claude/
+.vscode/
+
+# Scraper progress & output artifacts
+*-progress.json
+results.json
+solr-full-doc.json
+showbiddata-output.html
+tenders_cross_check.csv
+*.csv
+*.html
+!public/**/*.html

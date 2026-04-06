@@ -1,23 +1,37 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { createClient as createServerClient } from "@/lib/supabase/server";
 import crypto from "crypto";
 
 export async function POST(req: Request) {
   try {
+    const supabase = await createServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY! // Bypass RLS to update user profile
     );
 
-    const { razorpay_subscription_id, razorpay_payment_id, razorpay_signature, plan, userId } = await req.json();
+    const secret = process.env.RAZORPAY_KEY_SECRET;
+    if (!secret) {
+      console.error("RAZORPAY_KEY_SECRET is not configured");
+      return NextResponse.json({ error: "Payment configuration error" }, { status: 500 });
+    }
+
+    const { razorpay_subscription_id, razorpay_payment_id, razorpay_signature, plan } = await req.json();
+    const userId = user.id;
 
     const body = razorpay_payment_id + "|" + razorpay_subscription_id;
     const expectedSignature = crypto
-      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET || "dummy_secret")
+      .createHmac("sha256", secret)
       .update(body.toString())
       .digest("hex");
 
-    const isAuthentic = expectedSignature === razorpay_signature || (razorpay_signature === "dummy" && process.env.NODE_ENV === "development");
+    const isAuthentic = expectedSignature === razorpay_signature;
 
     if (!isAuthentic) {
       console.warn("Signature mismatch in /api/billing/verify:", {

@@ -67,7 +67,13 @@ export default async function sitemap({
         priority: 0.8,
       },
       {
-        url: `${baseUrl}/privacy-policy`,
+        url: `${baseUrl}/privacy`,
+        lastModified: new Date(),
+        changeFrequency: 'monthly',
+        priority: 0.4,
+      },
+      {
+        url: `${baseUrl}/terms`,
         lastModified: new Date(),
         changeFrequency: 'monthly',
         priority: 0.4,

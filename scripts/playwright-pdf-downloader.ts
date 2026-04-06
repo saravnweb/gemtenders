@@ -59,7 +59,8 @@ const pdfParse = require('pdf-parse');
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 const argv      = process.argv.slice(2);
-const LIMIT     = parseInt(argv.find(a => a.startsWith('--limit='))?.split('=')[1]  || '500',  10);
+const LIMIT_ARG = argv.find(a => a.startsWith('--limit='))?.split('=')[1];
+const LIMIT     = LIMIT_ARG ? parseInt(LIMIT_ARG, 10) : null; // null = no limit
 const DELAY     = parseInt(argv.find(a => a.startsWith('--delay='))?.split('=')[1]  || '3000', 10);
 const HEADFUL   = argv.includes('--headful');
 const RESET     = argv.includes('--reset');
@@ -235,7 +236,7 @@ async function buildAiPayload(pdfText: string, bidNumber: string): Promise<Recor
 // ─── Main ─────────────────────────────────────────────────────────────────────
 async function main() {
   console.log('\n>>> [PLAYWRIGHT-PDF] Browser-based PDF downloader');
-  console.log(`    Limit: ${LIMIT} | Delay: ${DELAY}ms | Headful: ${HEADFUL}`);
+  console.log(`    Limit: ${LIMIT ?? 'ALL'} | Delay: ${DELAY}ms | Headful: ${HEADFUL}`);
   console.log(`    Mode: ${ALL ? 'ALL (reprocess)' : 'missing pdf_url only'}\n`);
 
   if (!fs.existsSync(TMP_DIR)) fs.mkdirSync(TMP_DIR, { recursive: true });
@@ -245,8 +246,9 @@ async function main() {
     .from('tenders')
     .select('id, bid_number, details_url')
     .not('details_url', 'is', null)
-    .order('created_at', { ascending: false })
-    .limit(LIMIT);
+    .order('created_at', { ascending: false });
+
+  if (LIMIT) query = query.limit(LIMIT);
 
   if (!ALL) query = query.is('pdf_url', null);
 

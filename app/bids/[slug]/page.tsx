@@ -248,18 +248,20 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
     "@type": "GovernmentService",
     "name": tender.title,
     "description": tender.ai_summary || tender.title,
+    "serviceType": "Government Tender",
     "provider": {
       "@type": "GovernmentOrganization",
-      "name": combinedDisplay || "Government of India"
+      "name": tender.organisation_name || tender.department_name || tender.ministry_name,
     },
-    "serviceType": "Public Procurement / Tender",
     "areaServed": {
-      "@type": "Country",
-      "name": "India"
+      "@type": "State",
+      "name": tender.state || "India",
     },
-    "url": `https://www.gemtenders.org/bids/${slug}`,
+    "availableChannel": {
+      "@type": "ServiceChannel",
+      "serviceUrl": `https://www.gemtenders.org/bids/${tender.slug}`,
+    },
     "identifier": tender.bid_number,
-    "termsOfService": tender.pdf_url ? `https://www.gemtenders.org/api/download/${slug}` : undefined,
   };
 
   const breadcrumbItems = [
