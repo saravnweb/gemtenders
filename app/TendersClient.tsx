@@ -135,7 +135,7 @@ async function queryTendersCount(filters: Filters): Promise<number> {
     if (filters.tab === "archived") {
       q = q.lt("end_date", new Date().toISOString());
     } else {
-      q = q.gte("end_date", new Date().toISOString());
+      q = q.gte("end_date", new Date().toISOString()).not("ai_summary", "is", null);
     }
   }
 
@@ -205,6 +205,7 @@ async function queryForYouTenders(searches: any[]): Promise<any[]> {
     .from("tenders")
     .select(COLUMNS)
     .gte("end_date", new Date().toISOString())
+    .not("ai_summary", "is", null)
     .or(orString)
     .order("created_at", { ascending: false })
     .limit(1000);
@@ -226,7 +227,7 @@ async function queryTenders(filters: Filters, page: number): Promise<any[]> {
     if (filters.tab === "archived") {
       q = q.lt("end_date", new Date().toISOString());
     } else {
-      q = q.gte("end_date", new Date().toISOString());
+      q = q.gte("end_date", new Date().toISOString()).not("ai_summary", "is", null);
     }
   }
 
@@ -394,47 +395,53 @@ function TendersClient({
   const debounceTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fetchSeq       = useRef(0); // to discard stale responses
 
-  // ── Sync URL search params on mount ──
+  // ── Sync URL search params on mount & changes ──
   useEffect(() => {
     const q = searchParams.get("q");
-    if (q && !initialQ) setSearchQuery(q);
+    if (q !== null && q !== searchQuery) setSearchQuery(q);
 
     const cat = searchParams.get("category");
-    if (cat && !initialCategory) setSelectedCategory(cat);
+    if (cat !== null && cat !== selectedCategory) setSelectedCategory(cat);
 
     const s = searchParams.getAll("state");
-    if (s.length > 0 && initialStates.length === 0) setSelectedStates(s);
-    else {
+    if (s.length > 0) {
+      if (JSON.stringify(s) !== JSON.stringify(selectedStates)) setSelectedStates(s);
+    } else if (isFirstRender.current) {
+      // Only load from localStorage if no URL params AND it's strictly the first mount
       try {
         const pref = JSON.parse(localStorage.getItem("preferredStates") || "[]");
-        if (s.length === 0 && initialStates.length === 0 && pref.length > 0) setSelectedStates(pref);
+        if (pref.length > 0) setSelectedStates(pref);
       } catch {}
     }
 
-    try {
-      const prefCities = JSON.parse(localStorage.getItem("preferredCities") || "[]");
-      const c = searchParams.getAll("city");
-      if (c.length > 0) setSelectedCities(c);
-      else if (prefCities.length > 0) setSelectedCities(prefCities);
-    } catch {}
+    const c = searchParams.getAll("city");
+    if (c.length > 0) {
+      if (JSON.stringify(c) !== JSON.stringify(selectedCities)) setSelectedCities(c);
+    } else if (isFirstRender.current) {
+      try {
+        const prefCities = JSON.parse(localStorage.getItem("preferredCities") || "[]");
+        if (prefCities.length > 0) setSelectedCities(prefCities);
+      } catch {}
+    }
 
     const tab = searchParams.get("tab");
-    if (tab === "foryou" || tab === "all" || tab === "archived") setActiveTab(tab);
+    if ((tab === "foryou" || tab === "all" || tab === "archived") && tab !== activeTab) setActiveTab(tab);
 
     const sort = searchParams.get("sort");
-    if (sort === "newest" || sort === "ending_soon") setSortOrder(sort);
+    if ((sort === "newest" || sort === "ending_soon") && sort !== sortOrder) setSortOrder(sort);
 
     // Instantly remove any tenders that have precisely expired but were kept around by SSR cache
-    const now = Date.now();
-    setTenders(prev => {
-      const active = prev.filter(t => {
-        if (!t.end_date) return true;
-        return new Date(t.end_date).getTime() > now;
+    if (isFirstRender.current) {
+      const now = Date.now();
+      setTenders(prev => {
+        const active = prev.filter(t => {
+          if (!t.end_date) return true;
+          return new Date(t.end_date).getTime() > now;
+        });
+        return active.length !== prev.length ? active : prev;
       });
-      return active.length !== prev.length ? active : prev;
-    });
-
-  }, []);
+    }
+  }, [searchParams]);
 
   // ── Persist location preferences ──
   useEffect(() => {

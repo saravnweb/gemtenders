@@ -138,7 +138,7 @@ async function fixLocations() {
         .select('id, bid_number, state, city, ai_summary, office_name, organisation_name, department_name, ministry_name, title, raw_text')
         .or('state.is.null,city.is.null');
       if (SINCE_DATE) q = q.gte('created_at', SINCE_DATE);
-      const { data, error: fetchErr } = await q.range(0, BATCH - 1);
+      const { data, error: fetchErr } = await q.range(offset, offset + BATCH - 1);
 
       if (fetchErr) {
         console.error(`\n  DB error (retries=${retries}): ${fetchErr.message}`);

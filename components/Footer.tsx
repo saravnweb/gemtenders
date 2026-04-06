@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CATEGORIES } from "@/lib/categories";
 
 const stateLinks = [
   { label: "Delhi", href: "/?state=Delhi" },
@@ -12,13 +13,13 @@ const stateLinks = [
 ];
 
 const categoryLinks = [
-  { label: "Vehicles", href: "/?category=Vehicles" },
-  { label: "IT Equipment", href: "/?category=IT+Equipment" },
-  { label: "Office Supplies", href: "/?category=Office+Supplies" },
-  { label: "Medical Equipment", href: "/?category=Medical+Equipment" },
-  { label: "Construction", href: "/?category=Construction" },
-  { label: "Security Services", href: "/?category=Security+Services" },
-];
+  CATEGORIES.find(c => c.id === "vehicles"),
+  CATEGORIES.find(c => c.id === "computer-hardware"),
+  CATEGORIES.find(c => c.id === "office-supplies"),
+  CATEGORIES.find(c => c.id === "medical-equipment"),
+  CATEGORIES.find(c => c.id === "construction"),
+  CATEGORIES.find(c => c.id === "security-services"),
+].filter(Boolean).map(c => ({ label: c!.label, href: `/?category=${c!.id}` }));
 
 export default function Footer() {
   return (
@@ -41,6 +42,14 @@ export default function Footer() {
                   </Link>
                 </li>
               ))}
+              <li>
+                <Link
+                  href="/explore"
+                  className="text-[12px] font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors focus-visible:outline-none focus-visible:underline mt-2 inline-block"
+                >
+                  View All States &rarr;
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -59,6 +68,14 @@ export default function Footer() {
                   </Link>
                 </li>
               ))}
+              <li>
+                <Link
+                  href="/explore"
+                  className="text-[12px] font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors focus-visible:outline-none focus-visible:underline mt-2 inline-block"
+                >
+                  View All Categories &rarr;
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -109,7 +126,7 @@ export default function Footer() {
         {/* Bottom bar */}
         <div className="border-t border-slate-100 dark:border-zinc-900 pt-4">
           <p className="text-[11px] font-medium text-slate-500 dark:text-zinc-400 text-center leading-relaxed">
-            &copy; <span suppressHydrationWarning>{new Date().getFullYear()}</span> GeMTenders.org &mdash; Data sourced from Government e-Marketplace (gem.gov.in). Not affiliated with the Government of India.
+            &copy; <span suppressHydrationWarning>{new Date().getFullYear()}</span> GeMTenders.org &mdash; Data sourced from Government e-Marketplace (gem.gov.in).
           </p>
         </div>
       </div>

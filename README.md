@@ -63,4 +63,4 @@ To test the scraping and enrichment pipeline:
 - Scrape: `npm run crawl`
 - Process PDFs & Summarize: `npm run enrich`
 
-*Data is sourced from the official Government e-Marketplace (gem.gov.in). GeMTenders.org is NOT affiliated with the Government of India.*
+*Data is sourced from the official Government e-Marketplace (gem.gov.in).*
