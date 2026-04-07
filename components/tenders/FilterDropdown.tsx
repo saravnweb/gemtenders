@@ -99,8 +99,6 @@ export function FilterDropdown({
       zIndex: 9999, 
       visibility: "visible" 
     });
-    // Focus after position is set so the browser doesn't scroll to the portal element
-    requestAnimationFrame(() => { searchInputRef.current?.focus({ preventScroll: true }); });
   }, [open]);
 
   useEffect(() => {

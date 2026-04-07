@@ -1,41 +1,25 @@
-import { City, State } from 'country-state-city';
+import { City } from 'country-state-city';
 export * from './locations-client';
 import { normalizeState, normalizeCity, pinToState } from './locations-client';
+import cityStateMap from './city-state-map.json';
 
 // NOTE: These functions use 'country-state-city' which is a large data library.
 // Do NOT import these functions in client-side components to keep the bundle size small.
 
-let _inCitiesCache: any[] | null = null;
-function getInCities() {
-    if (!_inCitiesCache) {
-        _inCitiesCache = City.getCitiesOfCountry('IN') || [];
-    }
-    return _inCitiesCache;
-}
-
 let _sortedCitiesCache: any[] | null = null;
 function getSortedCities() {
     if (!_sortedCitiesCache) {
-        _sortedCitiesCache = [...getInCities()].sort((a, b) => b.name.length - a.name.length);
+        const all = City.getCitiesOfCountry('IN') || [];
+        _sortedCitiesCache = [...all].sort((a, b) => b.name.length - a.name.length);
     }
     return _sortedCitiesCache;
 }
 
 export function cityToState(city: string | null | undefined): string | null {
   if (!city) return null;
-  const needle = city.trim().toLowerCase();
-  const matches = getInCities().filter(c => c.name.toLowerCase() === needle);
-  if (!matches.length) return null;
-
-  const states = new Set<string>();
-  for (const m of matches) {
-    const s = State.getStateByCodeAndCountry(m.stateCode, 'IN');
-    const normalized = s ? normalizeState(s.name) : null;
-    if (normalized) states.add(normalized);
-  }
-
-  if (states.size === 1) return [...states][0];
-  return null;
+  const key = city.trim().toLowerCase();
+  const state = (cityStateMap as Record<string, string>)[key];
+  return state ? normalizeState(state) : null;
 }
 
 export function extractVerifiedCity(text: string | null | undefined): string | null {

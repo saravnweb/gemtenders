@@ -72,7 +72,9 @@
       "Read(//d/websites/Tenders/**)",
       "Bash(mv /tmp/tenders_clean.tsx \"d:/websites/Tenders/app/TendersClient.tsx\")",
       "Bash(node_modules/.bin/tsc --noEmit)",
-      "Bash(echo \"exit:$?\")"
+      "Bash(echo \"exit:$?\")",
+      "Bash(node -e \"const m=require\\('./lib/city-state-map.json'\\); console.log\\(Object.keys\\(m\\).length\\)\")",
+      "Bash(echo \"Done - $\\(node -e \"const m=require\\('./lib/city-state-map.json'\\); console.log\\(Object.keys\\(m\\).length\\)\"\\) cities\")"
     ],
     "additionalDirectories": [
       "d:\\websites\\Tenders\\scripts"

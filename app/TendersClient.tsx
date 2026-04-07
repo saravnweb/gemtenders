@@ -15,7 +15,7 @@ import { fetchTendersByRelevance } from "@/lib/tenders-relevance-query";
 import { requirePublicListingReady } from "@/lib/tender-public-listing";
 const PAGE_SIZE = 21;
 const COLUMNS =
-  "id,title,bid_number,ra_number,state,city,department,ministry_name,department_name,organisation_name,office_name,emd_amount,start_date,end_date,ai_summary,eligibility_msme,eligibility_mii,created_at,slug";
+  "id,title,bid_number,ra_number,state,city,department,ministry_name,department_name,organisation_name,office_name,emd_amount,start_date,end_date,ai_summary,eligibility_msme,eligibility_mii,created_at,slug,category";
 
 import { CATEGORIES } from "@/lib/categories";
 import TenderCard from "@/components/tenders/TenderCard";
@@ -23,7 +23,7 @@ import { FilterDropdown } from "@/components/tenders/FilterDropdown";
 import { FilterTag } from "@/components/tenders/FilterTag";
 import { TogglePill } from "@/components/tenders/TogglePill";
 import { Sidebar } from "@/components/tenders/Sidebar";
-import { toTitleCase, buildSearchOrClause, getCategory } from "@/components/tenders/utils";
+import { toTitleCase, getCategory } from "@/components/tenders/utils";
 
 
 // ─── Word-boundary OR clause builder ─────────────────────────────────────────
@@ -662,16 +662,32 @@ function TendersClient({
 
       // 2. Fetch counts and contextual filters in background (SLOW path)
       const needContextual = !!q && contextualQueryCache.current !== q;
-      const ctxPromise = needContextual
-        ? requirePublicListingReady(
-            supabase.from("tenders")
-              .select("state, city, ministry_name, organisation_name")
-              .gte("end_date", new Date().toISOString())
-          )
-            .or(buildSearchOrClause(q))
-            .order("created_at", { ascending: false })
-            .limit(1000)
-        : Promise.resolve(null);
+      let ctxPromise: Promise<any> = Promise.resolve(null);
+      if (needContextual) {
+        // Use same word-boundary search as the main query so dropdown options
+        // only show items that will actually survive the full filter.
+        const ctxOrClause = q.split(',').map((s: string) => s.trim()).filter(Boolean)
+          .map((t: string) => buildTextSearchOrClause(t)).join(',');
+        let ctxQ = requirePublicListingReady(
+          supabase.from("tenders")
+            .select("state, city, ministry_name, organisation_name")
+            .gte("end_date", new Date().toISOString())
+        ).or(ctxOrClause);
+        // Scope contextual options to match active filters so no ghost options appear
+        if (f.states.length > 0) {
+          const sc = f.states.map((s: string) => s === "Unknown State" ? `state.is.null` : `state.ilike."${s}"`);
+          ctxQ = ctxQ.or(sc.join(','));
+        }
+        if (f.ministries.length > 0) {
+          const mc = f.ministries.map((m: string) => m === "Not Specified" ? `ministry_name.is.null` : `ministry_name.ilike."${m}"`);
+          ctxQ = ctxQ.or(mc.join(','));
+        }
+        if (f.orgs.length > 0) {
+          const oc = f.orgs.map((o: string) => o === "Not Specified" ? `organisation_name.is.null` : `organisation_name.ilike."${o}"`);
+          ctxQ = ctxQ.or(oc.join(','));
+        }
+        ctxPromise = ctxQ.order("created_at", { ascending: false }).limit(1000);
+      }
 
       Promise.all([
         queryTendersCount({ ...f, tab: "all" }),
