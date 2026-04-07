@@ -125,11 +125,11 @@ export function FilterDropdown({
     <div
       ref={panelRef}
       style={panelStyle}
-      className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-2xl shadow-xl overflow-hidden"
+      className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-2xl shadow-xl overflow-hidden flex flex-col"
     >
-      {searchable && (
-        <div className="p-2 border-b border-slate-100 dark:border-border">
-          <div className="relative">
+      <div className="p-2 border-b border-slate-100 dark:border-border flex items-center gap-2">
+        {searchable ? (
+          <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
             <input
               ref={searchInputRef}
@@ -137,13 +137,22 @@ export function FilterDropdown({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={searchPlaceholder}
-              className="w-full pl-8 pr-3 py-2 text-sm bg-slate-50 dark:bg-card border border-slate-200 dark:border-border rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 dark:text-muted-foreground placeholder:text-slate-400"
+              className="w-full pl-8 pr-3 py-2 text-sm bg-slate-50 dark:bg-card border border-slate-200 dark:border-border rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 dark:text-muted-foreground placeholder:text-slate-400 transition-all"
             />
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="flex-1 px-2 text-sm font-bold text-slate-700 dark:text-muted-foreground">{label}</div>
+        )}
+        <button
+          onClick={() => setOpen(false)}
+          className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-muted rounded-full transition-colors shrink-0"
+          aria-label="Close"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
 
-      <div className="max-h-[480px] overflow-y-auto">
+      <div className="max-h-[min(420px,70vh)] overflow-y-auto flex-1">
         {loading ? (
           <div className="py-8 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
             <Loader2 className="w-3.5 h-3.5 animate-spin" />Loading…
@@ -188,16 +197,25 @@ export function FilterDropdown({
         })}
       </div>
 
-      {selected.length > 0 && (
-        <div className="p-2 border-t border-slate-100 dark:border-border">
+      {(mode === "multi" || selected.length > 0) && (
+        <div className="p-2 border-t border-slate-100 dark:border-border flex items-center gap-2 bg-slate-50/50 dark:bg-card">
+          {selected.length > 0 && (
+            <button
+              onClick={() => { onClear(); setOpen(false); }}
+              className="flex-1 py-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 dark:text-muted-foreground dark:hover:text-foreground rounded-xl hover:bg-slate-100 dark:hover:bg-muted transition-colors"
+            >
+              Clear
+            </button>
+          )}
           <button
-            onClick={() => { onClear(); setOpen(false); }}
-            className="w-full py-1.5 text-sm font-bold text-slate-500 hover:text-slate-700 dark:text-muted-foreground dark:hover:text-foreground rounded-lg hover:bg-slate-50 dark:hover:bg-muted transition-colors"
+            onClick={() => setOpen(false)}
+            className={`${(mode === "multi" || selected.length > 0) ? "flex-1" : "w-full"} py-2 px-4 text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 rounded-xl transition-all shadow-sm active:scale-[0.98] text-center`}
           >
-            Clear {label}
+            {mode === "multi" ? "Done" : "Close"}
           </button>
         </div>
       )}
+
     </div>
   );
 
