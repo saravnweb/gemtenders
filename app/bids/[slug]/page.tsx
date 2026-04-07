@@ -600,7 +600,7 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
                <div className="flex flex-col sm:flex-row gap-5 items-center bg-slate-50/50 dark:bg-card/50 p-5 rounded-2xl border border-slate-100 dark:border-border">
                  <div className="flex-1 w-full flex flex-col justify-center">
                     <span className="text-xs font-bold text-slate-500 dark:text-muted-foreground uppercase tracking-wider mb-2 block text-center sm:text-left">GeM Bid Document ID</span>
-                    <RevealBidNumber bidNumber={tender.bid_number} asButton={true} />
+                    <RevealBidNumber bidNumber={tender.bid_number} asButton={true} tenderId={tender.id} />
                  </div>
                  <div className="w-px h-12 bg-slate-200 dark:bg-muted hidden sm:block"></div>
                  <div className="flex-1 w-full flex flex-col justify-center pt-4 sm:pt-0 border-t border-slate-200 dark:border-border sm:border-t-0">

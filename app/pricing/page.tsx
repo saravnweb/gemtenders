@@ -62,7 +62,7 @@ export default function PricingPage() {
           <ul className="space-y-4">
             <FeatureItem text="Search & browse all active tenders" />
             <FeatureItem text="Bookmark unlimited tenders" />
-            <FeatureItem text="Track up to 10 unique keywords" />
+            <FeatureItem text="Track up to 5 unique keywords" />
             <FeatureItem text="Quick AI smart-summaries of tenders" />
             <FeatureItem text="Download up to 5 tender PDFs daily" />
             <FeatureItem disabled text="No automated email or mobile alerts" />

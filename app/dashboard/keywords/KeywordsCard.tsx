@@ -57,7 +57,7 @@ export default function KeywordsCard({ search, membershipPlan, totalKeywords }: 
         if (!newKeyword.trim()) return;
 
         const addedKwsCount = newKeyword.split(',').filter(k => k.trim()).length;
-        if (membershipPlan === 'free' && totalKeywords + addedKwsCount > 10) {
+        if (membershipPlan === 'free' && totalKeywords + addedKwsCount > 5) {
             setShowUpgradeModal(true);
             return;
         }

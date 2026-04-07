@@ -24,6 +24,22 @@ function pdfResponse(buffer: Buffer, fileName: string) {
   });
 }
 
+async function trackAndRespondPdf(
+  admin: any,
+  userId: string,
+  tenderId: string,
+  buffer: Buffer,
+  fileName: string
+) {
+  // Track the download
+  await admin.from("pdf_downloads").insert({
+    user_id: userId,
+    tender_id: tenderId,
+  }).catch(() => {}); // Ignore errors (e.g., duplicate key)
+
+  return pdfResponse(buffer, fileName);
+}
+
 async function getGemSession(): Promise<string> {
   const res = await axios.get("https://bidplus.gem.gov.in/all-bids", {
     headers: GEM_HEADERS,
@@ -55,6 +71,34 @@ export async function GET(request: Request, context: { params: Promise<{ slug: s
     const tender = tenderRows?.[0];
     if (!tender) return new NextResponse("Tender not found", { status: 404 });
 
+    // ── Check PDF daily limit for free users ──
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("membership_plan")
+      .eq("id", user.id)
+      .single();
+
+    if (profile?.membership_plan === "free") {
+      // Count PDFs downloaded today
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayISO = today.toISOString();
+
+      const { data: downloads, error: countError } = await admin
+        .from("pdf_downloads")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .gte("downloaded_at", todayISO);
+
+      const downloadCount = downloads?.length || 0;
+      if (downloadCount >= 5) {
+        return NextResponse.json(
+          { error: "Daily PDF download limit (5/day) reached. Upgrade to Starter for unlimited downloads." },
+          { status: 429 }
+        );
+      }
+    }
+
     const fileName = pdfFileName(tender.bid_number);
 
     // ── Cached in our storage: stream bytes (never expose storage URL to client) ──
@@ -64,7 +108,7 @@ export async function GET(request: Request, context: { params: Promise<{ slug: s
         const { data: fileData, error } = await admin.storage.from(BUCKET).download(storagePath);
         if (!error && fileData) {
           const buffer = Buffer.from(await fileData.arrayBuffer());
-          return pdfResponse(buffer, fileName);
+          return await trackAndRespondPdf(admin, user.id, tender.id, buffer, fileName);
         }
       }
       const pdfRes = await axios.get(tender.pdf_url, {
@@ -73,7 +117,7 @@ export async function GET(request: Request, context: { params: Promise<{ slug: s
       });
       const buffer = Buffer.from(pdfRes.data);
       if (buffer.length >= 100) {
-        return pdfResponse(buffer, fileName);
+        return await trackAndRespondPdf(admin, user.id, tender.id, buffer, fileName);
       }
     }
 
@@ -105,7 +149,7 @@ export async function GET(request: Request, context: { params: Promise<{ slug: s
       await admin.from("tenders").update({ pdf_url: urlData.publicUrl }).eq("id", tender.id);
     }
 
-    return pdfResponse(buffer, fileName);
+    return await trackAndRespondPdf(admin, user.id, tender.id, buffer, fileName);
 
   } catch (error: any) {
     console.error("PDF download error:", error.message);

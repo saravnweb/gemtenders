@@ -40,6 +40,11 @@ export const metadata: Metadata = {
   keywords: ["GeM tenders", "Government e-Marketplace", "GeM bid", "tender tracking", "government tenders India", "GeM portal bids", "tender alerts"],
   authors: [{ name: "GeMTenders.org" }],
   creator: "GeMTenders.org",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "GeMTenders",
+  },
   robots: {
     index: true,
     follow: true,
@@ -75,9 +80,12 @@ export const metadata: Metadata = {
     site: "@GeMTenders",
     creator: "@GeMTenders",
   },
+  manifest: '/manifest.json',
   icons: {
     icon: [
       { url: '/favicon.png', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon.png', sizes: '192x192', type: 'image/png' },
+      { url: '/favicon.png', sizes: '512x512', type: 'image/png' },
     ],
     shortcut: '/favicon.png',
     apple: '/favicon.png',
@@ -94,6 +102,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import GoogleOneTap from "@/components/GoogleOneTap";
 import ScrollToTop from "@/components/ScrollToTop";
+import PWARegister from "@/app/pwa-register";
 import { ThemeProvider } from "next-themes";
 
 export default function RootLayout({
@@ -104,6 +113,15 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${outfit.variable} ${jetbrainsMono.variable} ${bricolage.variable}`} suppressHydrationWarning>
       <head>
+        {/* PWA - Web App Manifest */}
+        <link rel="manifest" href="/manifest.json" />
+        {/* PWA - Apple Touch Icon */}
+        <link rel="apple-touch-icon" href="/favicon.png" />
+        {/* PWA - Theme Color for address bar */}
+        <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+        <meta name="theme-color" content="#202124" media="(prefers-color-scheme: dark)" />
+        {/* PWA - App Status Bar */}
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         {/* Google Analytics */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-3GD5YYRK3M"
@@ -124,6 +142,7 @@ export default function RootLayout({
       </head>
       <body className="font-sans antialiased">
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+          <PWARegister />
           <a
             href="#main-content"
             className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-200 focus:px-4 focus:py-2 focus:bg-white focus:text-blue-700 focus:font-bold focus:rounded-lg focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500"

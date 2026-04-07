@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#ffffff" />
+    <title>GeMTenders — Offline</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+          'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+          sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+
+      .container {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        max-width: 500px;
+        padding: 40px;
+        text-align: center;
+      }
+
+      .icon {
+        font-size: 64px;
+        margin-bottom: 20px;
+      }
+
+      h1 {
+        color: #202124;
+        font-size: 28px;
+        margin-bottom: 12px;
+        font-weight: 600;
+      }
+
+      p {
+        color: #5f6368;
+        font-size: 16px;
+        line-height: 1.6;
+        margin-bottom: 20px;
+      }
+
+      .tips {
+        background: #f1f3f4;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 24px 0;
+        text-align: left;
+      }
+
+      .tips h3 {
+        color: #202124;
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 12px;
+      }
+
+      .tips ul {
+        color: #5f6368;
+        font-size: 14px;
+        list-style: none;
+      }
+
+      .tips li {
+        margin-bottom: 8px;
+        padding-left: 20px;
+        position: relative;
+      }
+
+      .tips li:before {
+        content: '✓';
+        position: absolute;
+        left: 0;
+        color: #34a853;
+        font-weight: bold;
+      }
+
+      .button {
+        display: inline-block;
+        background: #667eea;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 500;
+        transition: background 0.3s ease;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
+      }
+
+      .button:hover {
+        background: #764ba2;
+      }
+
+      .status {
+        margin-top: 24px;
+        font-size: 13px;
+        color: #9aa0a6;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        body {
+          background: linear-gradient(135deg, #1e1e2e 0%, #2d2d44 100%);
+        }
+
+        .container {
+          background: #202124;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+        }
+
+        h1 {
+          color: #ffffff;
+        }
+
+        p {
+          color: #e8eaed;
+        }
+
+        .tips {
+          background: #303134;
+        }
+
+        .tips h3 {
+          color: #ffffff;
+        }
+
+        .tips ul {
+          color: #e8eaed;
+        }
+
+        .button {
+          background: #667eea;
+        }
+
+        .button:hover {
+          background: #764ba2;
+        }
+
+        .status {
+          color: #5f6368;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="icon">📡</div>
+      <h1>You're Offline</h1>
+      <p>
+        It looks like you've lost your internet connection. GeMTenders will work offline
+        with cached content, but some features may be limited.
+      </p>
+
+      <div class="tips">
+        <h3>What you can still do:</h3>
+        <ul>
+          <li>View previously loaded tenders</li>
+          <li>Browse your saved items</li>
+          <li>Access your dashboard</li>
+        </ul>
+      </div>
+
+      <p style="font-size: 14px; margin-bottom: 0;">
+        <strong>Check your connection and try again.</strong>
+      </p>
+
+      <button class="button" onclick="handleRetry()">Retry</button>
+
+      <div class="status">
+        <span id="statusText">Waiting for connection...</span>
+      </div>
+    </div>
+
+    <script>
+      const statusText = document.getElementById('statusText');
+
+      function updateStatus() {
+        if (navigator.onLine) {
+          statusText.textContent = '✓ You\'re back online! Redirecting...';
+          statusText.style.color = '#34a853';
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 1500);
+        } else {
+          statusText.textContent = 'Waiting for connection...';
+          statusText.style.color = '#9aa0a6';
+        }
+      }
+
+      function handleRetry() {
+        updateStatus();
+      }
+
+      window.addEventListener('online', updateStatus);
+      window.addEventListener('offline', () => {
+        statusText.textContent = 'Still offline...';
+        statusText.style.color = '#d33b27';
+      });
+
+      // Check initial state
+      updateStatus();
+    </script>
+  </body>
+</html>

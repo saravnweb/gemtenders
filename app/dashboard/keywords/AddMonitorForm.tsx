@@ -24,7 +24,7 @@ export default function AddMonitorForm({ userId, membershipPlan, totalKeywords }
 
         setIsLoading(true);
         const newKeywordsCount = keyword.split(',').filter(k => k.trim()).length;
-        if (membershipPlan === 'free' && totalKeywords + newKeywordsCount > 10) {
+        if (membershipPlan === 'free' && totalKeywords + newKeywordsCount > 5) {
             setShowUpgradeModal(true);
             setIsLoading(false);
             return;
@@ -59,7 +59,7 @@ export default function AddMonitorForm({ userId, membershipPlan, totalKeywords }
             reason="keywords"
             currentPlan={membershipPlan}
             currentCount={totalKeywords}
-            limitCount={10}
+            limitCount={5}
         />
         <div className="fixed bottom-8 right-8 z-50 flex flex-col items-end gap-3">
             {isAdding && (
