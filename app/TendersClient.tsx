@@ -345,10 +345,33 @@ function TendersClient({
   const [orgsLoaded, setOrgsLoaded]                 = useState(false);
 
   // ── Contextual filter options (filtered by active search query) ──
-  const [contextualStates, setContextualStates]         = useState<Array<{label:string;value:string;count:number}>>([]);
-  const [contextualMinistries, setContextualMinistries] = useState<Array<{label:string;value:string;count:number}>>([]);
-  const [contextualOrgs, setContextualOrgs]             = useState<Array<{label:string;value:string;count:number}>>([]);
-  const [contextualLoading, setContextualLoading]       = useState(false);
+  const [contextualTenders, setContextualTenders] = useState<any[]>([]);
+  const [contextualLoading, setContextualLoading] = useState(false);
+
+  const contextualStates = useMemo(() => 
+    toCounted(contextualTenders, "state", "Unknown State"), 
+    [contextualTenders]
+  );
+
+  const contextualCities = useMemo(() => {
+    if (selectedStates.length === 0) return [];
+    const filtered = contextualTenders.filter(t => {
+      if (!t.state) return false;
+      const norm = normalizeState(t.state);
+      return selectedStates.some(s => s === norm || s === t.state);
+    });
+    return toCounted(filtered, "city", "Other Cities");
+  }, [contextualTenders, selectedStates]);
+
+  const contextualMinistries = useMemo(() => 
+    toCounted(contextualTenders, "ministry_name", "Not Specified"), 
+    [contextualTenders]
+  );
+
+  const contextualOrgs = useMemo(() => 
+    toCounted(contextualTenders, "organisation_name", "Not Specified"), 
+    [contextualTenders]
+  );
 
   // ── Refs ──
   const isFirstRender  = useRef(true);
@@ -598,9 +621,7 @@ function TendersClient({
     const q = searchQuery.trim();
     if (q !== contextualQueryCache.current) {
       contextualQueryCache.current = "";
-      setContextualStates([]);
-      setContextualMinistries([]);
-      setContextualOrgs([]);
+      setContextualTenders([]);
       setContextualLoading(!!q);
     }
 
@@ -622,11 +643,11 @@ function TendersClient({
       setLoading(false); // STOP primary loading spinner here
 
       // 2. Fetch counts and contextual filters in background (SLOW path)
-      const needContextual = !!q && q.length > 2 && contextualQueryCache.current !== q;
+      const needContextual = !!q && contextualQueryCache.current !== q;
       const ctxPromise = needContextual
         ? requirePublicListingReady(
             supabase.from("tenders")
-              .select("state, ministry_name, organisation_name")
+              .select("state, city, ministry_name, organisation_name")
               .gte("end_date", new Date().toISOString())
           )
             .or(buildSearchOrClause(q))
@@ -649,9 +670,7 @@ function TendersClient({
           const { data } = ctxResult as any;
           if (data) {
             contextualQueryCache.current = q;
-            setContextualStates(toCounted(data, "state", "Unknown State"));
-            setContextualMinistries(toCounted(data, "ministry_name", "Not Specified"));
-            setContextualOrgs(toCounted(data, "organisation_name", "Not Specified"));
+            setContextualTenders(data || []);
           }
           setContextualLoading(false);
         }
@@ -867,12 +886,20 @@ function TendersClient({
             />
             <FilterDropdown
               label="City"
-              items={cities}
+              items={(() => {
+                // Use contextual cities if available. 
+                // ContextualCities is already filtered by selectedStates in our useMemo.
+                const base = (searchQuery.trim() && contextualTenders.length > 0) ? contextualCities : cities;
+                const merged = [...base];
+                selectedCities.forEach((c) => { if (!merged.find((i) => i.value === c)) merged.push({ label: c, value: c, count: 0 }); });
+                return merged;
+              })()}
               selected={selectedCities}
               mode="multi"
               onToggle={(v) => setSelectedCities((p) => p.includes(v) ? p.filter((x) => x !== v) : [...p, v])}
               onClear={() => setSelectedCities([])}
               disabled={selectedStates.length === 0}
+              loading={searchQuery.trim() ? contextualLoading : false}
               searchPlaceholder="Search cities…"
             />
             <FilterDropdown
@@ -961,7 +988,7 @@ function TendersClient({
 
           {/* ── Active filter tags ── */}
           {hasActiveFilters && (
-            <div className="mt-2 flex items-center space-x-2 overflow-x-auto pb-2 no-scrollbar min-h-[32px] max-w-4xl">
+            <div className="mt-1 mb-2 flex items-center space-x-2 overflow-x-auto pb-1 no-scrollbar min-h-[32px] max-w-4xl">
               <div className="flex items-center space-x-2">
                 {selectedCategory && (
                   <FilterTag label={`Category: ${CATEGORIES.find((c) => c.id === selectedCategory)?.label}`} onRemove={() => setSelectedCategory(null)} />
