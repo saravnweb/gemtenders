@@ -16,6 +16,15 @@ const config = {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
+        card: "var(--card)",
+        "card-foreground": "var(--card-foreground)",
+        muted: "var(--muted)",
+        "muted-foreground": "var(--muted-foreground)",
+        "muted-tertiary": "var(--muted-tertiary)",
+        border: "var(--border)",
+        link: "var(--link)",
+        "link-hover": "var(--link-hover)",
+        ring: "var(--ring)",
         "atomic-tangerine": {
           50: "#feede7",
           100: "#fcdccf",

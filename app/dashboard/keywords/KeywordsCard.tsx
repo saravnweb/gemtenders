@@ -77,22 +77,22 @@ export default function KeywordsCard({ search, membershipPlan, totalKeywords }: 
             currentCount={totalKeywords}
             limitCount={10}
         />
-        <div className={`bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-xl p-6 hover:border-slate-300 dark:hover:border-zinc-600 hover:shadow-md transition-all flex flex-col h-full shadow-sm ${isUpdating || isPending ? 'opacity-70 pointer-events-none' : ''}`}>
+        <div className={`bg-white dark:bg-card border border-slate-200 dark:border-border rounded-xl p-6 hover:border-slate-300 dark:hover:border-zinc-600 hover:shadow-md transition-all flex flex-col h-full shadow-sm ${isUpdating || isPending ? 'opacity-70 pointer-events-none' : ''}`}>
             <div className="flex flex-col mb-6">
-                <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 tracking-tight">Tender Keywords</h2>
-                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">Add products, services, or categories.</p>
+                <h2 className="text-base font-bold text-slate-900 dark:text-foreground tracking-tight">Tender Keywords</h2>
+                <p className="text-sm text-slate-500 dark:text-muted-foreground font-medium mt-1">Add products, services, or categories.</p>
             </div>
 
             <div className="flex-1 mb-6">
                 {keywords.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-6 text-center bg-slate-50 dark:bg-zinc-950 rounded-xl border border-dashed border-slate-200 dark:border-zinc-800">
-                        <Zap className="w-8 h-8 text-slate-300 dark:text-slate-600 mb-3" />
-                        <span className="text-xs font-medium text-slate-500 dark:text-slate-400">No keywords yet</span>
+                    <div className="flex flex-col items-center justify-center py-6 text-center bg-slate-50 dark:bg-background rounded-xl border border-dashed border-slate-200 dark:border-border">
+                        <Zap className="w-8 h-8 text-slate-300 dark:text-muted-tertiary mb-3" />
+                        <span className="text-xs font-medium text-slate-500 dark:text-muted-foreground">No keywords yet</span>
                     </div>
                 ) : (
                     <div className="flex flex-wrap gap-2">
                         {keywords.map((keyword: string, idx: number) => (
-                            <div key={idx} className="flex items-center gap-1.5 text-xs font-semibold bg-blue-50 dark:bg-blue-900/30 px-2.5 py-1 rounded-lg border border-blue-100 dark:border-blue-800 text-blue-700 dark:text-blue-400 group">
+                            <div key={idx} className="flex items-center gap-1.5 text-xs font-semibold bg-blue-50 dark:bg-blue-900/30 px-2.5 py-1 rounded-lg border border-blue-100 dark:border-blue-800 text-blue-700 dark:text-link group">
                                 <span>{keyword}</span>
                                 <button
                                     type="button" 
@@ -114,7 +114,7 @@ export default function KeywordsCard({ search, membershipPlan, totalKeywords }: 
                     value={newKeyword}
                     onChange={(e) => setNewKeyword(e.target.value)}
                     placeholder="e.g. Solar, Security, Computers..."
-                    className="flex-1 px-4 py-2.5 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl text-sm font-medium focus:bg-white dark:focus:bg-zinc-900 focus:ring-2 focus:ring-blue-500 outline-none shadow-inner transition-all dark:text-slate-100"
+                    className="flex-1 px-4 py-2.5 bg-slate-50 dark:bg-background border border-slate-200 dark:border-border rounded-xl text-sm font-medium focus:bg-white dark:focus:bg-zinc-900 focus:ring-2 focus:ring-blue-500 outline-none shadow-inner transition-all dark:text-foreground"
                 />
                 <button
                     type="submit"

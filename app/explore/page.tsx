@@ -1,4 +1,5 @@
 import { INDIAN_STATES, normalizeState } from "@/lib/locations";
+import { requirePublicListingReady } from "@/lib/tender-public-listing";
 import ExploreClient from "./ExploreClient";
 
 export const revalidate = 1800; // cache for 30 minutes
@@ -28,25 +29,31 @@ async function ExploreDataFetcher() {
   const now = new Date().toISOString();
 
   // Get real total count (separate from row fetch, bypasses Supabase 1000-row default cap)
-  const { count: totalCount } = await supabase
-    .from("tenders")
-    .select("id", { count: "exact", head: true })
-    .gte("end_date", now);
+  const { count: totalCount } = await requirePublicListingReady(
+    supabase
+      .from("tenders")
+      .select("id", { count: "exact", head: true })
+      .gte("end_date", now)
+  );
 
   // Multi-Sample Strategy to bypass 1000-row limit and ensure data richness:
   // 1. Latest 1000 (for real-time counts like closing/added today)
   // 2. 2000 Enriched (specifically seeking those with organisations/states populated)
   const [latestRes, enrichedRes] = await Promise.all([
-    supabase
-      .from("tenders")
-      .select("id, title, state, ministry_name, organisation_name, emd_amount, eligibility_msme, eligibility_mii, startup_relaxation, created_at, end_date")
-      .gte("end_date", now)
+    requirePublicListingReady(
+      supabase
+        .from("tenders")
+        .select("id, title, state, ministry_name, organisation_name, emd_amount, eligibility_msme, eligibility_mii, startup_relaxation, created_at, end_date")
+        .gte("end_date", now)
+    )
       .order("created_at", { ascending: false })
       .limit(1000),
-    supabase
-      .from("tenders")
-      .select("id, title, state, ministry_name, organisation_name, emd_amount, eligibility_msme, eligibility_mii, startup_relaxation, created_at, end_date")
-      .gte("end_date", now)
+    requirePublicListingReady(
+      supabase
+        .from("tenders")
+        .select("id, title, state, ministry_name, organisation_name, emd_amount, eligibility_msme, eligibility_mii, startup_relaxation, created_at, end_date")
+        .gte("end_date", now)
+    )
       .not("organisation_name", "is", null)
       .order("created_at", { ascending: false })
       .limit(2000)
@@ -54,8 +61,8 @@ async function ExploreDataFetcher() {
 
   // Combine unique tenders
   const tenderMap = new Map();
-  latestRes.data?.forEach(t => tenderMap.set(t.id, t));
-  enrichedRes.data?.forEach(t => tenderMap.set(t.id, t));
+  latestRes.data?.forEach((t: { id: string }) => tenderMap.set(t.id, t));
+  enrichedRes.data?.forEach((t: { id: string }) => tenderMap.set(t.id, t));
   const tenders = Array.from(tenderMap.values());
 
   console.timeEnd('explore-fetch');

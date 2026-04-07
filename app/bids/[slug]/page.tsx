@@ -221,7 +221,7 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
   const getStatusBadge = () => {
     if (isClosed) {
       return (
-        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 dark:bg-card text-slate-600 dark:text-muted-foreground border border-slate-200 dark:border-border">
           <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
           Closed
         </span>
@@ -293,7 +293,7 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-sans pb-12 selection:bg-indigo-100 selection:text-indigo-900">
+    <div className="min-h-screen bg-[#f8fafc] dark:bg-background text-slate-800 dark:text-foreground font-sans pb-12 selection:bg-indigo-100 selection:text-indigo-900 dark:selection:bg-indigo-900/40 dark:selection:text-foreground">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -310,32 +310,32 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
 
         {/* Navigation */}
         <nav aria-label="Breadcrumb" className="mb-6 lg:mb-8">
-          <ol className="flex flex-wrap items-center text-sm text-slate-500 dark:text-slate-400 font-medium">
+          <ol className="flex flex-wrap items-center text-sm text-slate-500 dark:text-muted-foreground font-medium">
             <li className="flex items-center">
               <Link href="/" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex items-center group">
-                <div className="p-1.5 bg-white/60 dark:bg-slate-800/60 rounded-md border border-slate-200/60 dark:border-slate-700 shadow-sm group-hover:bg-white dark:group-hover:bg-slate-700 transition-all mr-1.5">
+                <div className="p-1.5 bg-white/60 dark:bg-card/60 rounded-md border border-slate-200/60 dark:border-border shadow-sm group-hover:bg-white dark:group-hover:bg-muted transition-all mr-1.5">
                   <Home className="w-3.5 h-3.5" />
                 </div>
                 <span className="sr-only">Home</span>
               </Link>
             </li>
             <li className="flex items-center">
-              <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600 mx-1 shrink-0" />
+              <ChevronRight className="w-4 h-4 text-slate-300 dark:text-muted-tertiary mx-1 shrink-0" />
               <Link href="/" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors px-1">
                 Tenders
               </Link>
             </li>
             {departments.length > 0 && (
               <li className="flex items-center">
-                <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600 mx-1 shrink-0" />
+                <ChevronRight className="w-4 h-4 text-slate-300 dark:text-muted-tertiary mx-1 shrink-0" />
                 <Link href={`/?q=${encodeURIComponent(departments[0])}`} className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors px-1 truncate max-w-[150px] sm:max-w-[200px]">
                   {departments[0]}
                 </Link>
               </li>
             )}
             <li className="flex items-center">
-              <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600 mx-1 shrink-0" />
-              <span className="text-slate-700 dark:text-slate-200 font-semibold px-1" aria-current="page">
+              <ChevronRight className="w-4 h-4 text-slate-300 dark:text-muted-tertiary mx-1 shrink-0" />
+              <span className="text-slate-700 dark:text-foreground font-semibold px-1" aria-current="page">
                 Tender Details
               </span>
             </li>
@@ -343,7 +343,7 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
         </nav>
 
         {/* Hero Section */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 md:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-200/60 dark:border-slate-700 relative overflow-hidden mb-8 lg:mb-10 group">
+        <div className="bg-white dark:bg-card rounded-3xl p-6 sm:p-8 md:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-200/60 dark:border-border relative overflow-hidden mb-8 lg:mb-10 group">
           {/* Subtle decoration */}
           <div className="absolute -top-24 -right-24 w-64 h-64 bg-indigo-50 rounded-full blur-3xl opacity-60 group-hover:bg-indigo-100 transition-colors duration-700" />
 
@@ -352,7 +352,7 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
               {getStatusBadge()}
             </div>
 
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 dark:text-slate-100 leading-tight mb-6 tracking-tight">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-semibold text-slate-900 dark:text-foreground leading-tight mb-6 tracking-tight">
               {tender.title}
             </h1>
 
@@ -369,15 +369,15 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
                     <span>{part}</span>
                   </Link>
                   {idx < departments.length - 1 && (
-                    <span className="text-slate-300 dark:text-slate-600 mx-1">{'>'}</span>
+                    <span className="text-slate-300 dark:text-muted-tertiary mx-1">{'>'}</span>
                   )}
                 </div>
               ))}
             </div>
 
             {officeDisplay && (
-              <div className="flex items-center text-sm font-medium text-slate-500 dark:text-slate-400 mt-3 bg-slate-50 dark:bg-slate-900 w-fit px-3 py-1.5 rounded-lg border border-slate-100 dark:border-slate-700">
-                <MapPin className="w-4 h-4 mr-2 text-slate-600 dark:text-slate-400" />
+              <div className="flex items-center text-sm font-medium text-slate-500 dark:text-muted-foreground mt-3 bg-slate-50 dark:bg-card w-fit px-3 py-1.5 rounded-lg border border-slate-100 dark:border-border">
+                <MapPin className="w-4 h-4 mr-2 text-slate-600 dark:text-muted-foreground" />
                 Office: {officeDisplay}
               </div>
             )}
@@ -389,13 +389,13 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
           const raActive = tender.ra_end_date && new Date(tender.ra_end_date) > new Date();
           if (!raActive && !tender.ra_number) return null;
           return (
-            <div className={`mb-8 rounded-2xl border px-6 py-5 flex flex-col sm:flex-row sm:items-center gap-4 ${raActive ? 'bg-amber-50 border-amber-300 dark:bg-amber-950/40 dark:border-amber-700' : 'bg-slate-100 border-slate-200 dark:bg-slate-800 dark:border-slate-700'}`}>
+            <div className={`mb-8 rounded-2xl border px-6 py-5 flex flex-col sm:flex-row sm:items-center gap-4 ${raActive ? 'bg-amber-50 border-amber-300 dark:bg-amber-950/40 dark:border-amber-700' : 'bg-slate-100 border-slate-200 dark:bg-card dark:border-border'}`}>
               <div className="flex items-center gap-3 flex-1">
-                <div className={`p-2.5 rounded-xl shrink-0 ${raActive ? 'bg-amber-100 dark:bg-amber-900/60' : 'bg-slate-200 dark:bg-slate-700'}`}>
+                <div className={`p-2.5 rounded-xl shrink-0 ${raActive ? 'bg-amber-100 dark:bg-amber-900/60' : 'bg-slate-200 dark:bg-muted'}`}>
                   <Zap className={`w-5 h-5 ${raActive ? 'text-amber-600 dark:text-amber-400' : 'text-slate-500'}`} />
                 </div>
                 <div>
-                  <p className={`text-sm font-bold ${raActive ? 'text-amber-800 dark:text-amber-300' : 'text-slate-600 dark:text-slate-400'}`}>
+                  <p className={`text-sm font-bold ${raActive ? 'text-amber-800 dark:text-amber-300' : 'text-slate-600 dark:text-muted-foreground'}`}>
                     {raActive ? '⚡ Reverse Auction in Progress' : 'Reverse Auction Closed'}
                   </p>
                   <p className={`text-xs mt-0.5 ${raActive ? 'text-amber-700 dark:text-amber-400' : 'text-slate-500'}`}>
@@ -428,15 +428,15 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
 
             {/* AI Executive Summary Block */}
             {aiInsight && (
-              <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700 rounded-3xl overflow-hidden shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)]">
-               <div className="bg-slate-50/80 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700 px-6 py-4 flex items-center justify-between">
+              <div className="bg-white dark:bg-card border border-slate-200/80 dark:border-border rounded-3xl overflow-hidden shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)]">
+               <div className="bg-slate-50/80 dark:bg-card border-b border-slate-100 dark:border-border px-6 py-4 flex items-center justify-between">
                   <div className="flex items-center space-x-2.5">
                     <Zap className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
-                    <h3 className="text-base font-bold text-slate-800 dark:text-slate-200 tracking-tight">AI Executive Summary</h3>
+                    <h3 className="text-base font-bold text-slate-800 dark:text-foreground tracking-tight">AI Executive Summary</h3>
                   </div>
                 </div>
                 <div className="p-6 sm:p-8">
-                  <p className="text-[14px] sm:text-[15px] font-medium text-slate-700 dark:text-slate-300 leading-relaxed">
+                  <p className="text-[14px] sm:text-[15px] font-medium text-slate-700 dark:text-muted-foreground leading-relaxed">
                     {aiInsight}
                   </p>
                 </div>
@@ -444,12 +444,12 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
             )}
 
             {/* 1. Key Dates & Quantities */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700 rounded-3xl overflow-hidden shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)]">
-              <div className="bg-slate-50/80 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700 px-6 py-4 flex items-center">
+            <div className="bg-white dark:bg-card border border-slate-200/80 dark:border-border rounded-3xl overflow-hidden shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)]">
+              <div className="bg-slate-50/80 dark:bg-card border-b border-slate-100 dark:border-border px-6 py-4 flex items-center">
                 <Clock className="w-5 h-5 text-indigo-500 mr-2.5" />
-                <h3 className="text-base font-bold text-slate-800 dark:text-slate-200 tracking-tight">Key Dates & Quantities</h3>
+                <h3 className="text-base font-bold text-slate-800 dark:text-foreground tracking-tight">Key Dates & Quantities</h3>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 divide-slate-100 dark:divide-slate-700">
+              <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 divide-slate-100 dark:divide-border">
                 {[
                   { icon: Clock, label: "Bid Start Date/Time", val: fmtDate(tender.start_date) ?? "Not Specified" },
                   { icon: Clock, label: "Bid End Date/Time", val: fmtDate(tender.end_date) ?? "Not Specified" },
@@ -458,13 +458,13 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
                   { icon: Package, label: "Total Quantity", val: tender.quantity != null ? String(tender.quantity) : parsedAiSummary?.["QUANTITY"]?.replace(/\n/g, ' ') ?? "Not Specified" },
                   { icon: Calendar, label: "Pre-Bid Meeting Date", val: fmtDate(tender.pre_bid_date) ?? "Not Applicable" }
                 ].map((row, i) => (
-                  <div key={i} className={`p-5 flex items-start space-x-4 hover:bg-slate-50/50 dark:hover:bg-slate-800 transition-colors ${i % 2 !== 0 ? 'md:border-l md:border-slate-100 dark:md:border-slate-700' : ''} ${i > 1 && i !== 2 ? 'md:border-t md:border-slate-100 dark:md:border-slate-700' : ''}`}>
-                    <div className="mt-0.5 w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 text-slate-600 dark:text-slate-400">
+                  <div key={i} className={`p-5 flex items-start space-x-4 hover:bg-slate-50/50 dark:hover:bg-muted transition-colors ${i % 2 !== 0 ? 'md:border-l md:border-slate-100 dark:md:border-border' : ''} ${i > 1 && i !== 2 ? 'md:border-t md:border-slate-100 dark:md:border-border' : ''}`}>
+                    <div className="mt-0.5 w-8 h-8 rounded-full bg-slate-100 dark:bg-card flex items-center justify-center shrink-0 text-slate-600 dark:text-muted-foreground">
                       <row.icon className="w-4 h-4" />
                     </div>
                     <div className="min-w-0 pr-2">
-                       <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">{row.label}</p>
-                      <p className="text-sm font-medium leading-snug whitespace-pre-wrap text-slate-800 dark:text-slate-200">{row.val}</p>
+                       <p className="text-xs font-bold text-slate-500 dark:text-muted-foreground uppercase tracking-wider mb-1">{row.label}</p>
+                      <p className="text-sm font-medium leading-snug whitespace-pre-wrap text-slate-800 dark:text-foreground">{row.val}</p>
                     </div>
                   </div>
                 ))}
@@ -472,12 +472,12 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
             </div>
 
             {/* 2. Tender Details */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700 rounded-3xl overflow-hidden shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)]">
-              <div className="bg-slate-50/80 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700 px-6 py-4 flex items-center">
+            <div className="bg-white dark:bg-card border border-slate-200/80 dark:border-border rounded-3xl overflow-hidden shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)]">
+              <div className="bg-slate-50/80 dark:bg-card border-b border-slate-100 dark:border-border px-6 py-4 flex items-center">
                 <FileText className="w-5 h-5 text-indigo-500 mr-2.5" />
-                <h3 className="text-base font-bold text-slate-800 dark:text-slate-200 tracking-tight">Tender Details</h3>
+                <h3 className="text-base font-bold text-slate-800 dark:text-foreground tracking-tight">Tender Details</h3>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 divide-slate-100 dark:divide-slate-700">
+              <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 divide-slate-100 dark:divide-border">
                 {[
                   { icon: Layers, label: "Item Category", val: tender.gem_category || parsedAiSummary?.["ITEM CATEGORY"]?.replace(/\n/g, ' ') || tender.title || "Not Specified" },
                   { icon: IndianRupee, label: "Estimated Bid Value", val: fmtCurrency(tender.estimated_value) ?? parsedAiSummary?.["ESTIMATED BID VALUE"]?.replace(/\n/g, ' ') ?? "Not Specified" },
@@ -485,13 +485,13 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
                   { icon: Info, label: "Bid Type", val: tender.bid_type || tender.procurement_type || "Open Bid" },
                   { icon: Package, label: "Is High Value", val: tender.is_high_value ? "Yes" : "No" }
                 ].map((row, i) => (
-                  <div key={i} className={`p-5 flex items-start space-x-4 hover:bg-slate-50/50 dark:hover:bg-slate-800 transition-colors ${i % 2 !== 0 ? 'md:border-l md:border-slate-100 dark:md:border-slate-700' : ''} ${i > 1 ? 'md:border-t md:border-slate-100 dark:md:border-slate-700' : ''}`}>
-                    <div className="mt-0.5 w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 text-slate-600 dark:text-slate-400">
+                  <div key={i} className={`p-5 flex items-start space-x-4 hover:bg-slate-50/50 dark:hover:bg-muted transition-colors ${i % 2 !== 0 ? 'md:border-l md:border-slate-100 dark:md:border-border' : ''} ${i > 1 ? 'md:border-t md:border-slate-100 dark:md:border-border' : ''}`}>
+                    <div className="mt-0.5 w-8 h-8 rounded-full bg-slate-100 dark:bg-card flex items-center justify-center shrink-0 text-slate-600 dark:text-muted-foreground">
                       <row.icon className="w-4 h-4" />
                     </div>
                     <div className="min-w-0 pr-2">
-                       <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">{row.label}</p>
-                      <p className="text-sm font-medium leading-snug whitespace-pre-wrap text-slate-800 dark:text-slate-200">{row.val}</p>
+                       <p className="text-xs font-bold text-slate-500 dark:text-muted-foreground uppercase tracking-wider mb-1">{row.label}</p>
+                      <p className="text-sm font-medium leading-snug whitespace-pre-wrap text-slate-800 dark:text-foreground">{row.val}</p>
                     </div>
                   </div>
                 ))}
@@ -499,25 +499,25 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
             </div>
 
             {/* 3. Qualifications & Experience */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700 rounded-3xl overflow-hidden shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)]">
-              <div className="bg-slate-50/80 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700 px-6 py-4 flex items-center">
+            <div className="bg-white dark:bg-card border border-slate-200/80 dark:border-border rounded-3xl overflow-hidden shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)]">
+              <div className="bg-slate-50/80 dark:bg-card border-b border-slate-100 dark:border-border px-6 py-4 flex items-center">
                 <Briefcase className="w-5 h-5 text-indigo-500 mr-2.5" />
-                <h3 className="text-base font-bold text-slate-800 dark:text-slate-200 tracking-tight">Qualifications & Experience</h3>
+                <h3 className="text-base font-bold text-slate-800 dark:text-foreground tracking-tight">Qualifications & Experience</h3>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 divide-slate-100 dark:divide-slate-700">
+              <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 divide-slate-100 dark:divide-border">
                 {[
                   { icon: Briefcase, label: "Years of Past Experience (with Govt.)", val: tender.experience_years != null ? `${tender.experience_years} Year(s)` : parsedAiSummary?.["YEARS OF PAST EXPERIENCE REQUIRED FOR SAME/SIMILAR SERVICE"]?.replace(/\n/g, ' ') ?? "Not Specified" },
                   { icon: BookOpen, label: "Project / Similar Work Experience Required", val: tender.past_experience_required ?? parsedAiSummary?.["PAST EXPERIENCE OF SIMILAR SERVICES REQUIRED"]?.replace(/\n/g, ' ') ?? "Not Specified" },
                   { icon: FileSpreadsheet, label: "Minimum Average Annual Turnover", val: fmtLakhs(tender.min_turnover_lakhs) ?? parsedAiSummary?.["MINIMUM AVERAGE ANNUAL TURNOVER OF THE BIDDER"]?.replace(/\n/g, ' ') ?? "Not Specified" },
                   { icon: ClipboardList, label: "Additional Terms & Conditions", val: "Refer to Tender Document (ATC section in PDF)" }
                 ].map((row, i) => (
-                  <div key={i} className={`p-5 flex items-start space-x-4 hover:bg-slate-50/50 dark:hover:bg-slate-800 transition-colors ${i % 2 !== 0 ? 'md:border-l md:border-slate-100 dark:md:border-slate-700' : ''} ${i > 1 ? 'md:border-t md:border-slate-100 dark:md:border-slate-700' : ''}`}>
-                    <div className="mt-0.5 w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 text-slate-600 dark:text-slate-400">
+                  <div key={i} className={`p-5 flex items-start space-x-4 hover:bg-slate-50/50 dark:hover:bg-muted transition-colors ${i % 2 !== 0 ? 'md:border-l md:border-slate-100 dark:md:border-border' : ''} ${i > 1 ? 'md:border-t md:border-slate-100 dark:md:border-border' : ''}`}>
+                    <div className="mt-0.5 w-8 h-8 rounded-full bg-slate-100 dark:bg-card flex items-center justify-center shrink-0 text-slate-600 dark:text-muted-foreground">
                       <row.icon className="w-4 h-4" />
                     </div>
                     <div className="min-w-0 pr-2">
-                       <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">{row.label}</p>
-                      <p className="text-sm font-medium leading-snug whitespace-pre-wrap text-slate-800 dark:text-slate-200">{row.val}</p>
+                       <p className="text-xs font-bold text-slate-500 dark:text-muted-foreground uppercase tracking-wider mb-1">{row.label}</p>
+                      <p className="text-sm font-medium leading-snug whitespace-pre-wrap text-slate-800 dark:text-foreground">{row.val}</p>
                     </div>
                   </div>
                 ))}
@@ -525,12 +525,12 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
             </div>
 
             {/* 4. Preferences & Relaxations */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700 rounded-3xl overflow-hidden shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)]">
-              <div className="bg-slate-50/80 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700 px-6 py-4 flex items-center">
+            <div className="bg-white dark:bg-card border border-slate-200/80 dark:border-border rounded-3xl overflow-hidden shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)]">
+              <div className="bg-slate-50/80 dark:bg-card border-b border-slate-100 dark:border-border px-6 py-4 flex items-center">
                 <ShieldCheck className="w-5 h-5 text-indigo-500 mr-2.5" />
-                <h3 className="text-base font-bold text-slate-800 dark:text-slate-200 tracking-tight">Preferences & Relaxations</h3>
+                <h3 className="text-base font-bold text-slate-800 dark:text-foreground tracking-tight">Preferences & Relaxations</h3>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 divide-slate-100 dark:divide-slate-700">
+              <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 divide-slate-100 dark:divide-border">
                 {[
                   { icon: Building, label: "MSE Preference", val: tender.eligibility_msme ? 'Applicable' : (parsedAiSummary?.["MSE PURCHASE PREFERENCE"]?.replace(/\n/g, ' ') || 'Not Applicable') },
                   { icon: Shield, label: "MII Preference", val: tender.eligibility_mii ? 'Applicable' : (parsedAiSummary?.["MII COMPLIANCE"]?.replace(/\n/g, ' ') || 'Not Applicable') },
@@ -553,13 +553,13 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
                     })() 
                   }
                 ].map((row, i) => (
-                  <div key={i} className={`p-5 flex items-start space-x-4 hover:bg-slate-50/50 dark:hover:bg-slate-800 transition-colors ${!row.colSpan2 && i % 2 !== 0 ? 'md:border-l md:border-slate-100 dark:md:border-slate-700' : ''} ${i > 1 ? 'md:border-t md:border-slate-100 dark:md:border-slate-700' : ''} ${row.colSpan2 ? 'md:col-span-2' : ''}`}>
-                    <div className="mt-0.5 w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 text-slate-600 dark:text-slate-400">
+                  <div key={i} className={`p-5 flex items-start space-x-4 hover:bg-slate-50/50 dark:hover:bg-muted transition-colors ${!row.colSpan2 && i % 2 !== 0 ? 'md:border-l md:border-slate-100 dark:md:border-border' : ''} ${i > 1 ? 'md:border-t md:border-slate-100 dark:md:border-border' : ''} ${row.colSpan2 ? 'md:col-span-2' : ''}`}>
+                    <div className="mt-0.5 w-8 h-8 rounded-full bg-slate-100 dark:bg-card flex items-center justify-center shrink-0 text-slate-600 dark:text-muted-foreground">
                       <row.icon className="w-4 h-4" />
                     </div>
                     <div className="min-w-0 pr-2">
-                       <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">{row.label}</p>
-                      <p className="text-sm font-medium leading-snug whitespace-pre-wrap text-slate-800 dark:text-slate-200">{row.val}</p>
+                       <p className="text-xs font-bold text-slate-500 dark:text-muted-foreground uppercase tracking-wider mb-1">{row.label}</p>
+                      <p className="text-sm font-medium leading-snug whitespace-pre-wrap text-slate-800 dark:text-foreground">{row.val}</p>
                     </div>
                   </div>
                 ))}
@@ -567,24 +567,24 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
             </div>
 
             {/* 5. Other */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700 rounded-3xl overflow-hidden shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)]">
-              <div className="bg-slate-50/80 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700 px-6 py-4 flex items-center">
+            <div className="bg-white dark:bg-card border border-slate-200/80 dark:border-border rounded-3xl overflow-hidden shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)]">
+              <div className="bg-slate-50/80 dark:bg-card border-b border-slate-100 dark:border-border px-6 py-4 flex items-center">
                 <FileCheck className="w-5 h-5 text-indigo-500 mr-2.5" />
-                <h3 className="text-base font-bold text-slate-800 dark:text-slate-200 tracking-tight">Other Details</h3>
+                <h3 className="text-base font-bold text-slate-800 dark:text-foreground tracking-tight">Other Details</h3>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 divide-slate-100 dark:divide-slate-700">
+              <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 divide-slate-100 dark:divide-border">
                 {[
                   { icon: Users, label: "Consignees / Delivery Locations", val: tender.num_consignees != null ? `${tender.num_consignees} Location(s)` : (parsedAiSummary?.["CONSIGNEES/REPORTING OFFICER AND QUANTITY"] || parsedAiSummary?.["CONSIGNEES/REPORTING OFFICER"])?.replace(/\n/g, ' ') ?? "Not Specified" },
                   { icon: MapPin, label: "Delivery State / City", val: [tender.state, tender.city].filter(Boolean).join(', ') || "Not Specified" },
                   { icon: Search, label: "GeMARPTS Result", val: tender.gemarpts_result || "Not Specified", highlighted: true }
                 ].map((row, i) => (
-                  <div key={i} className={`p-5 flex items-start space-x-4 hover:bg-slate-50/50 dark:hover:bg-slate-800 transition-colors ${i % 2 !== 0 ? 'md:border-l md:border-slate-100 dark:md:border-slate-700' : ''} ${i > 1 ? 'md:border-t md:border-slate-100 dark:md:border-slate-700' : ''}`}>
-                    <div className="mt-0.5 w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 text-slate-600 dark:text-slate-400">
+                  <div key={i} className={`p-5 flex items-start space-x-4 hover:bg-slate-50/50 dark:hover:bg-muted transition-colors ${i % 2 !== 0 ? 'md:border-l md:border-slate-100 dark:md:border-border' : ''} ${i > 1 ? 'md:border-t md:border-slate-100 dark:md:border-border' : ''}`}>
+                    <div className="mt-0.5 w-8 h-8 rounded-full bg-slate-100 dark:bg-card flex items-center justify-center shrink-0 text-slate-600 dark:text-muted-foreground">
                       <row.icon className="w-4 h-4" />
                     </div>
                     <div className="min-w-0 pr-2">
-                       <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">{row.label}</p>
-                      <p className={`text-sm font-medium leading-snug whitespace-pre-wrap ${row.highlighted ? 'text-indigo-700' : 'text-slate-800 dark:text-slate-200'}`}>{row.val}</p>
+                       <p className="text-xs font-bold text-slate-500 dark:text-muted-foreground uppercase tracking-wider mb-1">{row.label}</p>
+                      <p className={`text-sm font-medium leading-snug whitespace-pre-wrap ${row.highlighted ? 'text-indigo-700' : 'text-slate-800 dark:text-foreground'}`}>{row.val}</p>
                     </div>
                   </div>
                 ))}
@@ -592,19 +592,19 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
             </div>
 
             {/* Bottom Actions Section */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700 rounded-3xl overflow-hidden shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)] p-6 sm:p-8">
-               <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-6 flex items-center">
+            <div className="bg-white dark:bg-card border border-slate-200/80 dark:border-border rounded-3xl overflow-hidden shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)] p-6 sm:p-8">
+               <h3 className="text-lg font-bold text-slate-900 dark:text-foreground mb-6 flex items-center">
                  <Download className="w-5 h-5 mr-2 text-indigo-500" />
                  Ready to Proceed?
                </h3>
-               <div className="flex flex-col sm:flex-row gap-5 items-center bg-slate-50/50 dark:bg-slate-800/50 p-5 rounded-2xl border border-slate-100 dark:border-slate-700">
+               <div className="flex flex-col sm:flex-row gap-5 items-center bg-slate-50/50 dark:bg-card/50 p-5 rounded-2xl border border-slate-100 dark:border-border">
                  <div className="flex-1 w-full flex flex-col justify-center">
-                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 block text-center sm:text-left">GeM Bid Document ID</span>
+                    <span className="text-xs font-bold text-slate-500 dark:text-muted-foreground uppercase tracking-wider mb-2 block text-center sm:text-left">GeM Bid Document ID</span>
                     <RevealBidNumber bidNumber={tender.bid_number} asButton={true} />
                  </div>
-                 <div className="w-px h-12 bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
-                 <div className="flex-1 w-full flex flex-col justify-center pt-4 sm:pt-0 border-t border-slate-200 dark:border-slate-700 sm:border-t-0">
-                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 block text-center sm:text-left">Tender Document</span>
+                 <div className="w-px h-12 bg-slate-200 dark:bg-muted hidden sm:block"></div>
+                 <div className="flex-1 w-full flex flex-col justify-center pt-4 sm:pt-0 border-t border-slate-200 dark:border-border sm:border-t-0">
+                    <span className="text-xs font-bold text-slate-500 dark:text-muted-foreground uppercase tracking-wider mb-2 block text-center sm:text-left">Tender Document</span>
                     <DownloadButtons 
                         pdfUrl={tender.pdf_url} 
                         detailsUrl={tender.details_url} 
@@ -622,18 +622,18 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
             <div className="sticky top-6 space-y-6">
 
               {/* Action Card */}
-              <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-7 shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-slate-200/80 dark:border-slate-700">
+              <div className="bg-white dark:bg-card rounded-3xl p-6 sm:p-7 shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-slate-200/80 dark:border-border">
                 <div className="space-y-6">
 
                   {/* Key Metrics */}
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
-                      <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1.5">EMD Amount</span>
-                      <span className="text-lg font-black text-slate-800 dark:text-slate-200 wrap-break-word">{formattedEMD}</span>
+                    <div className="bg-slate-50 dark:bg-card rounded-2xl p-4 border border-slate-100 dark:border-border">
+                      <span className="text-xs font-bold text-slate-500 dark:text-muted-foreground uppercase tracking-wider block mb-1.5">EMD Amount</span>
+                      <span className="text-lg font-black text-slate-800 dark:text-foreground wrap-break-word">{formattedEMD}</span>
                     </div>
-                    <div className={`rounded-2xl p-4 border ${isClosingSoon ? 'bg-red-50/50 border-red-100' : 'bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700'}`}>
-                      <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1.5">Ends On</span>
-                      <span className={`text-base font-bold ${isClosingSoon ? 'text-red-600' : 'text-slate-800 dark:text-slate-200'} block wrap-break-word`}>
+                    <div className={`rounded-2xl p-4 border ${isClosingSoon ? 'bg-red-50/50 border-red-100' : 'bg-slate-50 dark:bg-card border-slate-100 dark:border-border'}`}>
+                      <span className="text-xs font-bold text-slate-500 dark:text-muted-foreground uppercase tracking-wider block mb-1.5">Ends On</span>
+                      <span className={`text-base font-bold ${isClosingSoon ? 'text-red-600' : 'text-slate-800 dark:text-foreground'} block wrap-break-word`}>
                         {new Date(tender.end_date).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' })}
                       </span>
                       {isClosingSoon && (
@@ -645,9 +645,9 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
               </div>
 
               {/* Disclaimer Card */}
-              <div className="bg-slate-100/50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-3xl p-5 flex items-start space-x-3">
-                <Info className="w-5 h-5 text-slate-600 dark:text-slate-400 shrink-0 mt-0.5" />
-                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
+              <div className="bg-slate-100/50 dark:bg-card border border-slate-200 dark:border-border rounded-3xl p-5 flex items-start space-x-3">
+                <Info className="w-5 h-5 text-slate-600 dark:text-muted-foreground shrink-0 mt-0.5" />
+                <p className="text-xs text-slate-500 dark:text-muted-foreground leading-relaxed font-medium">
                   Summary information is processed by AI. Always refer to the official tender document for accurate dates, requirements, and legal specifics before bidding.
                 </p>
               </div>

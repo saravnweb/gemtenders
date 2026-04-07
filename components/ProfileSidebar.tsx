@@ -21,24 +21,24 @@ export default function ProfileSidebar({ user, onClose }: { user: any, onClose?:
   };
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-zinc-950 border-r border-slate-200 dark:border-zinc-800 w-full md:w-64 shadow-sm">
+    <div className="flex flex-col h-full bg-white dark:bg-background border-r border-slate-200 dark:border-border w-full md:w-64 shadow-sm">
       {/* Sidebar Header - Mobile Close */}
-      <div className="p-4 border-b border-slate-100 dark:border-zinc-800 flex items-center justify-between md:hidden">
-        <span className="font-bold text-fresh-sky-950 dark:text-white">Menu</span>
-        <button onClick={onClose} className="p-2 text-slate-600 dark:text-slate-400">
+      <div className="p-4 border-b border-slate-100 dark:border-border flex items-center justify-between md:hidden">
+        <span className="font-bold text-fresh-sky-950 dark:text-foreground">Menu</span>
+        <button onClick={onClose} className="p-2 text-slate-600 dark:text-muted-foreground">
           <X className="w-6 h-6" />
         </button>
       </div>
 
       {/* User Summary */}
-      <div className="p-6 bg-slate-50/50 dark:bg-zinc-900/50 border-b border-slate-200 dark:border-zinc-800">
+      <div className="p-6 bg-slate-50/50 dark:bg-card/50 border-b border-slate-200 dark:border-border">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 bg-linear-to-br from-atomic-tangerine-500 to-atomic-tangerine-600 rounded-xl flex items-center justify-center shadow-md">
             <User className="w-5 h-5 text-white" />
           </div>
           <div className="flex flex-col min-w-0">
-            <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{user?.email?.split('@')[0] || "Guest User"}</span>
-            <span className="text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">{user ? "Member Account" : "Free Plan"}</span>
+            <span className="text-xs font-bold text-slate-800 dark:text-foreground truncate">{user?.email?.split('@')[0] || "Guest User"}</span>
+            <span className="text-xs font-medium text-slate-600 dark:text-muted-foreground uppercase tracking-wide">{user ? "Member Account" : "Free Plan"}</span>
           </div>
         </div>
       </div>
@@ -54,12 +54,12 @@ export default function ProfileSidebar({ user, onClose }: { user: any, onClose?:
               onClick={onClose}
               className={`flex items-center justify-between px-3 py-2.5 rounded-xl transition-all group ${
                 isActive
-                  ? "bg-slate-900 dark:bg-slate-700 text-white shadow-md shadow-slate-200 dark:shadow-slate-900"
-                  : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-zinc-800 hover:text-fresh-sky-950 dark:hover:text-white"
+                  ? "bg-slate-900 dark:bg-muted text-white shadow-md shadow-slate-200 dark:shadow-slate-900"
+                  : "text-slate-600 dark:text-muted-foreground hover:bg-slate-50 dark:hover:bg-muted hover:text-fresh-sky-950 dark:hover:text-foreground"
               }`}
             >
               <div className="flex items-center space-x-3">
-                <item.icon className={`w-4 h-4 ${isActive ? "text-blue-400" : "text-slate-600 dark:text-slate-400 group-hover:text-blue-500"}`} />
+                <item.icon className={`w-4 h-4 ${isActive ? "text-blue-400" : "text-slate-600 dark:text-muted-foreground group-hover:text-blue-500"}`} />
                 <span className="text-xs font-medium">{item.label}</span>
               </div>
               <ChevronRight className={`w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity ${isActive ? "hidden" : ""}`} />
@@ -69,7 +69,7 @@ export default function ProfileSidebar({ user, onClose }: { user: any, onClose?:
       </nav>
 
       {/* Footer / Logout */}
-      <div className="p-4 border-t border-slate-200 dark:border-zinc-800">
+      <div className="p-4 border-t border-slate-200 dark:border-border">
         {user ? (
           <button
             onClick={handleSignOut}

@@ -2,6 +2,13 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/*
+  Dark mode palette aligned with Google Search / Material dark surfaces (WCAG 2.2 AA):
+  - Page #202124, elevated #303134, borders/hover #3c4043
+  - Primary text #e8eaed, secondary #bdc1c6, tertiary #9aa0a6
+  - Links #8ab4f8 (~6.8:1 on #202124 for normal text)
+*/
+
 @theme {
   --color-atomic-tangerine-50: #feede7;
   --color-atomic-tangerine-100: #fcdccf;
@@ -45,16 +52,43 @@
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted-tertiary: var(--muted-tertiary);
+  --color-border: var(--border);
+  --color-link: var(--link);
+  --color-link-hover: var(--link-hover);
+  --color-ring: var(--ring);
 }
 
 @layer base {
   :root {
     --background: #ffffff;
     --foreground: #09090b;
+    --card: #ffffff;
+    --card-foreground: #09090b;
+    --muted: #f4f4f5;
+    --muted-foreground: #64748b;
+    --muted-tertiary: #64748b;
+    --border: #e2e8f0;
+    --link: #2563eb;
+    --link-hover: #1d4ed8;
+    --ring: #3b82f6;
   }
   .dark {
-    --background: #09090b;
-    --foreground: #fafafa;
+    --background: #202124;
+    --foreground: #e8eaed;
+    --card: #303134;
+    --card-foreground: #e8eaed;
+    --muted: #3c4043;
+    --muted-foreground: #bdc1c6;
+    --muted-tertiary: #9aa0a6;
+    --border: #3c4043;
+    --link: #8ab4f8;
+    --link-hover: #aecbfa;
+    --ring: #8ab4f8;
   }
 }
 
@@ -67,6 +101,18 @@ body {
 
 .dark body {
   color-scheme: dark;
+}
+
+/* Native <select> dropdown options follow OS defaults; align with app surfaces in dark mode */
+.tenders-sort-select {
+  color-scheme: light;
+}
+.dark .tenders-sort-select {
+  color-scheme: dark;
+}
+.tenders-sort-select option {
+  background-color: var(--card);
+  color: var(--card-foreground);
 }
 
 /* Hide scrollbar on overflow-scroll containers (tabs row, filter chips) */
@@ -83,4 +129,3 @@ html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
-

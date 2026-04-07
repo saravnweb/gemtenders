@@ -135,12 +135,22 @@ export async function triggerKeywordNotifications(tenderData: any, options?: { u
           ? new Date(tenderData.ra_end_date).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' })
           : 'N/A';
 
+        const titleForNotify = (() => {
+          const t = (tenderData.title || '').trim();
+          if (!t) return null;
+          return t.length > 72 ? `${t.slice(0, 71)}…` : t;
+        })();
+
         const notificationTitle = urgent
-          ? `⚡ URGENT: Reverse Auction — ${tenderData.bid_number}`
-          : `New Tender Match: ${tenderData.bid_number}`;
+          ? titleForNotify
+            ? `⚡ URGENT: Reverse Auction — ${titleForNotify}`
+            : '⚡ URGENT: Reverse Auction'
+          : titleForNotify
+            ? `New Tender Match: ${titleForNotify}`
+            : 'New Tender Match';
 
         const inAppMessage = urgent
-          ? `Reverse Auction ${tenderData.ra_number} is now active. Bid closes: ${raEndFormatted}`
+          ? `Reverse auction is now active. Bid closes: ${raEndFormatted}`
           : `Matches: ${matchedQueries.join(', ')} - ${tenderData.department || 'Unknown Dept'}`;
 
         // --- IN-APP NOTIFICATION ---
@@ -159,9 +169,7 @@ export async function triggerKeywordNotifications(tenderData: any, options?: { u
                   <h2 style="color: #92400e; margin: 0 0 8px;">⚡ Reverse Auction in Progress</h2>
                   <p style="color: #78350f; margin: 0;">A tender you follow is now in Reverse Auction. Act quickly — time is limited.</p>
                 </div>
-                <h3 style="color: #1e40af;">${tenderData.title || tenderData.bid_number}</h3>
-                <p><strong>Original Bid:</strong> ${tenderData.bid_number}</p>
-                <p><strong>RA Number:</strong> ${tenderData.ra_number}</p>
+                <h3 style="color: #1e40af;">${tenderData.title || 'Tender'}</h3>
                 <p><strong>Department:</strong> ${tenderData.department || 'N/A'}</p>
                 <p><strong>RA Closes on:</strong> <span style="color: #dc2626; font-weight: bold;">${raEndFormatted}</span></p>
                 <br />
@@ -174,7 +182,7 @@ export async function triggerKeywordNotifications(tenderData: any, options?: { u
                 <h2 style="color: #0f172a;">A new tender matched your keywords!</h2>
                 <p><strong>Keyword Monitors Triggered:</strong> ${matchedQueries.join(', ')}</p>
                 <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
-                <h3 style="color: #1e40af;">${tenderData.title || tenderData.bid_number}</h3>
+                <h3 style="color: #1e40af;">${tenderData.title || 'Tender'}</h3>
                 <p><strong>Department:</strong> ${tenderData.department || 'N/A'}</p>
                 <p><strong>State:</strong> ${tenderData.state || 'N/A'} - <strong>City:</strong> ${tenderData.city || 'N/A'}</p>
                 <p><strong>EMD:</strong> ${tenderData.emd_amount ? '₹' + tenderData.emd_amount.toLocaleString() : 'No EMD / Not Specified'}</p>
@@ -208,7 +216,7 @@ export async function triggerKeywordNotifications(tenderData: any, options?: { u
                body: JSON.stringify({
                   phoneNumber,
                   type: 'Template',
-                  template: { name: 'tender_alert', languageCode: 'en', bodyValues: [tenderData.bid_number, tenderLink] }
+                  template: { name: 'tender_alert', languageCode: 'en', bodyValues: [tenderData.title || 'Tender', tenderLink] }
                })
             });
             */

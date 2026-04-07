@@ -1,6 +1,8 @@
 import TendersClient from './TendersClient';
 import { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
+import { fetchTendersByRelevance } from '@/lib/tenders-relevance-query';
+import { requirePublicListingReady } from '@/lib/tender-public-listing';
 
 export const revalidate = 3600;
 
@@ -21,41 +23,81 @@ export default async function Page({
   const stateStr = params.state;
   const initialStates = Array.isArray(stateStr) ? stateStr : stateStr ? [stateStr] : [];
   const categoryStr = params.category as string | undefined;
+  const sortParam = (params.sort as string) || 'newest';
+  const initialSortOrderRaw =
+    sortParam === 'newest' || sortParam === 'ending_soon' || sortParam === 'relevance'
+      ? sortParam
+      : 'newest';
+  const initialSortOrder =
+    initialSortOrderRaw === 'relevance' && !qStr.trim() ? 'newest' : initialSortOrderRaw;
 
   const supabase = await createClient();
-  let query = supabase
-    .from('tenders')
-    .select('id,title,bid_number,state,city,department,ministry_name,department_name,organisation_name,office_name,emd_amount,start_date,end_date,ai_summary,eligibility_msme,eligibility_mii,created_at,slug')
-    .gte('end_date', new Date().toISOString())
-    .not('ai_summary', 'is', null);
+  const isDirectGemLookup = qStr.trim().toUpperCase().includes("GEM/");
 
-  if (qStr) {
-    const terms = qStr.split(",").map(t => t.trim()).filter(Boolean);
-    const orClauses = terms.map(term =>
-      `title.ilike.%${term}%,bid_number.ilike.%${term}%,ra_number.ilike.%${term}%,department.ilike.%${term}%,ministry_name.ilike.%${term}%,organisation_name.ilike.%${term}%,state.ilike.%${term}%,city.ilike.%${term}%,ai_summary.ilike.%${term}%`
-    );
-    query = query.or(orClauses.join(','));
+  let tenders: any[] | null = null;
+
+  if (initialSortOrder === 'relevance' && qStr.trim()) {
+    const { data, error } = await fetchTendersByRelevance(supabase, {
+      q: qStr,
+      tab: 'all',
+      states: initialStates,
+      cities: [],
+      ministries: [],
+      orgs: [],
+      emdFilter: 'all',
+      dateFilter: 'all',
+      msmeOnly: false,
+      miiOnly: false,
+      category: categoryStr || null,
+      descriptionQuery: '',
+    }, 0, 21);
+    if (!error && Array.isArray(data)) tenders = data as any[];
   }
 
-  if (initialStates.length > 0) {
-    query = query.or(initialStates.map(s => `state.ilike."${s}"`).join(','));
-  }
+  if (tenders === null) {
+    let query = supabase
+      .from('tenders')
+      .select('id,title,bid_number,state,city,department,ministry_name,department_name,organisation_name,office_name,emd_amount,start_date,end_date,ai_summary,eligibility_msme,eligibility_mii,created_at,slug');
 
-  if (categoryStr) {
-    query = query.eq('category', categoryStr);
-  }
+    if (!isDirectGemLookup) {
+      query = requirePublicListingReady(
+        query.gte('end_date', new Date().toISOString()).not('ai_summary', 'is', null)
+      );
+    }
 
-  const { data: tenders } = await query
-    .order('created_at', { ascending: false })
-    .order('id', { ascending: true })
-    .limit(21);
+    if (qStr) {
+      const terms = qStr.split(",").map(t => t.trim()).filter(Boolean);
+      const orClauses = terms.map(term =>
+        `title.ilike.%${term}%,bid_number.ilike.%${term}%,ra_number.ilike.%${term}%,department.ilike.%${term}%,ministry_name.ilike.%${term}%,organisation_name.ilike.%${term}%,state.ilike.%${term}%,city.ilike.%${term}%,ai_summary.ilike.%${term}%`
+      );
+      query = query.or(orClauses.join(','));
+    }
+
+    if (initialStates.length > 0) {
+      query = query.or(initialStates.map(s => `state.ilike."${s}"`).join(','));
+    }
+
+    if (categoryStr) {
+      query = query.eq('category', categoryStr);
+    }
+
+    const { data } = await query
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: true })
+      .limit(21);
+    tenders = data ?? [];
+  }
 
   // For total count, we need a separate query without limit
   let countQuery = supabase
     .from('tenders')
-    .select('*', { count: 'exact', head: true })
-    .gte('end_date', new Date().toISOString())
-    .not('ai_summary', 'is', null);
+    .select('*', { count: 'exact', head: true });
+
+  if (!isDirectGemLookup) {
+    countQuery = requirePublicListingReady(
+      countQuery.gte('end_date', new Date().toISOString()).not('ai_summary', 'is', null)
+    );
+  }
 
   if (qStr) {
     const terms = qStr.split(",").map(t => t.trim()).filter(Boolean);
@@ -73,7 +115,7 @@ export default async function Page({
 
   const { count } = await countQuery;
 
-  const initialTenders = tenders ?? [];
+  const initialTenders = tenders;
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -97,6 +139,7 @@ export default async function Page({
         initialStates={initialStates}
         initialCategory={categoryStr}
         initialTotalCount={count ?? 0}
+        initialSortOrder={initialSortOrder}
       />
     </>
   );

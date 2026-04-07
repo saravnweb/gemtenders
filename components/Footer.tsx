@@ -23,12 +23,12 @@ const categoryLinks = [
 
 export default function Footer() {
   return (
-    <footer className="border-t border-slate-100 dark:border-zinc-900 mt-16 w-full">
+    <footer className="border-t border-slate-100 dark:border-border mt-16 w-full">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* SEO link grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
           <div>
-            <p className="text-[11px] font-bold text-slate-600 dark:text-zinc-400 uppercase tracking-widest mb-2">
+            <p className="text-[11px] font-bold text-slate-600 dark:text-muted-foreground uppercase tracking-widest mb-2">
               Browse by State
             </p>
             <ul className="space-y-1">
@@ -36,7 +36,7 @@ export default function Footer() {
                 <li key={l.href}>
                   <Link
                     href={l.href}
-                    className="text-[12px] font-medium text-slate-600 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 transition-colors focus-visible:outline-none focus-visible:underline"
+                    className="text-[12px] font-medium text-slate-600 dark:text-muted-foreground hover:text-slate-800 dark:hover:text-foreground transition-colors focus-visible:outline-none focus-visible:underline"
                   >
                     {l.label}
                   </Link>
@@ -45,7 +45,7 @@ export default function Footer() {
               <li>
                 <Link
                   href="/explore"
-                  className="text-[12px] font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors focus-visible:outline-none focus-visible:underline mt-2 inline-block"
+                  className="text-[12px] font-bold text-blue-600 dark:text-link hover:text-blue-700 dark:hover:text-link-hover transition-colors focus-visible:outline-none focus-visible:underline mt-2 inline-block"
                 >
                   View All States &rarr;
                 </Link>
@@ -54,7 +54,7 @@ export default function Footer() {
           </div>
 
           <div>
-            <p className="text-[11px] font-bold text-slate-600 dark:text-zinc-400 uppercase tracking-widest mb-2">
+            <p className="text-[11px] font-bold text-slate-600 dark:text-muted-foreground uppercase tracking-widest mb-2">
               Browse by Category
             </p>
             <ul className="space-y-1">
@@ -62,7 +62,7 @@ export default function Footer() {
                 <li key={l.href}>
                   <Link
                     href={l.href}
-                    className="text-[12px] font-medium text-slate-600 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 transition-colors focus-visible:outline-none focus-visible:underline"
+                    className="text-[12px] font-medium text-slate-600 dark:text-muted-foreground hover:text-slate-800 dark:hover:text-foreground transition-colors focus-visible:outline-none focus-visible:underline"
                   >
                     {l.label}
                   </Link>
@@ -71,7 +71,7 @@ export default function Footer() {
               <li>
                 <Link
                   href="/explore"
-                  className="text-[12px] font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors focus-visible:outline-none focus-visible:underline mt-2 inline-block"
+                  className="text-[12px] font-bold text-blue-600 dark:text-link hover:text-blue-700 dark:hover:text-link-hover transition-colors focus-visible:outline-none focus-visible:underline mt-2 inline-block"
                 >
                   View All Categories &rarr;
                 </Link>
@@ -80,7 +80,7 @@ export default function Footer() {
           </div>
 
           <div>
-            <p className="text-[11px] font-bold text-slate-600 dark:text-zinc-400 uppercase tracking-widest mb-2">
+            <p className="text-[11px] font-bold text-slate-600 dark:text-muted-foreground uppercase tracking-widest mb-2">
               Platform
             </p>
             <ul className="space-y-1">
@@ -92,7 +92,7 @@ export default function Footer() {
                 <li key={l.href}>
                   <Link
                     href={l.href}
-                    className="text-[12px] font-medium text-slate-600 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 transition-colors focus-visible:outline-none focus-visible:underline"
+                    className="text-[12px] font-medium text-slate-600 dark:text-muted-foreground hover:text-slate-800 dark:hover:text-foreground transition-colors focus-visible:outline-none focus-visible:underline"
                   >
                     {l.label}
                   </Link>
@@ -102,7 +102,7 @@ export default function Footer() {
           </div>
 
           <div>
-            <p className="text-[11px] font-bold text-slate-600 dark:text-zinc-400 uppercase tracking-widest mb-2">
+            <p className="text-[11px] font-bold text-slate-600 dark:text-muted-foreground uppercase tracking-widest mb-2">
               Company
             </p>
             <ul className="space-y-1">
@@ -113,7 +113,7 @@ export default function Footer() {
                 <li key={l.href}>
                   <Link
                     href={l.href}
-                    className="text-[12px] font-medium text-slate-600 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 transition-colors focus-visible:outline-none focus-visible:underline"
+                    className="text-[12px] font-medium text-slate-600 dark:text-muted-foreground hover:text-slate-800 dark:hover:text-foreground transition-colors focus-visible:outline-none focus-visible:underline"
                   >
                     {l.label}
                   </Link>
@@ -124,8 +124,8 @@ export default function Footer() {
         </div>
 
         {/* Bottom bar */}
-        <div className="border-t border-slate-100 dark:border-zinc-900 pt-4">
-          <p className="text-[11px] font-medium text-slate-500 dark:text-zinc-400 text-center leading-relaxed">
+        <div className="border-t border-slate-100 dark:border-border pt-4">
+          <p className="text-[11px] font-medium text-slate-500 dark:text-muted-foreground text-center leading-relaxed">
             &copy; <span suppressHydrationWarning>{new Date().getFullYear()}</span> GeMTenders.org &mdash; Data sourced from Government e-Marketplace (gem.gov.in).
           </p>
         </div>

@@ -132,17 +132,17 @@ export default function LocationCard({ search, membershipPlan }: { search: any, 
                 limitCount={upgradeModal.limitCount}
             />
         )}
-        <div className={`bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-xl p-6 hover:border-slate-300 dark:hover:border-zinc-600 hover:shadow-md transition-all flex flex-col h-full shadow-sm ${isUpdating || isPending ? 'opacity-70 pointer-events-none' : ''}`}>
+        <div className={`bg-white dark:bg-card border border-slate-200 dark:border-border rounded-xl p-6 hover:border-slate-300 dark:hover:border-zinc-600 hover:shadow-md transition-all flex flex-col h-full shadow-sm ${isUpdating || isPending ? 'opacity-70 pointer-events-none' : ''}`}>
             <div className="flex flex-col mb-6">
-                <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 tracking-tight">Location Filters</h2>
-                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">Narrow down by State and City.</p>
+                <h2 className="text-base font-bold text-slate-900 dark:text-foreground tracking-tight">Location Filters</h2>
+                <p className="text-sm text-slate-500 dark:text-muted-foreground font-medium mt-1">Narrow down by State and City.</p>
             </div>
 
             <div className="space-y-4 mb-6">
                 <div className="flex flex-col gap-2">
-                    <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">Select State</label>
+                    <label className="text-xs font-semibold text-slate-500 dark:text-muted-foreground">Select State</label>
                     <select 
-                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl text-sm font-medium focus:bg-white dark:focus:bg-zinc-900 focus:ring-2 focus:ring-emerald-500 outline-none shadow-inner transition-all appearance-none dark:text-slate-100"
+                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-background border border-slate-200 dark:border-border rounded-xl text-sm font-medium focus:bg-white dark:focus:bg-zinc-900 focus:ring-2 focus:ring-emerald-500 outline-none shadow-inner transition-all appearance-none dark:text-foreground"
                         onChange={handleAddState}
                         defaultValue=""
                         disabled={isUpdating || isPending}
@@ -155,17 +155,17 @@ export default function LocationCard({ search, membershipPlan }: { search: any, 
                 </div>
 
                 <div className="flex flex-col gap-2">
-                    <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">Add City</label>
+                    <label className="text-xs font-semibold text-slate-500 dark:text-muted-foreground">Add City</label>
                     <form onSubmit={handleAddCity} className="flex gap-2 items-center">
                         {states.length === 0 ? (
-                            <div className="flex-1 px-4 py-2.5 bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl text-sm font-medium text-slate-400 dark:text-slate-500 cursor-not-allowed flex items-center">
+                            <div className="flex-1 px-4 py-2.5 bg-slate-100 dark:bg-muted border border-slate-200 dark:border-border rounded-xl text-sm font-medium text-slate-400 dark:text-muted-tertiary cursor-not-allowed flex items-center">
                                 Select a state first...
                             </div>
                         ) : (
                             <select 
                                 value={newCity}
                                 onChange={(e) => setNewCity(e.target.value)}
-                                className="flex-1 px-4 py-2.5 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl text-sm font-medium focus:bg-white dark:focus:bg-zinc-900 focus:ring-2 focus:ring-emerald-500 outline-none shadow-inner transition-all appearance-none dark:text-slate-100"
+                                className="flex-1 px-4 py-2.5 bg-slate-50 dark:bg-background border border-slate-200 dark:border-border rounded-xl text-sm font-medium focus:bg-white dark:focus:bg-zinc-900 focus:ring-2 focus:ring-emerald-500 outline-none shadow-inner transition-all appearance-none dark:text-foreground"
                                 disabled={isUpdating || isPending}
                             >
                                 <option value="" disabled>Choose a city from selected state(s)...</option>
@@ -187,9 +187,9 @@ export default function LocationCard({ search, membershipPlan }: { search: any, 
 
             <div className="flex-1">
                 {states.length === 0 && cities.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full py-8 text-center bg-slate-50 dark:bg-zinc-950 rounded-xl border border-dashed border-slate-200 dark:border-zinc-800">
-                        <Compass className="w-8 h-8 text-slate-300 dark:text-slate-600 mb-3" />
-                        <span className="text-xs font-medium text-slate-500 dark:text-slate-400">All India (No Filters)</span>
+                    <div className="flex flex-col items-center justify-center h-full py-8 text-center bg-slate-50 dark:bg-background rounded-xl border border-dashed border-slate-200 dark:border-border">
+                        <Compass className="w-8 h-8 text-slate-300 dark:text-muted-tertiary mb-3" />
+                        <span className="text-xs font-medium text-slate-500 dark:text-muted-foreground">All India (No Filters)</span>
                     </div>
                 ) : (
                     <div className="flex flex-wrap gap-2">

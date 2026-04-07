@@ -119,20 +119,20 @@ export default function ExploreClient({
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans">
+    <div className="min-h-screen bg-slate-50 dark:bg-background font-sans">
       <main id="main-content" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
         {/* Header Section */}
         <div className="mb-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight font-bricolage">
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-foreground tracking-tight font-bricolage">
             Explore GeM Tenders
           </h1>
-          <p className="mt-1 text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
-            <span className="font-bold text-blue-600 dark:text-blue-400">{stats.totalActive.toLocaleString()} active bids</span> — browse by category, ministry, state, keyword or type.
+          <p className="mt-1 text-xs sm:text-sm text-slate-500 dark:text-muted-foreground font-medium">
+            <span className="font-bold text-blue-600 dark:text-link">{stats.totalActive.toLocaleString()} active bids</span> — browse by category, ministry, state, keyword or type.
           </p>
         </div>
 
         {/* Dynamic Tabs Navigation */}
-        <div role="tablist" aria-label="Browse tenders by" className="flex flex-wrap pb-4 mb-4 items-center gap-2 sm:gap-3 border-b border-slate-200 dark:border-slate-800 animate-in fade-in duration-700">
+        <div role="tablist" aria-label="Browse tenders by" className="flex flex-wrap pb-4 mb-4 items-center gap-2 sm:gap-3 border-b border-slate-200 dark:border-border animate-in fade-in duration-700">
           <TabButton id="category" label="By Category" active={activeTab === "category"} onClick={handleTabChange} />
           <TabButton id="ministry" label="By Ministry" active={activeTab === "ministry"} onClick={handleTabChange} />
           <TabButton id="state" label="By State" active={activeTab === "state"} onClick={handleTabChange} badge="new" />
@@ -155,7 +155,7 @@ export default function ExploreClient({
               }
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full sm:max-w-sm pl-9 pr-9 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full sm:max-w-sm pl-9 pr-9 py-2 text-sm rounded-lg border border-slate-200 dark:border-border bg-white dark:bg-card text-slate-900 dark:text-foreground placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             {searchQuery && (
               <button
@@ -174,7 +174,7 @@ export default function ExploreClient({
           {activeTab === "category" && (
             <div id="tabpanel-category" role="tabpanel" aria-labelledby="tab-category" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xs font-black tracking-[0.2em] uppercase text-slate-400 dark:text-slate-500">
+                <h2 className="text-xs font-black tracking-[0.2em] uppercase text-slate-400 dark:text-muted-tertiary">
                   ALL {CATEGORIES.length} CATEGORIES
                 </h2>
               </div>
@@ -183,18 +183,18 @@ export default function ExploreClient({
                   <a 
                     key={cat.id} 
                     href={`/?category=${cat.id}`}
-                    className="group flex flex-col p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl hover:border-blue-500 dark:hover:border-blue-500 hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300"
+                    className="group flex flex-col p-5 bg-white dark:bg-card border border-slate-200 dark:border-border rounded-2xl hover:border-blue-500 dark:hover:border-blue-500 hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300"
                   >
                     <div className="flex items-start justify-between mb-3">
                       <span className="text-3xl group-hover:scale-110 transition-transform origin-bottom-left" aria-hidden="true">{cat.icon}</span>
-                      <div className="w-8 h-8 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="w-8 h-8 rounded-full bg-slate-50 dark:bg-card flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                         <Search className="w-4 h-4 text-blue-500" />
                       </div>
                     </div>
-                    <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                    <h3 className="text-base font-bold text-slate-900 dark:text-foreground mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                       {cat.label}
                     </h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
+                    <p className="text-xs text-slate-500 dark:text-muted-foreground line-clamp-2">
                       {cat.description}
                     </p>
                   </a>
@@ -207,7 +207,7 @@ export default function ExploreClient({
           {activeTab === "ministry" && (
             <div id="tabpanel-ministry" role="tabpanel" aria-labelledby="tab-ministry" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xs font-black tracking-[0.2em] uppercase text-slate-400 dark:text-slate-500">
+                <h2 className="text-xs font-black tracking-[0.2em] uppercase text-slate-400 dark:text-muted-tertiary">
                   {filteredMinistries.length} {searchQuery ? "MATCHING" : "TOP"} MINISTRIES
                 </h2>
               </div>
@@ -215,17 +215,17 @@ export default function ExploreClient({
                 {filteredMinistries.map((Item, i) => (
                   <div
                     key={i}
-                    className="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex items-center gap-3 hover:border-blue-500 dark:hover:border-blue-500 transition-all shadow-sm hover:shadow-md"
+                    className="group bg-white dark:bg-card border border-slate-200 dark:border-border rounded-xl p-4 flex items-center gap-3 hover:border-blue-500 dark:hover:border-blue-500 transition-all shadow-sm hover:shadow-md"
                   >
                     <a href={`/?q=${encodeURIComponent(Item.ministry)}`} className="flex items-center gap-3 flex-1 min-w-0">
                       <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
-                        <Building2 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                        <Building2 className="w-5 h-5 text-blue-600 dark:text-link" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-bold text-sm text-slate-900 dark:text-white truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                        <h3 className="font-bold text-sm text-slate-900 dark:text-foreground truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                           {Item.ministry}
                         </h3>
-                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5 flex items-center">
+                        <p className="text-xs font-medium text-slate-500 dark:text-muted-foreground mt-0.5 flex items-center">
                           <LineChart className="w-3 h-3 mr-1" />
                           {Item.count.toLocaleString()} active tenders
                         </p>
@@ -242,21 +242,21 @@ export default function ExploreClient({
           {activeTab === "state" && (
             <div id="tabpanel-state" role="tabpanel" aria-labelledby="tab-state" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xs font-black tracking-[0.2em] uppercase text-slate-400 dark:text-slate-500">
+                <h2 className="text-xs font-black tracking-[0.2em] uppercase text-slate-400 dark:text-muted-tertiary">
                   {filteredStates.length} {searchQuery ? "MATCHING" : "INDIAN"} STATES & UTS
                 </h2>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-0 text-sm border-t border-l border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-0 text-sm border-t border-l border-slate-200 dark:border-border rounded-xl overflow-hidden bg-white dark:bg-card">
                 {filteredStates.map((st, i) => (
                   <div
                     key={i}
-                    className="flex flex-row items-center justify-between py-3 px-4 border-b border-r border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group"
+                    className="flex flex-row items-center justify-between py-3 px-4 border-b border-r border-slate-200 dark:border-border hover:bg-slate-50 dark:hover:bg-muted/50 transition-colors group"
                   >
-                    <a href={`/?state=${encodeURIComponent(st.state)}`} className="font-bold text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 truncate flex-1 pr-2">
+                    <a href={`/?state=${encodeURIComponent(st.state)}`} className="font-bold text-slate-700 dark:text-muted-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 truncate flex-1 pr-2">
                       {st.state}
                     </a>
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-xs font-mono font-bold text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+                      <span className="text-xs font-mono font-bold text-slate-500 bg-slate-100 dark:bg-card px-2 py-0.5 rounded-md">
                         {st.count}
                       </span>
                       <FollowButton type="state" value={st.state} follows={follows} onFollow={handleFollow} loadingKey={followLoading} compact />
@@ -271,7 +271,7 @@ export default function ExploreClient({
           {activeTab === "org" && (
             <div id="tabpanel-org" role="tabpanel" aria-labelledby="tab-org" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xs font-black tracking-[0.2em] uppercase text-slate-400 dark:text-slate-500">
+                <h2 className="text-xs font-black tracking-[0.2em] uppercase text-slate-400 dark:text-muted-tertiary">
                   {filteredOrgs.length} {searchQuery ? "MATCHING" : "TOP"} ORGANISATIONS
                 </h2>
               </div>
@@ -279,17 +279,17 @@ export default function ExploreClient({
                 {filteredOrgs.map((item, i) => (
                   <div
                     key={i}
-                    className="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex items-center gap-3 hover:border-blue-500 dark:hover:border-blue-500 transition-all shadow-sm hover:shadow-md"
+                    className="group bg-white dark:bg-card border border-slate-200 dark:border-border rounded-xl p-4 flex items-center gap-3 hover:border-blue-500 dark:hover:border-blue-500 transition-all shadow-sm hover:shadow-md"
                   >
                     <a href={`/?q=${encodeURIComponent(item.org)}`} className="flex items-center gap-3 flex-1 min-w-0">
                       <div className="w-10 h-10 rounded-full bg-violet-50 dark:bg-violet-900/30 flex items-center justify-center shrink-0">
                         <Shapes className="w-5 h-5 text-violet-600 dark:text-violet-400" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-bold text-sm text-slate-900 dark:text-white truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                        <h3 className="font-bold text-sm text-slate-900 dark:text-foreground truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                           {item.org}
                         </h3>
-                        <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5 flex items-center">
+                        <p className="text-xs font-medium text-slate-500 dark:text-muted-foreground mt-0.5 flex items-center">
                           <LineChart className="w-3 h-3 mr-1" />
                           {item.count.toLocaleString()} active tenders
                         </p>
@@ -306,7 +306,7 @@ export default function ExploreClient({
           {activeTab === "keyword" && (
             <div id="tabpanel-keyword" role="tabpanel" aria-labelledby="tab-keyword" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xs font-black tracking-[0.2em] uppercase text-slate-400 dark:text-slate-500">
+                <h2 className="text-xs font-black tracking-[0.2em] uppercase text-slate-400 dark:text-muted-tertiary">
                   TRENDING KEYWORDS TODAY
                 </h2>
               </div>
@@ -315,12 +315,12 @@ export default function ExploreClient({
                   <a 
                     key={i} 
                     href={`/?q=${encodeURIComponent(kw)}`}
-                    className="group inline-flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full pl-4 pr-1.5 py-1.5 hover:border-blue-500 dark:hover:border-blue-500 hover:shadow-md transition-all shadow-sm"
+                    className="group inline-flex items-center bg-white dark:bg-card border border-slate-200 dark:border-border rounded-full pl-4 pr-1.5 py-1.5 hover:border-blue-500 dark:hover:border-blue-500 hover:shadow-md transition-all shadow-sm"
                   >
-                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 mr-2">
+                    <span className="text-sm font-bold text-slate-700 dark:text-muted-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 mr-2">
                       {kw}
                     </span>
-                    <div className="flex items-center justify-center w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/30 transition-colors">
+                    <div className="flex items-center justify-center w-7 h-7 rounded-full bg-slate-100 dark:bg-card group-hover:bg-blue-100 dark:group-hover:bg-blue-900/30 transition-colors">
                       <Search className="w-3.5 h-3.5 text-slate-500 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
                     </div>
                   </a>
@@ -333,7 +333,7 @@ export default function ExploreClient({
           {activeTab === "type" && (
             <div id="tabpanel-type" role="tabpanel" aria-labelledby="tab-type" className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-10">
               <div>
-                <h2 className="text-xs font-black tracking-[0.2em] uppercase text-slate-400 dark:text-slate-500 mb-6">
+                <h2 className="text-xs font-black tracking-[0.2em] uppercase text-slate-400 dark:text-muted-tertiary mb-6">
                   PROCUREMENT TYPE
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -365,7 +365,7 @@ export default function ExploreClient({
               </div>
 
               <div>
-                <h2 className="text-xs font-black tracking-[0.2em] uppercase text-slate-400 dark:text-slate-500 mb-6">
+                <h2 className="text-xs font-black tracking-[0.2em] uppercase text-slate-400 dark:text-muted-tertiary mb-6">
                   BID METHOD
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -402,7 +402,7 @@ export default function ExploreClient({
           {activeTab === "mse" && (
             <div id="tabpanel-mse" role="tabpanel" aria-labelledby="tab-mse" className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-10">
               <div>
-                <h2 className="text-xs font-black tracking-[0.2em] uppercase text-slate-400 dark:text-slate-500 mb-6">
+                <h2 className="text-xs font-black tracking-[0.2em] uppercase text-slate-400 dark:text-muted-tertiary mb-6">
                   POLICY PREFERENCES
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -436,27 +436,27 @@ export default function ExploreClient({
               </div>
 
               <div>
-                <h2 className="text-xs font-black tracking-[0.2em] uppercase text-slate-400 dark:text-slate-500 mb-6">
+                <h2 className="text-xs font-black tracking-[0.2em] uppercase text-slate-400 dark:text-muted-tertiary mb-6">
                   NEW & FREE TO BID
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <a href="/?emdFilter=free" className="group bg-slate-900 dark:bg-slate-900 border border-slate-800 dark:border-slate-800 rounded-2xl p-6 text-center hover:border-slate-600 transition-colors shadow-2xl">
+                  <a href="/?emdFilter=free" className="group bg-slate-900 dark:bg-card border border-slate-800 dark:border-border rounded-2xl p-6 text-center hover:border-slate-600 dark:hover:border-muted-foreground/40 transition-colors shadow-2xl">
                     <CheckCircle2 className="w-8 h-8 text-green-400 mx-auto mb-3" />
                     <h3 className="text-base font-bold text-white mb-2">Zero EMD Tenders</h3>
                     <p className="text-xs text-slate-400 mb-3">No earnest money deposit needed — lower barrier to bid.</p>
                     <div className="text-green-400 font-mono text-sm font-bold">{stats.zeroEmd.toLocaleString()} active</div>
                   </a>
-                  <a href="/?dateFilter=today" className="group bg-slate-100 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 text-center hover:border-red-500/50 transition-colors">
+                  <a href="/?dateFilter=today" className="group bg-slate-100 dark:bg-card/50 border border-slate-200 dark:border-border rounded-2xl p-6 text-center hover:border-red-500/50 transition-colors">
                     <Zap className="w-8 h-8 text-red-500 mx-auto mb-3" />
-                    <h3 className="text-base font-bold text-slate-900 dark:text-white mb-2">Closing Today</h3>
-                    <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">Urgent bids closing within the next 24 hours.</p>
+                    <h3 className="text-base font-bold text-slate-900 dark:text-foreground mb-2">Closing Today</h3>
+                    <p className="text-xs text-slate-600 dark:text-muted-foreground mb-3">Urgent bids closing within the next 24 hours.</p>
                     <div className="text-red-500 dark:text-red-400 font-mono text-sm font-bold">{stats.closingToday.toLocaleString()} active</div>
                   </a>
                   <a href="/?sortOrder=newest" className="group bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-2xl p-6 text-center hover:border-blue-500 transition-colors">
                     <div className="w-8 h-8 bg-blue-600 text-white rounded-lg flex items-center justify-center font-black text-xs mx-auto mb-3 shadow-lg shadow-blue-500/30">NEW</div>
-                    <h3 className="text-base font-bold text-slate-900 dark:text-white mb-2">Added Today</h3>
-                    <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">Fresh tenders posted to the platform in the last 24 hours.</p>
-                    <div className="text-blue-600 dark:text-blue-400 font-mono text-sm font-bold">{stats.addedToday.toLocaleString()} active</div>
+                    <h3 className="text-base font-bold text-slate-900 dark:text-foreground mb-2">Added Today</h3>
+                    <p className="text-xs text-slate-600 dark:text-muted-foreground mb-3">Fresh tenders posted to the platform in the last 24 hours.</p>
+                    <div className="text-blue-600 dark:text-link font-mono text-sm font-bold">{stats.addedToday.toLocaleString()} active</div>
                   </a>
                 </div>
               </div>
@@ -479,8 +479,8 @@ function TabButton({ id, label, active, onClick, badge }: { id: TabId, label: st
       onClick={() => onClick(id)}
       className={`relative px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all border shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500 ${
         active
-          ? "bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-950 dark:border-white shadow-md scale-105 underline-offset-4"
-          : "bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-800 dark:hover:bg-slate-800"
+          ? "bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-background dark:border-white shadow-md scale-105 underline-offset-4"
+          : "bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50 dark:bg-card dark:text-muted-foreground dark:border-border dark:hover:bg-muted"
       }`}
     >
       {label}
@@ -488,7 +488,7 @@ function TabButton({ id, label, active, onClick, badge }: { id: TabId, label: st
         <span className={`ml-2 text-[9px] uppercase tracking-wider font-black px-1.5 py-0.5 rounded-sm ${
           active
             ? "bg-white/20 text-white dark:bg-black/10 dark:text-black"
-            : "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400"
+            : "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-link"
         }`}>
           {badge}
         </span>
@@ -521,7 +521,7 @@ function FollowButton({
       } ${
         isFollowing
           ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
-          : 'bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 hover:border-blue-400 hover:text-blue-600 dark:hover:text-blue-400'
+          : 'bg-white dark:bg-card text-slate-400 dark:text-muted-tertiary border-slate-200 dark:border-border hover:border-blue-400 hover:text-blue-600 dark:hover:text-link-hover'
       }`}
     >
       {isLoading ? (
@@ -538,12 +538,12 @@ function FollowButton({
 
 function TypeCard({ title, icon, desc, count, href, colorClass }: { title: string, icon: React.ReactNode, desc: string, count: number | null, href: string, colorClass: string }) {
   return (
-    <a href={href} className={`flex flex-col items-center justify-center p-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl transition-all duration-300 ${colorClass}`}>
+    <a href={href} className={`flex flex-col items-center justify-center p-8 bg-white dark:bg-card border border-slate-200 dark:border-border rounded-3xl transition-all duration-300 ${colorClass}`}>
       <div className="mb-4 transform transition-transform group-hover:scale-110">{icon}</div>
-      <h3 className="text-lg font-black text-slate-900 dark:text-white mb-2">{title}</h3>
-      <p className="text-sm text-slate-500 dark:text-slate-400 text-center mb-4 leading-relaxed max-w-[200px]">{desc}</p>
+      <h3 className="text-lg font-black text-slate-900 dark:text-foreground mb-2">{title}</h3>
+      <p className="text-sm text-slate-500 dark:text-muted-foreground text-center mb-4 leading-relaxed max-w-[200px]">{desc}</p>
       {count !== null && (
-        <span className="text-sm font-mono font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-3 py-1 rounded-full">
+        <span className="text-sm font-mono font-bold text-blue-600 dark:text-link bg-blue-50 dark:bg-blue-900/30 px-3 py-1 rounded-full">
           {count.toLocaleString()} active
         </span>
       )}

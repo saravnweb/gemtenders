@@ -76,7 +76,7 @@ export default function UpgradeModal({
             />
 
             {/* Modal */}
-            <div className="relative bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="relative bg-white dark:bg-card rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
 
                 {/* Header gradient */}
                 <div className="relative bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 px-6 pt-6 pb-10">
@@ -116,7 +116,7 @@ export default function UpgradeModal({
 
                 {/* Features list */}
                 <div className="px-6 pt-4 pb-2">
-                    <p className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3">What you unlock</p>
+                    <p className="text-xs font-black text-slate-400 dark:text-muted-tertiary uppercase tracking-widest mb-3">What you unlock</p>
                     <ul className="space-y-2.5">
                         {[
                             config.starterBenefit,
@@ -128,7 +128,7 @@ export default function UpgradeModal({
                                 <div className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center shrink-0">
                                     <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400 stroke-[3]" />
                                 </div>
-                                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{feat}</span>
+                                <span className="text-sm font-medium text-slate-700 dark:text-muted-foreground">{feat}</span>
                             </li>
                         ))}
                     </ul>
@@ -146,7 +146,7 @@ export default function UpgradeModal({
                     </button>
                     <button
                         onClick={onClose}
-                        className="w-full py-2.5 text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                        className="w-full py-2.5 text-sm font-bold text-slate-500 dark:text-muted-foreground hover:text-slate-700 dark:hover:text-foreground transition-colors"
                     >
                         Not now
                     </button>

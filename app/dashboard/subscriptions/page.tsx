@@ -128,8 +128,8 @@ export default function SubscriptionsPage() {
 
   if (!profile) return (
     <div className="min-h-[60vh] flex flex-col items-center justify-center p-8 space-y-4">
-       <div className="w-10 h-10 border-4 border-slate-200 dark:border-zinc-700 border-t-atomic-tangerine-600 rounded-full animate-spin"></div>
-       <p className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest animate-pulse">Loading...</p>
+       <div className="w-10 h-10 border-4 border-slate-200 dark:border-border border-t-atomic-tangerine-600 rounded-full animate-spin"></div>
+       <p className="text-sm font-bold text-slate-500 dark:text-muted-foreground uppercase tracking-widest animate-pulse">Loading...</p>
     </div>
   );
 
@@ -147,18 +147,18 @@ export default function SubscriptionsPage() {
 
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-fresh-sky-950 dark:text-slate-100 tracking-tight">Manage Subscription</h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">
+        <h1 className="text-2xl font-bold text-fresh-sky-950 dark:text-foreground tracking-tight">Manage Subscription</h1>
+        <p className="text-sm text-slate-500 dark:text-muted-foreground font-medium mt-1">
           All plans auto-renew monthly. Cancel anytime.
         </p>
       </div>
 
       {/* Current Plan Banner */}
-      <div className="bg-white dark:bg-zinc-900 rounded-xl p-5 border border-slate-200 dark:border-zinc-700 shadow-sm flex items-center justify-between flex-wrap gap-4">
+      <div className="bg-white dark:bg-card rounded-xl p-5 border border-slate-200 dark:border-border shadow-sm flex items-center justify-between flex-wrap gap-4">
          <div>
-            <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Current Plan</p>
+            <p className="text-xs font-bold text-slate-500 dark:text-muted-foreground uppercase tracking-wider mb-1">Current Plan</p>
             <div className="flex items-center gap-3">
-               <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 capitalize flex items-center gap-2">
+               <h2 className="text-2xl font-bold text-slate-900 dark:text-foreground capitalize flex items-center gap-2">
                   {profile.membership_plan}
                   {isSubscribed && <Shield className="w-5 h-5 text-emerald-500" />}
                </h2>
@@ -193,18 +193,18 @@ export default function SubscriptionsPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
         {/* Free Plan */}
-        <div className={`bg-white dark:bg-zinc-900 rounded-2xl p-6 border-2 transition-all ${profile.membership_plan === 'free' ? 'border-blue-500 shadow-md ring-4 ring-blue-100 dark:ring-blue-900/30' : 'border-slate-200 dark:border-zinc-700'}`}>
-           <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2 flex items-center justify-between">
+        <div className={`bg-white dark:bg-card rounded-2xl p-6 border-2 transition-all ${profile.membership_plan === 'free' ? 'border-blue-500 shadow-md ring-4 ring-blue-100 dark:ring-blue-900/30' : 'border-slate-200 dark:border-border'}`}>
+           <h3 className="text-xl font-bold text-slate-900 dark:text-foreground mb-2 flex items-center justify-between">
               Basic
-              {profile.membership_plan === 'free' && <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-2 py-1 rounded-full uppercase tracking-wider">Active</span>}
+              {profile.membership_plan === 'free' && <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-link px-2 py-1 rounded-full uppercase tracking-wider">Active</span>}
            </h3>
-           <p className="text-sm text-slate-500 dark:text-slate-400 h-10">Search, browse and bookmark all active tenders.</p>
+           <p className="text-sm text-slate-500 dark:text-muted-foreground h-10">Search, browse and bookmark all active tenders.</p>
            <div className="my-6">
-             <span className="text-4xl font-black text-slate-900 dark:text-slate-100">₹0</span>
-             <span className="text-sm text-slate-500 dark:text-slate-400 font-bold"> / forever</span>
+             <span className="text-4xl font-black text-slate-900 dark:text-foreground">₹0</span>
+             <span className="text-sm text-slate-500 dark:text-muted-foreground font-bold"> / forever</span>
            </div>
 
-           <button disabled className="w-full py-3 bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-slate-400 font-bold rounded-xl mb-6">
+           <button disabled className="w-full py-3 bg-slate-100 dark:bg-muted text-slate-500 dark:text-muted-foreground font-bold rounded-xl mb-6">
              {profile.membership_plan === 'free' ? 'Current Plan' : 'Free Tier'}
            </button>
 
@@ -218,22 +218,22 @@ export default function SubscriptionsPage() {
         </div>
 
         {/* Starter Plan */}
-        <div className={`bg-white dark:bg-zinc-900 rounded-2xl p-6 border-2 transition-all ${profile.membership_plan === 'starter' ? 'border-atomic-tangerine-600 shadow-md ring-4 ring-atomic-tangerine-100 dark:ring-orange-900/30' : 'border-slate-200 dark:border-zinc-700 hover:border-slate-300 dark:hover:border-zinc-500'}`}>
-           <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2 flex items-center justify-between">
+        <div className={`bg-white dark:bg-card rounded-2xl p-6 border-2 transition-all ${profile.membership_plan === 'starter' ? 'border-atomic-tangerine-600 shadow-md ring-4 ring-atomic-tangerine-100 dark:ring-orange-900/30' : 'border-slate-200 dark:border-border hover:border-slate-300 dark:hover:border-muted-foreground/40'}`}>
+           <h3 className="text-xl font-bold text-slate-900 dark:text-foreground mb-2 flex items-center justify-between">
               Starter
               {profile.membership_plan === 'starter' && <span className="text-xs bg-atomic-tangerine-100 text-atomic-tangerine-700 px-2 py-1 rounded-full uppercase tracking-wider">Active</span>}
            </h3>
-           <p className="text-sm text-slate-500 dark:text-slate-400 h-10">Email alerts and unlimited keyword tracking.</p>
+           <p className="text-sm text-slate-500 dark:text-muted-foreground h-10">Email alerts and unlimited keyword tracking.</p>
            <div className="my-6">
-             <span className="text-4xl font-black text-slate-900 dark:text-slate-100">₹99</span>
-             <span className="text-sm text-slate-500 dark:text-slate-400 font-bold"> / month</span>
+             <span className="text-4xl font-black text-slate-900 dark:text-foreground">₹99</span>
+             <span className="text-sm text-slate-500 dark:text-muted-foreground font-bold"> / month</span>
            </div>
 
            <div className="mb-6">
              <button
                onClick={() => handleCheckout('starter')}
                disabled={loading || profile.membership_plan === 'starter' || profile.membership_plan === 'pro'}
-               className="w-full py-3 bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-white disabled:opacity-50 text-white dark:text-slate-900 font-bold rounded-xl transition-colors"
+               className="w-full py-3 bg-slate-900 dark:bg-foreground hover:bg-slate-800 dark:hover:bg-foreground/90 disabled:opacity-50 text-white dark:text-background font-bold rounded-xl transition-colors"
              >
                {profile.membership_plan === 'starter' ? 'Current Plan' : profile.membership_plan === 'pro' ? 'Downgrade' : 'Subscribe – ₹99/mo'}
              </button>
@@ -251,19 +251,19 @@ export default function SubscriptionsPage() {
         </div>
 
         {/* Pro Plan */}
-        <div className={`bg-white dark:bg-zinc-900 rounded-2xl p-6 border-2 transition-all ${profile.membership_plan === 'pro' ? 'border-amber-500 shadow-md ring-4 ring-amber-100 dark:ring-amber-900/30' : 'border-slate-200 dark:border-zinc-700 hover:border-slate-300 dark:hover:border-zinc-500'}`}>
+        <div className={`bg-white dark:bg-card rounded-2xl p-6 border-2 transition-all ${profile.membership_plan === 'pro' ? 'border-amber-500 shadow-md ring-4 ring-amber-100 dark:ring-amber-900/30' : 'border-slate-200 dark:border-border hover:border-slate-300 dark:hover:border-muted-foreground/40'}`}>
            <div className="flex items-center space-x-2 text-amber-500 mb-2">
               <Zap className="w-4 h-4 fill-current" />
               <span className="text-xs font-bold uppercase tracking-wider">Most Popular</span>
            </div>
-           <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2 flex items-center justify-between">
+           <h3 className="text-xl font-bold text-slate-900 dark:text-foreground mb-2 flex items-center justify-between">
               Pro
               {profile.membership_plan === 'pro' && <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full uppercase tracking-wider">Active</span>}
            </h3>
-           <p className="text-sm text-slate-500 dark:text-slate-400 h-10">Everything in Starter, plus WhatsApp and AI analysis.</p>
+           <p className="text-sm text-slate-500 dark:text-muted-foreground h-10">Everything in Starter, plus WhatsApp and AI analysis.</p>
            <div className="my-6">
-             <span className="text-4xl font-black text-slate-900 dark:text-slate-100">₹199</span>
-             <span className="text-sm text-slate-500 dark:text-slate-400 font-bold"> / month</span>
+             <span className="text-4xl font-black text-slate-900 dark:text-foreground">₹199</span>
+             <span className="text-sm text-slate-500 dark:text-muted-foreground font-bold"> / month</span>
            </div>
 
            <div className="mb-6">
@@ -296,7 +296,7 @@ function FeatureItem({ text }: { text: string }) {
       <div className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-green-900/30 flex items-center justify-center shrink-0">
          <Check className="w-3 h-3 text-emerald-600 dark:text-green-400 stroke-3" />
       </div>
-      <span className="text-sm font-medium text-slate-600 dark:text-slate-400">{text}</span>
+      <span className="text-sm font-medium text-slate-600 dark:text-muted-foreground">{text}</span>
     </li>
   );
 }
@@ -304,7 +304,7 @@ function FeatureItem({ text }: { text: string }) {
 function FeatureMissing({ text }: { text: string }) {
   return (
     <li className="flex items-center space-x-3 opacity-40">
-      <div className="w-5 h-5 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center shrink-0">
+      <div className="w-5 h-5 rounded-full bg-slate-100 dark:bg-muted flex items-center justify-center shrink-0">
          <Check className="w-3 h-3 text-slate-400 stroke-3" />
       </div>
       <span className="text-sm font-medium text-slate-500">{text}</span>

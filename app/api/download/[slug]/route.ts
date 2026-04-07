@@ -8,6 +8,22 @@ const GEM_HEADERS = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
 };
 
+function pdfFileName(bidNumber: string) {
+  return `${bidNumber.replace(/\//g, "-")}.pdf`;
+}
+
+function pdfResponse(buffer: Buffer, fileName: string) {
+  const encoded = encodeURIComponent(fileName);
+  return new NextResponse(new Uint8Array(buffer), {
+    status: 200,
+    headers: {
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="${fileName.replace(/"/g, "")}"; filename*=UTF-8''${encoded}`,
+      "Cache-Control": "private, no-store",
+    },
+  });
+}
+
 async function getGemSession(): Promise<string> {
   const res = await axios.get("https://bidplus.gem.gov.in/all-bids", {
     headers: GEM_HEADERS,
@@ -30,7 +46,6 @@ export async function GET(request: Request, context: { params: Promise<{ slug: s
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // ── Fetch tender ──────────────────────────────────────────────────────────
     const { data: tenderRows } = await admin
       .from("tenders")
       .select("id, pdf_url, details_url, bid_number")
@@ -40,18 +55,29 @@ export async function GET(request: Request, context: { params: Promise<{ slug: s
     const tender = tenderRows?.[0];
     if (!tender) return new NextResponse("Tender not found", { status: 404 });
 
-    // ── If PDF already cached in storage, return signed URL ───────────────────
+    const fileName = pdfFileName(tender.bid_number);
+
+    // ── Cached in our storage: stream bytes (never expose storage URL to client) ──
     if (tender.pdf_url && !tender.pdf_url.includes("gem.gov.in")) {
       const storagePath = tender.pdf_url.split(`/${BUCKET}/`)[1];
       if (storagePath) {
-        const { data: signed } = await admin.storage.from(BUCKET).createSignedUrl(storagePath, 3600);
-        if (signed?.signedUrl) return NextResponse.json({ signedUrl: signed.signedUrl });
+        const { data: fileData, error } = await admin.storage.from(BUCKET).download(storagePath);
+        if (!error && fileData) {
+          const buffer = Buffer.from(await fileData.arrayBuffer());
+          return pdfResponse(buffer, fileName);
+        }
       }
-      // Bucket is public — return the URL directly
-      return NextResponse.json({ signedUrl: tender.pdf_url });
+      const pdfRes = await axios.get(tender.pdf_url, {
+        responseType: "arraybuffer",
+        timeout: 30000,
+      });
+      const buffer = Buffer.from(pdfRes.data);
+      if (buffer.length >= 100) {
+        return pdfResponse(buffer, fileName);
+      }
     }
 
-    // ── On-demand: fetch from GeM, cache, return URL ──────────────────────────
+    // ── On-demand: fetch from GeM, cache in storage, stream to client ───────────
     const bId = tender.details_url?.split("/").pop();
     if (!bId) return NextResponse.json({ error: "PDF not available for this tender" }, { status: 404 });
 
@@ -70,7 +96,6 @@ export async function GET(request: Request, context: { params: Promise<{ slug: s
       return NextResponse.json({ error: "PDF not available from GeM" }, { status: 404 });
     }
 
-    const fileName = `${tender.bid_number.replace(/\//g, "-")}.pdf`;
     const { data: uploadData } = await admin.storage
       .from(BUCKET)
       .upload(fileName, buffer, { contentType: "application/pdf", upsert: true });
@@ -78,10 +103,9 @@ export async function GET(request: Request, context: { params: Promise<{ slug: s
     if (uploadData) {
       const { data: urlData } = admin.storage.from(BUCKET).getPublicUrl(uploadData.path);
       await admin.from("tenders").update({ pdf_url: urlData.publicUrl }).eq("id", tender.id);
-      return NextResponse.json({ signedUrl: urlData.publicUrl });
     }
 
-    return NextResponse.json({ error: "Failed to retrieve PDF" }, { status: 500 });
+    return pdfResponse(buffer, fileName);
 
   } catch (error: any) {
     console.error("PDF download error:", error.message);

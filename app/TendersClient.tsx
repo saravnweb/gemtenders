@@ -12,6 +12,8 @@ import { useSearchParams } from "next/navigation";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 import { INDIAN_STATES, normalizeState, normalizeCity } from "@/lib/locations";
+import { fetchTendersByRelevance } from "@/lib/tenders-relevance-query";
+import { requirePublicListingReady } from "@/lib/tender-public-listing";
 const PAGE_SIZE = 21;
 const COLUMNS =
   "id,title,bid_number,ra_number,state,city,department,ministry_name,department_name,organisation_name,office_name,emd_amount,start_date,end_date,ai_summary,eligibility_msme,eligibility_mii,created_at,slug";
@@ -123,7 +125,7 @@ interface Filters {
   category: string | null;
   descriptionQuery: string;
   tab: "all" | "foryou" | "archived";
-  sortOrder: "newest" | "ending_soon";
+  sortOrder: "newest" | "ending_soon" | "relevance";
 }
 
 async function queryTendersCount(filters: Filters): Promise<number> {
@@ -135,7 +137,9 @@ async function queryTendersCount(filters: Filters): Promise<number> {
     if (filters.tab === "archived") {
       q = q.lt("end_date", new Date().toISOString());
     } else {
-      q = q.gte("end_date", new Date().toISOString()).not("ai_summary", "is", null);
+      q = requirePublicListingReady(
+        q.gte("end_date", new Date().toISOString()).not("ai_summary", "is", null)
+      );
     }
   }
 
@@ -201,11 +205,13 @@ async function queryForYouTenders(searches: any[]): Promise<any[]> {
   // All field matching (org, ministry, ai_summary, etc.) is done client-side in forYouTenders.
   const orString = uniqueKeywords.map(kw => `title.ilike.%${kw}%`).join(",");
 
-  const { data, error } = await supabase
-    .from("tenders")
-    .select(COLUMNS)
-    .gte("end_date", new Date().toISOString())
-    .not("ai_summary", "is", null)
+  const { data, error } = await requirePublicListingReady(
+    supabase
+      .from("tenders")
+      .select(COLUMNS)
+      .gte("end_date", new Date().toISOString())
+      .not("ai_summary", "is", null)
+  )
     .or(orString)
     .order("created_at", { ascending: false })
     .limit(1000);
@@ -215,6 +221,13 @@ async function queryForYouTenders(searches: any[]): Promise<any[]> {
 }
 
 async function queryTenders(filters: Filters, page: number): Promise<any[]> {
+  const qTrim = filters.q.trim();
+  if (filters.sortOrder === "relevance" && qTrim) {
+    const { data, error } = await fetchTendersByRelevance(supabase, filters, page, PAGE_SIZE);
+    if (!error && data) return data as any[];
+    if (error) console.error("[fetchTendersByRelevance]", error);
+  }
+
   let q = supabase
     .from("tenders")
     .select(COLUMNS)
@@ -227,15 +240,17 @@ async function queryTenders(filters: Filters, page: number): Promise<any[]> {
     if (filters.tab === "archived") {
       q = q.lt("end_date", new Date().toISOString());
     } else {
-      q = q.gte("end_date", new Date().toISOString()).not("ai_summary", "is", null);
+      q = requirePublicListingReady(
+        q.gte("end_date", new Date().toISOString()).not("ai_summary", "is", null)
+      );
     }
   }
 
-  // Sort
-  if (filters.sortOrder === "newest") {
-    q = q.order("created_at", { ascending: false }).order("id", { ascending: true });
-  } else {
+  // Sort (relevance without usable RPC, or user chose date sorts)
+  if (filters.sortOrder === "ending_soon") {
     q = q.order("end_date", { ascending: true }).order("id", { ascending: true });
+  } else {
+    q = q.order("created_at", { ascending: false }).order("id", { ascending: true });
   }
 
   // Text search
@@ -295,6 +310,7 @@ export default function TendersClientWrapper(props: {
   initialStates: string[];
   initialCategory?: string;
   initialTotalCount?: number;
+  initialSortOrder?: "newest" | "ending_soon" | "relevance";
 }) {
   return (
     <Suspense fallback={<TendersSkeleton />}>
@@ -305,16 +321,16 @@ export default function TendersClientWrapper(props: {
 
 function TendersSkeleton() {
   return (
-    <div className="min-h-screen bg-fresh-sky-50 dark:bg-slate-950">
+    <div className="min-h-screen bg-fresh-sky-50 dark:bg-background">
       <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
         <div className="mb-8">
-          <div className="h-4 w-32 bg-slate-200 dark:bg-slate-700 rounded animate-pulse mb-3" />
-          <div className="h-10 w-64 bg-slate-200 dark:bg-slate-700 rounded animate-pulse mb-4" />
-          <div className="h-12 w-full max-w-3xl bg-slate-200 dark:bg-slate-700 rounded-2xl animate-pulse" />
+          <div className="h-4 w-32 bg-slate-200 dark:bg-muted rounded animate-pulse mb-3" />
+          <div className="h-10 w-64 bg-slate-200 dark:bg-muted rounded animate-pulse mb-4" />
+          <div className="h-12 w-full max-w-3xl bg-slate-200 dark:bg-muted rounded-2xl animate-pulse" />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-72 bg-white dark:bg-slate-800 rounded-xl animate-pulse border border-slate-100 dark:border-slate-700" />
+            <div key={i} className="h-72 bg-white dark:bg-card rounded-xl animate-pulse border border-slate-100 dark:border-border" />
           ))}
         </div>
       </main>
@@ -329,12 +345,14 @@ function TendersClient({
   initialStates,
   initialCategory,
   initialTotalCount,
+  initialSortOrder,
 }: {
   initialTenders: any[];
   initialQ: string;
   initialStates: string[];
   initialCategory?: string;
   initialTotalCount?: number;
+  initialSortOrder?: "newest" | "ending_soon" | "relevance";
 }) {
   const searchParams = useSearchParams();
 
@@ -361,7 +379,9 @@ function TendersClient({
   const [msmeOnly, setMsmeOnly]                 = useState(false);
   const [miiOnly, setMiiOnly]                   = useState(false);
   const [activeTab, setActiveTab]               = useState<"all" | "foryou" | "archived">("all");
-  const [sortOrder, setSortOrder]               = useState<"newest" | "ending_soon">("newest");
+  const [sortOrder, setSortOrder]               = useState<"newest" | "ending_soon" | "relevance">(
+    initialSortOrder ?? "newest"
+  );
 
   // ── User / auth state ──
   const [user, setUser]                     = useState<any>(null);
@@ -428,7 +448,12 @@ function TendersClient({
     if ((tab === "foryou" || tab === "all" || tab === "archived") && tab !== activeTab) setActiveTab(tab);
 
     const sort = searchParams.get("sort");
-    if ((sort === "newest" || sort === "ending_soon") && sort !== sortOrder) setSortOrder(sort);
+    if (
+      (sort === "newest" || sort === "ending_soon" || sort === "relevance") &&
+      sort !== sortOrder
+    ) {
+      setSortOrder(sort);
+    }
 
     // Instantly remove any tenders that have precisely expired but were kept around by SSR cache
     if (isFirstRender.current) {
@@ -442,6 +467,11 @@ function TendersClient({
       });
     }
   }, [searchParams]);
+
+  // Relevance only applies when there is search text; avoid a stuck "relevance" sort with no query
+  useEffect(() => {
+    if (!searchQuery.trim() && sortOrder === "relevance") setSortOrder("newest");
+  }, [searchQuery, sortOrder]);
 
   // ── Persist location preferences ──
   useEffect(() => {
@@ -522,24 +552,27 @@ function TendersClient({
   // ── Lazy-load states for filter panel ──
   async function loadStates() {
     if (statesLoaded) return;
-    const { data } = await supabase.from("tenders").select("state")
-      .gte("end_date", new Date().toISOString()).not("state", "is", null).limit(10000);
+    const { data } = await requirePublicListingReady(
+      supabase.from("tenders").select("state").gte("end_date", new Date().toISOString())
+    ).limit(10000);
     if (data) { setStates(toCounted(data, "state")); setStatesLoaded(true); }
   }
 
   // ── Lazy-load ministries ──
   async function loadMinistries() {
     if (ministriesLoaded) return;
-    const { data } = await supabase.from("tenders").select("ministry_name")
-      .gte("end_date", new Date().toISOString()).not("ministry_name", "is", null).limit(10000);
+    const { data } = await requirePublicListingReady(
+      supabase.from("tenders").select("ministry_name").gte("end_date", new Date().toISOString())
+    ).not("ministry_name", "is", null).limit(10000);
     if (data) { setMinistries(toCounted(data, "ministry_name")); setMinistriesLoaded(true); }
   }
 
   // ── Lazy-load organisations ──
   async function loadOrgs() {
     if (orgsLoaded) return;
-    const { data } = await supabase.from("tenders").select("organisation_name")
-      .gte("end_date", new Date().toISOString()).not("organisation_name", "is", null).limit(10000);
+    const { data } = await requirePublicListingReady(
+      supabase.from("tenders").select("organisation_name").gte("end_date", new Date().toISOString())
+    ).not("organisation_name", "is", null).limit(10000);
     if (data) { setOrgs(toCounted(data, "organisation_name")); setOrgsLoaded(true); }
   }
 
@@ -555,11 +588,12 @@ function TendersClient({
       setCities([]);
       return;
     }
-    supabase.from("tenders").select("city")
-      .gte("end_date", new Date().toISOString())
-      .in("state", selectedStates).not("city", "is", null).limit(10000)
-      .then(({ data }) => {
-        if (data) setCities(toCounted(data, "city"));
+    requirePublicListingReady(
+      supabase.from("tenders").select("city").gte("end_date", new Date().toISOString())
+    )
+      .in("state", selectedStates).limit(10000)
+      .then((res: { data: { city: string | null }[] | null }) => {
+        if (res.data) setCities(toCounted(res.data, "city"));
       });
   }, [selectedStates, statesLoaded]);
 
@@ -608,9 +642,11 @@ function TendersClient({
       // Fetch contextual filter options in parallel with main results
       const needContextual = !!q && contextualQueryCache.current !== q;
       const ctxPromise = needContextual
-        ? supabase.from("tenders")
-            .select("state, ministry_name, organisation_name")
-            .gte("end_date", new Date().toISOString())
+        ? requirePublicListingReady(
+            supabase.from("tenders")
+              .select("state, ministry_name, organisation_name")
+              .gte("end_date", new Date().toISOString())
+          )
             .or(buildSearchOrClause(q))
             .order("created_at", { ascending: false })
             .limit(1000)
@@ -710,8 +746,11 @@ function TendersClient({
       })
     );
     
+    const forYouSort =
+      sortOrder === "relevance" ? "newest" : sortOrder;
+
     const sorted = [...filtered].sort((a, b) => {
-      if (sortOrder === "newest") {
+      if (forYouSort === "newest") {
         return new Date(b.created_at || b.start_date || 0).getTime() - new Date(a.created_at || a.start_date || 0).getTime();
       } else {
         return new Date(a.end_date || 0).getTime() - new Date(b.end_date || 0).getTime();
@@ -778,7 +817,7 @@ function TendersClient({
 
   // ─────────────────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-fresh-sky-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 font-sans">
+    <div className="min-h-screen bg-fresh-sky-50 dark:bg-background text-slate-800 dark:text-foreground font-sans">
       <main id="main-content" className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
 
         {/* ── Hero ── */}
@@ -789,9 +828,9 @@ function TendersClient({
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
               <span className="relative inline-flex rounded-full h-1.5 w-1.5 sm:h-2 sm:w-2 bg-green-500" />
             </span>
-            <span className="text-xs text-blue-600 dark:text-blue-400 font-bold tracking-wide uppercase">Live Updates</span>
+            <span className="text-xs text-blue-600 dark:text-link font-bold tracking-wide uppercase">Live Updates</span>
           </div>
-          <h2 className="font-bricolage text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight mb-3 sm:mb-4">
+          <h2 className="font-bricolage text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-foreground tracking-tight mb-3 sm:mb-4">
             Find Your Next Tender
           </h2>
 
@@ -811,13 +850,13 @@ function TendersClient({
                   setSearchQuery((e.target as HTMLInputElement).value);
                 }
               }}
-              className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl py-3 sm:py-3.5 pl-9 sm:pl-12 pr-10 text-sm text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm"
+              className="w-full bg-white dark:bg-card border border-slate-200 dark:border-border rounded-2xl py-3 sm:py-3.5 pl-9 sm:pl-12 pr-10 text-sm text-slate-800 dark:text-foreground placeholder:text-slate-400 dark:placeholder:text-muted-tertiary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm"
             />
             {searchQuery && (
               <button
                 aria-label="Clear search"
                 onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-muted transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -945,12 +984,12 @@ function TendersClient({
               <button
                 onClick={handleSaveSearch}
                 disabled={isSavingSearch || saveSuccess}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${saveSuccess ? "bg-green-500 text-white" : "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:bg-black dark:hover:bg-white active:scale-[0.98]"}`}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${saveSuccess ? "bg-green-500 text-white" : "bg-slate-900 dark:bg-foreground text-white dark:text-background hover:bg-black dark:hover:bg-foreground/90 active:scale-[0.98]"}`}
               >
                 {isSavingSearch ? <Loader2 className="w-3 h-3 animate-spin" /> : saveSuccess ? <CheckCircle className="w-3 h-3" /> : <Bell className="w-3 h-3" />}
                 <span>{saveSuccess ? "Saved!" : "Add to Keywords"}</span>
               </button>
-              <span className="text-xs text-slate-500 dark:text-slate-400 hidden sm:inline">Get notified when new tenders match.</span>
+              <span className="text-xs text-slate-500 dark:text-muted-foreground hidden sm:inline">Get notified when new tenders match.</span>
             </div>
           )}
         </div>
@@ -960,7 +999,7 @@ function TendersClient({
 
           {/* ── Left sidebar ── */}
           <aside className="hidden lg:flex flex-col gap-1 w-40 shrink-0 sticky top-20">
-            <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-3 mb-1">View</p>
+            <p className="text-xs font-bold text-slate-400 dark:text-muted-tertiary uppercase tracking-widest px-3 mb-1">View</p>
             {(["all", "archived"] as const).map((tab) => {
               const cnt = tab === "all" ? activeCount : archivedCount;
               return (
@@ -969,16 +1008,16 @@ function TendersClient({
                   onClick={() => setActiveTab(tab)}
                   className={`flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all text-left w-full ${
                     activeTab === tab
-                      ? "bg-slate-900 dark:bg-slate-700 text-white shadow-sm"
-                      : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
+                      ? "bg-slate-900 dark:bg-muted text-white shadow-sm"
+                      : "text-slate-600 dark:text-muted-foreground hover:bg-slate-100 dark:hover:bg-muted hover:text-slate-900 dark:hover:text-foreground"
                   }`}
                 >
                   <span className="flex items-center gap-2.5">
                     {tab === "all"      && <span className="w-1.5 h-1.5 rounded-full bg-green-400 shrink-0" />}
                     {tab === "archived" && <Clock className="w-3.5 h-3.5 shrink-0" />}
-                    {tab === "all" ? "Active Bids" : "Archived Bids"}
+                    {tab === "all" ? "Live listings" : "Archived Bids"}
                   </span>
-                  <span suppressHydrationWarning className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${activeTab === tab ? "bg-white/20 text-white" : "bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300"}`}>
+                  <span suppressHydrationWarning className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${activeTab === tab ? "bg-white/20 text-white" : "bg-slate-200 dark:bg-muted text-slate-600 dark:text-muted-foreground"}`}>
                     {(cnt ?? (tab === 'all' ? tenders.length : 0)).toLocaleString()}
                   </span>
                 </button>
@@ -990,18 +1029,18 @@ function TendersClient({
           <div className="flex-1 min-w-0">
 
         {/* ── Tabs ── */}
-        <div className="mb-4 border-b border-slate-200 dark:border-slate-700 w-full">
+        <div className="mb-4 border-b border-slate-200 dark:border-border w-full">
           {/* Row 1: Active/Archived toggle */}
           <div className="flex items-center pt-1 pb-2 lg:hidden">
-            <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-full p-0.5 text-xs font-bold" role="tablist" aria-label="Tender Views">
+            <div className="flex items-center bg-slate-100 dark:bg-card rounded-full p-0.5 text-xs font-bold" role="tablist" aria-label="Tender Views">
               <button
                 role="tab"
                 aria-selected={activeTab === "all" || activeTab === "foryou"}
                 onClick={() => setActiveTab("all")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all whitespace-nowrap ${activeTab !== "archived" ? "bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm" : "text-slate-500 dark:text-slate-400"}`}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all whitespace-nowrap ${activeTab !== "archived" ? "bg-white dark:bg-muted text-slate-900 dark:text-foreground shadow-sm" : "text-slate-500 dark:text-muted-foreground"}`}
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-green-400 shrink-0" />
-                Active Bids
+                Live listings
                 {activeCount !== null && !loading && (
                   <span suppressHydrationWarning className="ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">
                     {activeCount.toLocaleString()}
@@ -1012,12 +1051,12 @@ function TendersClient({
                 role="tab"
                 aria-selected={activeTab === "archived"}
                 onClick={() => setActiveTab("archived")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all whitespace-nowrap ${activeTab === "archived" ? "bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm" : "text-slate-500 dark:text-slate-400"}`}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all whitespace-nowrap ${activeTab === "archived" ? "bg-white dark:bg-muted text-slate-900 dark:text-foreground shadow-sm" : "text-slate-500 dark:text-muted-foreground"}`}
               >
                 <Clock className="w-3 h-3 shrink-0" />
                 Archived Bids
                 {archivedCount !== null && !loading && (
-                  <span suppressHydrationWarning className="ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                  <span suppressHydrationWarning className="ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 dark:bg-muted text-slate-600 dark:text-muted-foreground">
                     {archivedCount.toLocaleString()}
                   </span>
                 )}
@@ -1025,55 +1064,82 @@ function TendersClient({
             </div>
           </div>
 
-          {/* Row 2: For You + Sort by */}
-          <div className="flex flex-row items-center justify-between pt-1 pb-2">
-            {user && savedSearches.length > 0 ? (
-              <button
-                role="tab"
-                aria-selected={activeTab === "foryou"}
-                onClick={() => setActiveTab("foryou")}
-                className={`text-xs sm:text-sm font-bold flex items-center space-x-1.5 sm:space-x-2 transition-all relative whitespace-nowrap ${activeTab === "foryou" ? "text-blue-600 dark:text-blue-400" : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"}`}
-              >
-                <Zap className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${activeTab === "foryou" ? "text-blue-600" : "text-slate-500 dark:text-slate-400"}`} />
-                <span>For You</span>
-                <span className={`px-1.5 sm:px-2 py-0.5 rounded-full text-xs font-black tracking-widest uppercase ${activeTab === "foryou" ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"}`}>
-                  {forYouLoading ? "…" : forYouTenders.length}
-                </span>
-              </button>
-            ) : (
-              <button
-                role="tab"
-                aria-selected={false}
-                onClick={() => { if (!user) window.location.href = "/login"; else window.location.href = "/dashboard/keywords"; }}
-                className="group text-xs sm:text-sm font-bold flex items-center space-x-1.5 sm:space-x-2 transition-all relative text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 whitespace-nowrap"
-              >
-                <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-500 group-hover:text-blue-600 transition-colors" />
-                <span>For You</span>
-                <span className="px-1.5 sm:px-2 py-0.5 rounded-full text-xs font-black tracking-widest uppercase bg-slate-100 dark:bg-slate-800 text-slate-600 group-hover:bg-blue-100 group-hover:text-blue-700 transition-colors hidden sm:inline-block">
-                  + Add Keywords
-                </span>
-              </button>
-            )}
+          {/* Row 2: For You (left) + Sort by (right); stack on narrow screens so sort control can be full-width */}
+          <div className="flex w-full flex-col gap-3 pt-1 pb-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+            <div className="flex min-w-0 w-full justify-start sm:flex-1">
+              {user && savedSearches.length > 0 ? (
+                <button
+                  role="tab"
+                  type="button"
+                  aria-selected={activeTab === "foryou"}
+                  onClick={() => setActiveTab("foryou")}
+                  className={`text-xs sm:text-sm font-bold inline-flex items-center gap-1.5 sm:gap-2 rounded-full border px-2.5 py-1.5 sm:px-3 sm:py-2 shadow-sm transition-all active:scale-[0.98] max-w-full ${
+                    activeTab === "foryou"
+                      ? "border-blue-500 bg-blue-50 text-blue-700 shadow-blue-100/80 dark:border-blue-500 dark:bg-blue-950/50 dark:text-blue-200 dark:shadow-none"
+                      : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800/90 dark:text-slate-100 dark:hover:border-slate-500 dark:hover:bg-slate-800"
+                  }`}
+                >
+                  <Zap className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${activeTab === "foryou" ? "text-blue-600 dark:text-blue-300" : "text-slate-500 dark:text-slate-400"}`} />
+                  <span className="truncate">For You</span>
+                  <span
+                    className={`shrink-0 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-black tracking-widest uppercase ${
+                      activeTab === "foryou"
+                        ? "bg-blue-200/80 text-blue-900 dark:bg-blue-900/60 dark:text-blue-100"
+                        : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-200"
+                    }`}
+                  >
+                    {forYouLoading ? "…" : forYouTenders.length}
+                  </span>
+                </button>
+              ) : (
+                <button
+                  role="tab"
+                  type="button"
+                  aria-selected={false}
+                  onClick={() => { if (!user) window.location.href = "/login"; else window.location.href = "/dashboard/keywords"; }}
+                  className="group text-xs sm:text-sm font-bold inline-flex items-center gap-1.5 sm:gap-2 rounded-full border border-slate-200 bg-white px-2.5 py-1.5 sm:px-3 sm:py-2 text-slate-800 shadow-sm transition-all hover:border-blue-400 hover:bg-blue-50/90 hover:shadow active:scale-[0.98] dark:border-slate-600 dark:bg-slate-800/90 dark:text-slate-100 dark:hover:border-blue-500 dark:hover:bg-blue-950/50 max-w-full min-w-0"
+                >
+                  <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-slate-500 transition-colors group-hover:text-blue-600 dark:text-slate-300 dark:group-hover:text-blue-300" />
+                  <span className="truncate shrink min-w-0">For You</span>
+                  <span className="shrink-0 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-black tracking-widest uppercase bg-blue-100 text-blue-900 ring-1 ring-blue-200/80 transition-colors group-hover:bg-blue-200/90 group-hover:ring-blue-300/80 dark:bg-blue-900/50 dark:text-blue-100 dark:ring-blue-500/50 dark:group-hover:bg-blue-800/60 dark:group-hover:text-blue-50">
+                    + Add Keywords
+                  </span>
+                </button>
+              )}
+            </div>
 
-            <div className="flex items-center space-x-3 shrink-0">
-              <div suppressHydrationWarning className="hidden md:block text-xs font-bold text-slate-500 dark:text-slate-400">
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:shrink-0 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
+              <div suppressHydrationWarning className="hidden md:block text-xs font-bold text-slate-500 dark:text-muted-foreground whitespace-nowrap">
                 {loading ? "…" : activeTab === "foryou"
                   ? `${forYouTenders.length} results`
                   : activeTab === "archived"
                     ? `${(archivedCount ?? displayTenders.length).toLocaleString()}${hasMore ? "+" : ""} results`
                     : `${(activeCount ?? displayTenders.length).toLocaleString()}${hasMore ? "+" : ""} results`}
               </div>
-              <div className="flex items-center space-x-2 font-medium">
-                <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Sort by :</span>
-                <select
-                  aria-label="Sort order"
-                  value={sortOrder}
-                  onChange={(e) => setSortOrder(e.target.value as "newest" | "ending_soon")}
-                  className="text-xs sm:text-sm bg-transparent border-none outline-none cursor-pointer text-slate-900 dark:text-slate-100 font-bold p-0"
-                >
-                  <option value="newest">Newest First</option>
-                  <option value="ending_soon">Ending Soon</option>
-                </select>
+              <div className="flex w-full min-w-0 flex-col gap-1.5 sm:w-auto sm:min-w-[13rem] sm:flex-row sm:items-center sm:gap-2">
+                <span className="text-sm font-semibold text-slate-600 dark:text-muted-foreground sm:shrink-0">
+                  Sort by
+                </span>
+                <div className="relative w-full sm:min-w-[12.5rem]">
+                  <select
+                    aria-label="Sort order"
+                    value={sortOrder === "relevance" && !searchQuery.trim() ? "newest" : sortOrder}
+                    onChange={(e) =>
+                      setSortOrder(e.target.value as "newest" | "ending_soon" | "relevance")
+                    }
+                    className="tenders-sort-select h-12 w-full min-h-[48px] cursor-pointer appearance-none rounded-lg border border-border bg-card pl-4 pr-11 text-base font-bold text-card-foreground leading-normal shadow-sm transition-[box-shadow,border-color] hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-ring/35 dark:border-border dark:hover:border-muted-foreground/40 sm:h-11 sm:min-h-[44px] sm:text-sm"
+                  >
+                    <option value="newest">Newest First</option>
+                    <option value="ending_soon">Ending Soon</option>
+                    <option value="relevance" disabled={!searchQuery.trim()}>
+                      Relevance (best match)
+                    </option>
+                  </select>
+                  <ChevronDown
+                    className="pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground"
+                    aria-hidden
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -1105,7 +1171,7 @@ function TendersClient({
               {dateFilter !== "all" && <FilterTag label={`Date: ${dateFilter}`} onRemove={() => setDateFilter("all")} />}
               <button
                 onClick={() => { setSelectedStates([]); setSelectedCities([]); setSelectedMinistries([]); setSelectedOrgs([]); setEmdFilter("all"); setDateFilter("all"); setMsmeOnly(false); setMiiOnly(false); setDescriptionQuery(""); setSelectedCategory(null); }}
-                className="text-xs text-slate-600 dark:text-slate-400 hover:text-slate-600 transition-colors ml-1 px-2 py-1"
+                className="text-xs text-slate-600 dark:text-muted-foreground hover:text-slate-600 transition-colors ml-1 px-2 py-1"
               >
                 Clear all
               </button>
@@ -1119,27 +1185,27 @@ function TendersClient({
           <div role="table" aria-label="Loading Tenders" className="w-full">
             <div role="rowgroup" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {Array.from({ length: 6 }).map((_, i) => (
-                <div role="row" aria-busy="true" key={i} className="h-72 bg-white dark:bg-slate-800 rounded-xl animate-pulse border border-slate-100 dark:border-slate-700">
+                <div role="row" aria-busy="true" key={i} className="h-72 bg-white dark:bg-card rounded-xl animate-pulse border border-slate-100 dark:border-border">
                   <div role="cell" className="sr-only">Loading...</div>
                 </div>
               ))}
             </div>
           </div>
         ) : displayTenders.length === 0 ? (
-          <div className="text-center py-20 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl flex flex-col items-center">
-            <div className="w-14 h-14 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
-              {activeTab === "foryou" ? <Zap className="w-7 h-7 text-slate-300 dark:text-slate-600" /> : <Search className="w-7 h-7 text-slate-300 dark:text-slate-600" />}
+          <div className="text-center py-20 border-2 border-dashed border-slate-200 dark:border-border rounded-2xl flex flex-col items-center">
+            <div className="w-14 h-14 bg-slate-100 dark:bg-card rounded-full flex items-center justify-center mb-4">
+              {activeTab === "foryou" ? <Zap className="w-7 h-7 text-slate-300 dark:text-muted-tertiary" /> : <Search className="w-7 h-7 text-slate-300 dark:text-muted-tertiary" />}
             </div>
             {activeTab === "foryou" ? (
               <>
-                <h3 className="text-lg font-medium text-slate-500 dark:text-slate-400">No matching tenders yet.</h3>
-                <p className="text-slate-600 dark:text-slate-400 mt-1 text-sm">New tenders matching your keywords will appear here automatically.</p>
-                <Link href="/dashboard/keywords" className="mt-4 text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline">Update Keywords →</Link>
+                <h3 className="text-lg font-medium text-slate-500 dark:text-muted-foreground">No matching tenders yet.</h3>
+                <p className="text-slate-600 dark:text-muted-foreground mt-1 text-sm">New tenders matching your keywords will appear here automatically.</p>
+                <Link href="/dashboard/keywords" className="mt-4 text-xs font-bold text-blue-600 dark:text-link hover:underline">Update Keywords →</Link>
               </>
             ) : (
               <>
-                <h3 className="text-lg font-medium text-slate-500 dark:text-slate-400">No matching tenders found.</h3>
-                <p className="text-slate-600 dark:text-slate-400 mt-1 text-sm">Try adjusting your filters or search terms.</p>
+                <h3 className="text-lg font-medium text-slate-500 dark:text-muted-foreground">No matching tenders found.</h3>
+                <p className="text-slate-600 dark:text-muted-foreground mt-1 text-sm">Try adjusting your filters or search terms.</p>
               </>
             )}
           </div>
@@ -1158,7 +1224,7 @@ function TendersClient({
               <Suspense fallback={
                 <div role="rowgroup" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
                   {Array.from({ length: 6 }).map((_, i) => (
-                    <div key={i} className="h-72 bg-white dark:bg-slate-800 rounded-xl animate-pulse border border-slate-100 dark:border-slate-700" />
+                    <div key={i} className="h-72 bg-white dark:bg-card rounded-xl animate-pulse border border-slate-100 dark:border-border" />
                   ))}
                 </div>
               }>
@@ -1183,7 +1249,7 @@ function TendersClient({
                 <button
                   onClick={handleLoadMore}
                   disabled={loadingMore}
-                  className="bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold py-3 px-8 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-all focus:ring-2 focus:ring-blue-500 focus:outline-none flex items-center space-x-2 disabled:opacity-60"
+                  className="bg-white dark:bg-card hover:bg-slate-50 dark:hover:bg-muted text-slate-700 dark:text-muted-foreground font-bold py-3 px-8 rounded-xl border border-slate-200 dark:border-border shadow-sm transition-all focus:ring-2 focus:ring-blue-500 focus:outline-none flex items-center space-x-2 disabled:opacity-60"
                 >
                   {loadingMore ? <Loader2 className="w-4 h-4 animate-spin text-slate-600" /> : <RefreshCw className="w-4 h-4 text-slate-600" />}
                   <span suppressHydrationWarning>
@@ -1208,7 +1274,7 @@ function TendersClient({
 // ─── Small reusable components ────────────────────────────────────────────────
 function TabButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
-    <button role="tab" aria-selected={active} onClick={onClick} className={`pb-2 sm:pb-3 text-xs sm:text-sm font-bold transition-all relative whitespace-nowrap ${active ? "text-blue-600 dark:text-blue-400" : "text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"}`}>
+    <button role="tab" aria-selected={active} onClick={onClick} className={`pb-2 sm:pb-3 text-xs sm:text-sm font-bold transition-all relative whitespace-nowrap ${active ? "text-blue-600 dark:text-link" : "text-slate-600 dark:text-muted-foreground hover:text-slate-800 dark:hover:text-foreground"}`}>
       {label}
       {active && <div className="absolute bottom-[-8px] sm:bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-t-full" />}
     </button>
@@ -1218,7 +1284,7 @@ function TabButton({ label, active, onClick }: { label: string; active: boolean;
 function FilterTag({ label, onRemove, color = "blue" }: { label: string; onRemove: () => void; color?: "blue" | "indigo" }) {
   const cls = color === "indigo"
     ? "bg-indigo-50 text-indigo-600 border-indigo-100"
-    : "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-800";
+    : "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-link border-blue-100 dark:border-blue-800";
   return (
     <button aria-label={`Remove filter ${label}`} onClick={onRemove} className={`flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs border whitespace-nowrap ${cls}`}>
       <span>{label}</span>
@@ -1242,7 +1308,7 @@ function HighlightedText({ text, highlightTerms }: { text: string; highlightTerm
     <>
       {text.split(regex).map((part, i) =>
         valid.some((t) => t.toLowerCase() === part.toLowerCase()) ? (
-          <mark key={i} className="bg-yellow-200 dark:bg-yellow-700 text-slate-900 dark:text-slate-100 rounded-[2px] px-[2px] font-bold shadow-[0_0_2px_rgba(0,0,0,0.1)]">{part}</mark>
+          <mark key={i} className="bg-yellow-200 dark:bg-yellow-700 text-slate-900 dark:text-foreground rounded-[2px] px-[2px] font-bold shadow-[0_0_2px_rgba(0,0,0,0.1)]">{part}</mark>
         ) : (
           <span key={i}>{part}</span>
         )
@@ -1309,22 +1375,22 @@ function TenderCard({
   };
 
   return (
-    <div role="row" className="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-4 transition-all duration-200 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-md flex flex-col h-full relative overflow-hidden">
+    <div role="row" className="group bg-white dark:bg-card border border-slate-200 dark:border-border rounded-xl p-4 transition-all duration-200 hover:border-slate-300 dark:hover:border-muted-foreground/35 hover:shadow-md flex flex-col h-full relative overflow-hidden">
 
       {/* Title */}
       <div role="cell" className="mb-2 w-full">
         <Link href={`/bids/${encodeURIComponent(tender.slug || "")}`} className="hover:no-underline group/title focus:outline-none">
-          <h3 className={`text-sm sm:text-[15px] font-medium text-slate-800 dark:text-slate-200 leading-snug transition-colors group-hover/title:text-blue-700 dark:group-hover/title:text-blue-300 after:absolute after:inset-0 after:z-0 ${isExpanded ? "" : "line-clamp-2"}`}>
+          <h3 className={`text-sm sm:text-[15px] font-medium text-slate-800 dark:text-foreground leading-snug transition-colors group-hover/title:text-blue-700 dark:group-hover/title:text-blue-300 after:absolute after:inset-0 after:z-0 ${isExpanded ? "" : "line-clamp-2"}`}>
             <HighlightedText text={tender.title} highlightTerms={highlightTerms} />
           </h3>
         </Link>
         {tender.title && tender.title.length > 60 && (
           <div className="flex items-center space-x-2 mt-1 relative z-10">
-            <button aria-expanded={isExpanded} aria-label={isExpanded ? "Show less title" : "Show more title"} onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsExpanded(!isExpanded); }} className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">
+            <button aria-expanded={isExpanded} aria-label={isExpanded ? "Show less title" : "Show more title"} onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsExpanded(!isExpanded); }} className="text-xs text-blue-600 dark:text-link hover:text-blue-800 dark:hover:text-link-hover">
               {isExpanded ? "Show less" : "Show more"}
             </button>
             {category && (
-              <span className="flex items-center space-x-1 px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-xs font-bold text-slate-500 dark:text-slate-400">
+              <span className="flex items-center space-x-1 px-1.5 py-0.5 bg-slate-100 dark:bg-card border border-slate-200 dark:border-border rounded text-xs font-bold text-slate-500 dark:text-muted-foreground">
                 <span>{category.icon}</span><span>{category.label}</span>
               </span>
             )}
@@ -1332,7 +1398,7 @@ function TenderCard({
         )}
         {tender.title && tender.title.length <= 60 && category && (
           <div className="flex items-center space-x-2 mt-1 relative z-10">
-            <span className="flex items-center space-x-1 px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-xs font-bold text-slate-500 dark:text-slate-400">
+            <span className="flex items-center space-x-1 px-1.5 py-0.5 bg-slate-100 dark:bg-card border border-slate-200 dark:border-border rounded text-xs font-bold text-slate-500 dark:text-muted-foreground">
               <span>{category.icon}</span><span>{category.label}</span>
             </span>
           </div>
@@ -1341,13 +1407,13 @@ function TenderCard({
 
       {/* Department */}
       <div role="cell" className="mb-3 relative z-20 w-full">
-        <div className="flex flex-wrap gap-x-1.5 gap-y-1 text-xs text-slate-500 dark:text-slate-400 leading-tight">
+        <div className="flex flex-wrap gap-x-1.5 gap-y-1 text-xs text-slate-500 dark:text-muted-foreground leading-tight">
           {departmentDisplay.split(", ").filter(Boolean).map((part, idx, arr) => (
             <span key={idx} className="flex items-center">
               <button aria-label={`Search for ${part}`} onClick={(e) => { e.stopPropagation(); setSearchQuery(part); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="hover:text-blue-600 hover:underline transition-colors text-left py-1">
                 {part}
               </button>
-              {idx < arr.length - 1 && <span className="ml-1 text-slate-300 dark:text-slate-600">,</span>}
+              {idx < arr.length - 1 && <span className="ml-1 text-slate-300 dark:text-muted-tertiary">,</span>}
             </span>
           ))}
         </div>
@@ -1358,9 +1424,9 @@ function TenderCard({
         <div role="cell" className="mb-3 p-2 sm:p-2.5 bg-blue-50/50 dark:bg-blue-900/20 rounded-lg border border-blue-50 dark:border-blue-900 relative z-10 w-full">
           <div className="flex items-center space-x-1 mb-1 opacity-60">
             <Zap className="w-2.5 h-2.5 text-blue-500" />
-            <span className="text-[9px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-tighter">AI Insight</span>
+            <span className="text-[9px] font-bold text-blue-600 dark:text-link uppercase tracking-tighter">AI Insight</span>
           </div>
-          <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed italic">
+          <p className="text-xs text-slate-600 dark:text-muted-foreground line-clamp-2 leading-relaxed italic">
             "<HighlightedText text={displayInsight} highlightTerms={highlightTerms} />"
           </p>
         </div>
@@ -1368,8 +1434,8 @@ function TenderCard({
 
       {/* Location & Bid ID */}
       <div role="cell" className="flex items-center justify-between mb-3 relative z-20 w-full">
-        <div className="flex items-center text-xs text-slate-600 dark:text-slate-400 space-x-1.5 min-w-0">
-          <MapPin className="w-3 h-3 text-slate-300 dark:text-slate-600 shrink-0" />
+        <div className="flex items-center text-xs text-slate-600 dark:text-muted-foreground space-x-1.5 min-w-0">
+          <MapPin className="w-3 h-3 text-slate-300 dark:text-muted-tertiary shrink-0" />
           <div className="flex items-center truncate">
             {tender.city && (
               <>
@@ -1388,7 +1454,7 @@ function TenderCard({
           </div>
         </div>
         <div className="flex items-center space-x-1 shrink-0">
-          {tender.eligibility_msme && <span className="text-xs font-bold px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded border border-blue-100 dark:border-blue-800" title="MSE Preferred">MSE</span>}
+          {tender.eligibility_msme && <span className="text-xs font-bold px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-link rounded border border-blue-100 dark:border-blue-800" title="MSE Preferred">MSE</span>}
           {tender.eligibility_mii  && <span className="text-xs font-bold px-1.5 py-0.5 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded border border-amber-100 dark:border-amber-800" title="MII Preferred">MII</span>}
           {tender.ra_number && (
             <span
@@ -1399,28 +1465,28 @@ function TenderCard({
               Reverse Auction ↗
             </span>
           )}
-          <span className="text-xs font-medium px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded">GeM</span>
+          <span className="text-xs font-medium px-1.5 py-0.5 bg-slate-100 dark:bg-card text-slate-500 dark:text-muted-foreground rounded">GeM</span>
         </div>
       </div>
 
       {/* 4: EMD & Dates */}
-      <div role="cell" className="grid grid-cols-3 gap-2 py-2 sm:py-2.5 border-y border-slate-100 dark:border-slate-700 mb-4 bg-slate-50 dark:bg-slate-800 -mx-4 px-4 relative z-10 pointer-events-none mt-auto w-full">
+      <div role="cell" className="grid grid-cols-3 gap-2 py-2 sm:py-2.5 border-y border-slate-100 dark:border-border mb-4 bg-slate-50 dark:bg-card -mx-4 px-4 relative z-10 pointer-events-none mt-auto w-full">
         <div className="flex flex-col items-center">
-          <span className="text-xs text-slate-500 dark:text-slate-400 mb-0.5">EMD Amount</span>
-          <span suppressHydrationWarning className="text-[13px] font-medium text-slate-700 dark:text-slate-300 truncate">{formattedEMD}</span>
+          <span className="text-xs text-slate-500 dark:text-muted-foreground mb-0.5">EMD Amount</span>
+          <span suppressHydrationWarning className="text-[13px] font-medium text-slate-700 dark:text-muted-foreground truncate">{formattedEMD}</span>
         </div>
-        <div className="flex flex-col items-center border-l border-slate-200 dark:border-slate-700">
-          <span className="text-xs text-slate-500 dark:text-slate-400 mb-0.5">Start Date</span>
-          <span suppressHydrationWarning className="text-[13px] font-medium text-slate-700 dark:text-slate-300">
+        <div className="flex flex-col items-center border-l border-slate-200 dark:border-border">
+          <span className="text-xs text-slate-500 dark:text-muted-foreground mb-0.5">Start Date</span>
+          <span suppressHydrationWarning className="text-[13px] font-medium text-slate-700 dark:text-muted-foreground">
             {isFallbackDate ? "Pending" : (tender.start_date ? formatDate(tender.start_date) : "N/A")}
           </span>
         </div>
-        <div className="flex flex-col items-center border-l border-slate-200 dark:border-slate-700">
+        <div className="flex flex-col items-center border-l border-slate-200 dark:border-border">
           <div className="flex items-center space-x-1 mb-0.5">
-            <Clock className="w-2.5 h-2.5 text-slate-500 dark:text-slate-400" />
-            <span className="text-xs text-slate-500 dark:text-slate-400">Close Date</span>
+            <Clock className="w-2.5 h-2.5 text-slate-500 dark:text-muted-foreground" />
+            <span className="text-xs text-slate-500 dark:text-muted-foreground">Close Date</span>
           </div>
-          <span suppressHydrationWarning className={`text-[13px] font-medium ${isClosingSoon ? 'text-red-500 dark:text-red-400' : 'text-slate-700 dark:text-slate-300'}`}>
+          <span suppressHydrationWarning className={`text-[13px] font-medium ${isClosingSoon ? 'text-red-500 dark:text-red-400' : 'text-slate-700 dark:text-muted-foreground'}`}>
             {isFallbackDate ? "Pending" : formatDate(tender.end_date)}
           </span>
         </div>
@@ -1430,7 +1496,7 @@ function TenderCard({
       <div role="cell" className="flex gap-2 items-center relative z-20 mt-auto w-full">
         <Link
           href={`/bids/${encodeURIComponent(tender.slug || '')}`}
-          className="flex-1 h-10 rounded-xl border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs sm:text-sm font-bold flex items-center justify-center transition-all hover:bg-blue-100 dark:hover:bg-blue-800/30 active:scale-[0.98]"
+          className="flex-1 h-10 rounded-xl border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-link-hover text-xs sm:text-sm font-bold flex items-center justify-center transition-all hover:bg-blue-100 dark:hover:bg-blue-800/30 active:scale-[0.98]"
         >
           View Full Details
         </Link>
@@ -1447,7 +1513,7 @@ function TenderCard({
               alert("Link copied to clipboard!");
             }
           }}
-          className="w-10 h-10 shrink-0 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center justify-center transition-all active:scale-[0.98]"
+          className="w-10 h-10 shrink-0 rounded-xl border border-slate-200 dark:border-border bg-white dark:bg-card text-slate-600 dark:text-muted-foreground hover:text-slate-900 dark:hover:text-foreground hover:bg-slate-50 dark:hover:bg-muted flex items-center justify-center transition-all active:scale-[0.98]"
           title="Share"
           aria-label={`Share ${tender.title}`}
         >
@@ -1458,12 +1524,12 @@ function TenderCard({
             e.stopPropagation();
             onToggleSave();
           }}
-          className={`w-10 h-10 shrink-0 rounded-xl border flex items-center justify-center transition-all active:scale-[0.98] ${isSaved ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-300'}`}
+          className={`w-10 h-10 shrink-0 rounded-xl border flex items-center justify-center transition-all active:scale-[0.98] ${isSaved ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700 text-blue-600 dark:text-link shadow-sm' : 'bg-white dark:bg-card border-slate-200 dark:border-border text-slate-500 dark:text-muted-foreground hover:bg-slate-50 dark:hover:bg-muted hover:text-slate-700 dark:hover:text-muted-foreground'}`}
           title={isSaved ? "Saved" : "Save tender"}
           aria-label={isSaved ? `Unsave ${tender.title}` : `Save ${tender.title}`}
           aria-pressed={isSaved}
         >
-          <Bookmark className={`w-4 h-4 ${isSaved ? "fill-current text-blue-600 dark:text-blue-400" : ""}`} />
+          <Bookmark className={`w-4 h-4 ${isSaved ? "fill-current text-blue-600 dark:text-link" : ""}`} />
         </button>
       </div>
     </div>
@@ -1590,10 +1656,10 @@ function FilterDropdown({
     <div
       ref={panelRef}
       style={panelStyle}
-      className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl overflow-hidden"
+      className="bg-white dark:bg-card border border-slate-200 dark:border-border rounded-2xl shadow-xl overflow-hidden"
     >
       {searchable && (
-        <div className="p-2 border-b border-slate-100 dark:border-slate-800">
+        <div className="p-2 border-b border-slate-100 dark:border-border">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
             <input
@@ -1602,7 +1668,7 @@ function FilterDropdown({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={searchPlaceholder}
-              className="w-full pl-8 pr-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 dark:text-slate-300 placeholder:text-slate-400"
+              className="w-full pl-8 pr-3 py-2 text-sm bg-slate-50 dark:bg-card border border-slate-200 dark:border-border rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 dark:text-muted-foreground placeholder:text-slate-400"
             />
           </div>
         </div>
@@ -1627,23 +1693,23 @@ function FilterDropdown({
                 if (mode === "single") { onSelect?.(val); setOpen(false); }
                 else { onToggle?.(val); }
               }}
-              className={`w-full flex items-center gap-2 px-4 py-2.5 text-sm text-left transition-colors hover:bg-slate-50 dark:hover:bg-slate-800 ${
-                checked ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-bold" : "text-slate-700 dark:text-slate-300"
+              className={`w-full flex items-center gap-2 px-4 py-2.5 text-sm text-left transition-colors hover:bg-slate-50 dark:hover:bg-muted ${
+                checked ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-link-hover font-bold" : "text-slate-700 dark:text-muted-foreground"
               }`}
             >
               {mode === "multi" ? (
-                <span className={`w-3.5 h-3.5 shrink-0 rounded border flex items-center justify-center transition-colors ${checked ? "bg-blue-600 border-blue-600" : "border-slate-300 dark:border-slate-600"}`}>
+                <span className={`w-3.5 h-3.5 shrink-0 rounded border flex items-center justify-center transition-colors ${checked ? "bg-blue-600 border-blue-600" : "border-slate-300 dark:border-border"}`}>
                   {checked && <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 10 10"><path d="M1.5 5l2.5 2.5 4.5-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                 </span>
               ) : (
-                <span className={`w-3.5 h-3.5 shrink-0 rounded-full border flex items-center justify-center transition-colors ${checked ? "border-blue-600" : "border-slate-300 dark:border-slate-600"}`}>
+                <span className={`w-3.5 h-3.5 shrink-0 rounded-full border flex items-center justify-center transition-colors ${checked ? "border-blue-600" : "border-slate-300 dark:border-border"}`}>
                   {checked && <span className="w-2 h-2 rounded-full bg-blue-600 block" />}
                 </span>
               )}
               <span className="flex-1 leading-tight">{lbl}</span>
               {cnt !== undefined && cnt > 0 && (
                 <span suppressHydrationWarning className={`shrink-0 tabular-nums text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
-                  checked ? "bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200" : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
+                  checked ? "bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200" : "bg-slate-100 dark:bg-card text-slate-500 dark:text-muted-foreground"
                 }`}>
                   {cnt.toLocaleString()}
                 </span>
@@ -1654,10 +1720,10 @@ function FilterDropdown({
       </div>
 
       {selected.length > 0 && (
-        <div className="p-2 border-t border-slate-100 dark:border-slate-800">
+        <div className="p-2 border-t border-slate-100 dark:border-border">
           <button
             onClick={() => { onClear(); setOpen(false); }}
-            className="w-full py-1.5 text-sm font-bold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+            className="w-full py-1.5 text-sm font-bold text-slate-500 hover:text-slate-700 dark:text-muted-foreground dark:hover:text-foreground rounded-lg hover:bg-slate-50 dark:hover:bg-muted transition-colors"
           >
             Clear {label}
           </button>
@@ -1675,10 +1741,10 @@ function FilterDropdown({
         disabled={disabled}
         className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold border transition-all whitespace-nowrap ${
           disabled
-            ? "opacity-40 cursor-not-allowed bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-400"
+            ? "opacity-40 cursor-not-allowed bg-white dark:bg-card border-slate-200 dark:border-border text-slate-400"
             : isActive
               ? "bg-blue-600 text-white border-blue-600 shadow-sm pr-1.5"
-              : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600"
+              : "bg-white dark:bg-card border-slate-200 dark:border-border text-slate-600 dark:text-muted-foreground hover:border-slate-300 dark:hover:border-muted-foreground/35"
         }`}
       >
         <span className="max-w-[180px] sm:max-w-[240px] truncate">{buttonLabel}</span>
@@ -1712,7 +1778,7 @@ function TogglePill({ label, active, onClick }: { label: string; active: boolean
       className={`shrink-0 px-3 py-2 rounded-xl text-sm font-bold border transition-all whitespace-nowrap ${
         active
           ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
-          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600"
+          : "bg-white dark:bg-card border-slate-200 dark:border-border text-slate-600 dark:text-muted-foreground hover:border-slate-300 dark:hover:border-muted-foreground/35"
       }`}
     >
       {label}

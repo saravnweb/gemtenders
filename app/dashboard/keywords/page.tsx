@@ -92,11 +92,11 @@ export default async function KeywordsPage() {
   return (
     <div className="space-y-8">
       <div className="border-b border-slate-100 pb-6">
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-foreground tracking-tight flex items-center gap-2">
           <Settings className="w-5 h-5 text-blue-500" />
           Alert Preferences
         </h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Configure keywords and locations for automatic tracking and daily emails.</p>
+        <p className="text-sm text-slate-500 dark:text-muted-foreground font-medium">Configure keywords and locations for automatic tracking and daily emails.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
@@ -106,7 +106,7 @@ export default async function KeywordsPage() {
 
       <Link
           href={liveBidsUrl}
-          className="px-5 py-2.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-xl text-sm font-semibold hover:bg-blue-100 dark:hover:bg-blue-800 transition-all flex items-center justify-center space-x-2 border border-blue-200 dark:border-blue-800 shadow-sm"
+          className="px-5 py-2.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-link rounded-xl text-sm font-semibold hover:bg-blue-100 dark:hover:bg-blue-800 transition-all flex items-center justify-center space-x-2 border border-blue-200 dark:border-blue-800 shadow-sm"
       >
           <span>View Matching Bids</span>
           <ChevronRight className="w-4 h-4" />

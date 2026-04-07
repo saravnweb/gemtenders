@@ -70,16 +70,22 @@ export default function DownloadButtons({
                 return;
             }
             if (!res.ok) {
-                alert("PDF is not available for this tender yet. Please try again later.");
+                let message = "PDF is not available for this tender yet. Please try again later.";
+                const ct = res.headers.get("content-type");
+                if (ct?.includes("application/json")) {
+                    try {
+                        const j = await res.json();
+                        if (j?.error) message = j.error;
+                    } catch { /* keep default */ }
+                }
+                alert(message);
                 return;
             }
 
-            const { signedUrl } = await res.json();
-            if (signedUrl) {
-                window.open(signedUrl, "_blank");
-            } else {
-                alert("Could not retrieve PDF. Please try again.");
-            }
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            window.open(url, "_blank");
+            setTimeout(() => URL.revokeObjectURL(url), 120_000);
         } catch {
             alert("Download failed. Please check your connection and try again.");
         } finally {
@@ -93,7 +99,7 @@ export default function DownloadButtons({
     if (!pdfUrl) {
         return (
             <div className="flex flex-col w-full gap-3">
-                <div className={`flex-1 ${isMobile ? "py-3.5" : "py-3.5"} bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-500 text-xs ${isMobile ? "rounded-xl" : "rounded-2xl"} font-medium flex items-center justify-center space-x-2 border border-slate-200/60 dark:border-slate-700 shadow-sm opacity-70`}>
+                <div className={`flex-1 ${isMobile ? "py-3.5" : "py-3.5"} bg-slate-100 dark:bg-card text-slate-500 dark:text-muted-tertiary text-xs ${isMobile ? "rounded-xl" : "rounded-2xl"} font-medium flex items-center justify-center space-x-2 border border-slate-200/60 dark:border-border shadow-sm opacity-70`}>
                     <Download className="w-4 h-4 opacity-40" />
                     <span>Internal PDF Unavailable</span>
                 </div>
@@ -117,7 +123,7 @@ export default function DownloadButtons({
                 <button
                     onClick={handleDownload}
                     disabled={loading}
-                    className={btnClass("flex-1 py-3.5 bg-slate-900 dark:bg-slate-700 text-white text-sm rounded-xl font-semibold flex items-center justify-center space-x-2 hover:bg-black dark:hover:bg-slate-600 transition-all shadow-md")}
+                    className={btnClass("flex-1 py-3.5 bg-slate-900 dark:bg-muted text-white text-sm rounded-xl font-semibold flex items-center justify-center space-x-2 hover:bg-black dark:hover:bg-slate-600 transition-all shadow-md")}
                 >
                     {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
                     <span>{loading ? "Loading..." : "Download PDF"}</span>
@@ -139,7 +145,7 @@ export default function DownloadButtons({
             <button
                 onClick={handleDownload}
                 disabled={loading}
-                className={btnClass("flex w-full relative group overflow-hidden py-3.5 bg-slate-900 dark:bg-slate-700 text-white text-sm rounded-2xl font-semibold items-center justify-center space-x-2.5 hover:bg-black dark:hover:bg-slate-600 transition-all shadow-md hover:shadow-xl hover:-translate-y-0.5")}
+                className={btnClass("flex w-full relative group overflow-hidden py-3.5 bg-slate-900 dark:bg-muted text-white text-sm rounded-2xl font-semibold items-center justify-center space-x-2.5 hover:bg-black dark:hover:bg-slate-600 transition-all shadow-md hover:shadow-xl hover:-translate-y-0.5")}
             >
                 {loading ? <Loader2 className="w-5 h-5 animate-spin relative z-10" /> : <Download className="w-5 h-5 relative z-10" />}
                 <span className="relative z-10">{loading ? "Loading..." : "Download PDF"}</span>
@@ -148,7 +154,7 @@ export default function DownloadButtons({
                 href={detailsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex w-full py-2.5 text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 text-xs font-bold items-center justify-center transition-colors border border-dashed border-slate-200 dark:border-slate-700 rounded-xl hover:border-blue-200 dark:hover:border-blue-900"
+                className="flex w-full py-2.5 text-slate-500 hover:text-blue-600 dark:text-muted-foreground dark:hover:text-link-hover text-xs font-bold items-center justify-center transition-colors border border-dashed border-slate-200 dark:border-border rounded-xl hover:border-blue-200 dark:hover:border-blue-900"
             >
                 View full document on GeM Portal
             </a>

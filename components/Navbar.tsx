@@ -101,7 +101,7 @@ export default function Navbar() {
 
   return (
     <>
-      <header className="border-b border-fresh-sky-100 dark:border-fresh-sky-900 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md sticky top-0 z-50 shadow-sm font-sans">
+      <header className="border-b border-fresh-sky-100 dark:border-fresh-sky-900 bg-white/80 dark:bg-background/80 backdrop-blur-md sticky top-0 z-50 shadow-sm font-sans">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-14 sm:h-16 relative">
             {/* Mobile Menu Button - Left Aligned */}
@@ -130,7 +130,7 @@ export default function Navbar() {
                     className="h-full w-auto object-contain transition-transform duration-300 group-hover:scale-105"
                   />
                 </div>
-                <span className="font-bricolage text-base sm:text-xl font-black text-fresh-sky-950 dark:text-white tracking-tight flex items-center leading-none">
+                <span className="font-bricolage text-base sm:text-xl font-black text-fresh-sky-950 dark:text-foreground tracking-tight flex items-center leading-none">
                   GeMTenders.org
                 </span>
               </Link>
@@ -146,19 +146,19 @@ export default function Navbar() {
                       onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
                       aria-expanded={isNotificationsOpen}
                       aria-haspopup="true"
-                      className={`h-9 w-9 sm:h-10 sm:w-10 flex items-center justify-center rounded-full transition-colors relative group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-blue-500 ${isNotificationsOpen ? 'bg-fresh-sky-100 dark:bg-zinc-800 text-atomic-tangerine-600' : 'text-fresh-sky-700 dark:text-fresh-sky-300 hover:bg-fresh-sky-50 dark:hover:bg-fresh-sky-900/30'}`}
+                      className={`h-9 w-9 sm:h-10 sm:w-10 flex items-center justify-center rounded-full transition-colors relative group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-blue-500 ${isNotificationsOpen ? 'bg-fresh-sky-100 dark:bg-muted text-atomic-tangerine-600' : 'text-fresh-sky-700 dark:text-fresh-sky-300 hover:bg-fresh-sky-50 dark:hover:bg-fresh-sky-900/30'}`}
                       aria-label={`Notifications${notifications.some(n => !n.is_read) ? ' — you have unread alerts' : ''}`}
                     >
                       <Bell className="w-5 h-5 transition-transform group-hover:rotate-12" />
                       {notifications.some(n => !n.is_read) && (
-                        <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-atomic-tangerine-600 rounded-full border-1.5 border-white dark:border-zinc-950" aria-hidden="true"></span>
+                        <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-atomic-tangerine-600 rounded-full border-1.5 border-white dark:border-background" aria-hidden="true"></span>
                       )}
                     </button>
 
                   {isNotificationsOpen && (
-                    <div role="dialog" aria-label="Notifications panel" className="absolute right-0 mt-2 w-[min(20rem,calc(100vw-1rem))] bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800 rounded-2xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-200">
-                      <div className="p-4 border-b border-slate-50 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-900/50 flex items-center justify-between">
-                        <span className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-white">Alerts</span>
+                    <div role="dialog" aria-label="Notifications panel" className="absolute right-0 mt-2 w-[min(20rem,calc(100vw-1rem))] bg-white dark:bg-card border border-slate-100 dark:border-border rounded-2xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-200">
+                      <div className="p-4 border-b border-slate-50 dark:border-border bg-slate-50/50 dark:bg-card/50 flex items-center justify-between">
+                        <span className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-foreground">Alerts</span>
                         <span className="bg-atomic-tangerine-100 text-atomic-tangerine-700 text-[10px] font-bold px-2 py-0.5 rounded-full">{notifications.filter(n => !n.is_read).length} New</span>
                       </div>
                       <div className="max-h-[300px] overflow-y-auto">
@@ -168,7 +168,7 @@ export default function Navbar() {
                             <p className="text-sm font-medium text-slate-500">No new alerts.</p>
                           </div>
                         ) : (
-                          <div className="divide-y divide-slate-50 dark:divide-zinc-800/50">
+                          <div className="divide-y divide-slate-50 dark:divide-border/50">
                             {notifications.map((notif: any) => (
                               <button
                                 key={notif.id}
@@ -180,20 +180,20 @@ export default function Navbar() {
                                   setIsNotificationsOpen(false);
                                   if (notif.link) router.push(notif.link);
                                 }}
-                                className={`w-full text-left p-4 hover:bg-slate-50 dark:hover:bg-zinc-800/50 transition-colors flex flex-col gap-1 ${notif.is_read ? 'opacity-60' : 'bg-blue-50/30 dark:bg-blue-900/10'}`}
+                                className={`w-full text-left p-4 hover:bg-slate-50 dark:hover:bg-muted/50 transition-colors flex flex-col gap-1 ${notif.is_read ? 'opacity-60' : 'bg-blue-50/30 dark:bg-blue-900/10'}`}
                               >
                                 <div className="flex items-start justify-between gap-2">
-                                  <span className="text-xs font-bold text-slate-900 dark:text-white line-clamp-1">{notif.title}</span>
+                                  <span className="text-xs font-bold text-slate-900 dark:text-foreground line-clamp-1">{notif.title}</span>
                                   {!notif.is_read && <span className="w-1.5 h-1.5 shrink-0 bg-blue-500 rounded-full mt-1.5"></span>}
                                 </div>
-                                <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">{notif.message}</p>
+                                <p className="text-[11px] text-slate-500 dark:text-muted-foreground line-clamp-2 leading-relaxed">{notif.message}</p>
                                 <span suppressHydrationWarning className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-wider">{new Date(notif.created_at).toLocaleDateString()}</span>
                               </button>
                             ))}
                           </div>
                         )}
                       </div>
-                      <div className="p-2 border-t border-slate-50 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-900/50 text-center">
+                      <div className="p-2 border-t border-slate-50 dark:border-border bg-slate-50/50 dark:bg-card/50 text-center">
                         <Link href="/dashboard" onClick={() => setIsNotificationsOpen(false)} className="text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:text-blue-600 transition-colors">See all matches in Dashboard</Link>
                       </div>
                     </div>
@@ -239,8 +239,8 @@ export default function Navbar() {
                   <>
                     {user ? (
                       <div className="flex items-center space-x-4">
-                        <div className="flex items-center space-x-3 bg-white dark:bg-zinc-900 px-3 py-1.5 rounded-full border border-fresh-sky-100 dark:border-zinc-700 shadow-sm">
-                          <div className="w-7 h-7 rounded-full overflow-hidden border border-slate-200 dark:border-zinc-700 shrink-0 bg-white flex items-center justify-center">
+                        <div className="flex items-center space-x-3 bg-white dark:bg-card px-3 py-1.5 rounded-full border border-fresh-sky-100 dark:border-border shadow-sm">
+                          <div className="w-7 h-7 rounded-full overflow-hidden border border-slate-200 dark:border-border shrink-0 bg-white flex items-center justify-center">
                             {user.user_metadata?.avatar_url ? (
                               <img src={user.user_metadata.avatar_url} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                             ) : (
@@ -289,7 +289,7 @@ export default function Navbar() {
       {/* Sign-in Success Toast */}
       {welcomeToast && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-200 pointer-events-none animate-in slide-in-from-bottom-4 fade-in duration-300">
-          <div className="bg-fresh-sky-950 dark:bg-zinc-900 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-fresh-sky-800 dark:border-zinc-700">
+          <div className="bg-fresh-sky-950 dark:bg-card text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-fresh-sky-800 dark:border-border">
             <div className="w-8 h-8 bg-linear-to-br from-atomic-tangerine-400 to-atomic-tangerine-600 rounded-full flex items-center justify-center shrink-0">
               <CheckCircle2 className="w-4 h-4 text-white" />
             </div>
@@ -311,13 +311,13 @@ export default function Navbar() {
           />
           
           {/* Drawer */}
-          <div id="mobile-menu" className="fixed inset-y-0 left-0 w-[240px] h-dvh bg-white dark:bg-zinc-950 shadow-2xl flex flex-col border-r border-slate-100 dark:border-zinc-800 animate-in slide-in-from-left duration-300 ease-out" role="dialog" aria-modal="true" aria-label="Mobile Navigation">
+          <div id="mobile-menu" className="fixed inset-y-0 left-0 w-[240px] h-dvh bg-white dark:bg-background shadow-2xl flex flex-col border-r border-slate-100 dark:border-border animate-in slide-in-from-left duration-300 ease-out" role="dialog" aria-modal="true" aria-label="Mobile Navigation">
             {/* Drawer Header */}
-            <div className="p-4 border-b border-slate-50 dark:border-zinc-800 flex items-center justify-between h-14 sm:h-16 shrink-0 bg-white dark:bg-zinc-950">
-              <span className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-[0.2em] ml-2">Navigation</span>
+            <div className="p-4 border-b border-slate-50 dark:border-border flex items-center justify-between h-14 sm:h-16 shrink-0 bg-white dark:bg-background">
+              <span className="text-xs font-bold text-slate-600 dark:text-muted-foreground uppercase tracking-[0.2em] ml-2">Navigation</span>
               <button
                 onClick={() => setIsMenuOpen(false)}
-                className="p-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors rounded-lg bg-slate-50 dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:focus-visible:ring-zinc-700"
+                className="p-2 text-slate-600 dark:text-muted-foreground hover:text-slate-900 dark:hover:text-foreground transition-colors rounded-lg bg-slate-50 dark:bg-card border border-slate-100 dark:border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:focus-visible:ring-border"
                 aria-label="Close Navigation Menu"
               >
                 <X className="w-5 h-5" />
@@ -331,8 +331,8 @@ export default function Navbar() {
                   <>
                     {user ? (
                       /* User Profile Summary - Only when logged in */
-                      <div className="flex items-center space-x-3 p-4 bg-slate-50 dark:bg-zinc-900/50 rounded-xl border border-slate-200/50 dark:border-zinc-800/50">
-                        <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 border border-slate-200 dark:border-zinc-800 shadow-md bg-white dark:bg-zinc-900 flex items-center justify-center">
+                      <div className="flex items-center space-x-3 p-4 bg-slate-50 dark:bg-card/50 rounded-xl border border-slate-200/50 dark:border-border/50">
+                        <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 border border-slate-200 dark:border-border shadow-md bg-white dark:bg-card flex items-center justify-center">
                           {user.user_metadata?.avatar_url ? (
                             <img src={user.user_metadata.avatar_url} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                           ) : (
@@ -340,8 +340,8 @@ export default function Navbar() {
                           )}
                         </div>
                         <div className="flex flex-col min-w-0">
-                          <span className="text-xs font-bold text-slate-900 dark:text-white truncate tracking-tight">{user.email?.split('@')[0]}</span>
-                          <span className="text-[9px] font-medium text-slate-600 dark:text-slate-400 uppercase tracking-widest">Active Account</span>
+                          <span className="text-xs font-bold text-slate-900 dark:text-foreground truncate tracking-tight">{user.email?.split('@')[0]}</span>
+                          <span className="text-[9px] font-medium text-slate-600 dark:text-muted-foreground uppercase tracking-widest">Active Account</span>
                         </div>
                       </div>
                     ) : (
@@ -349,7 +349,7 @@ export default function Navbar() {
                       <button 
                         onClick={() => { signInWithGoogle(); setIsMenuOpen(false); }} 
                         disabled={isSigningIn}
-                        className="w-full text-center py-3.5 text-slate-900 dark:text-white font-bold text-xs uppercase tracking-widest border border-slate-200 dark:border-zinc-800 rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-900 transition-all disabled:opacity-50"
+                        className="w-full text-center py-3.5 text-slate-900 dark:text-foreground font-bold text-xs uppercase tracking-widest border border-slate-200 dark:border-border rounded-xl hover:bg-slate-50 dark:hover:bg-card transition-all disabled:opacity-50"
                       >
                         {isSigningIn ? "Connecting..." : "Sign In"}
                       </button>
@@ -359,38 +359,38 @@ export default function Navbar() {
                     <div className="flex flex-col space-y-1">
                       <MenuListItem 
                         href="/explore" 
-                        icon={<LayoutDashboard className="w-4 h-4 text-slate-600 dark:text-slate-400" />} 
+                        icon={<LayoutDashboard className="w-4 h-4 text-slate-600 dark:text-muted-foreground" />} 
                         label="Explore" 
                         onClick={() => setIsMenuOpen(false)} 
                       />
                       <MenuListItem 
                         href="/dashboard/saved" 
-                        icon={<Bookmark className="w-4 h-4 text-slate-600 dark:text-slate-400" />} 
+                        icon={<Bookmark className="w-4 h-4 text-slate-600 dark:text-muted-foreground" />} 
                         label="Saved Bids" 
                         onClick={() => setIsMenuOpen(false)} 
                       />
                       <MenuListItem 
                         href="/dashboard/keywords" 
-                        icon={<Zap className="w-4 h-4 text-slate-600 dark:text-slate-400" />} 
+                        icon={<Zap className="w-4 h-4 text-slate-600 dark:text-muted-foreground" />} 
                         label="Saved Keywords" 
                         onClick={() => setIsMenuOpen(false)} 
                       />
                       <MenuListItem
                         href="/dashboard/subscriptions"
-                        icon={<CreditCard className="w-4 h-4 text-slate-600 dark:text-slate-400" />}
+                        icon={<CreditCard className="w-4 h-4 text-slate-600 dark:text-muted-foreground" />}
                         label="Plans"
                         onClick={() => setIsMenuOpen(false)}
                       />
                       <MenuListItem
                         href="/about"
-                        icon={<Info className="w-4 h-4 text-slate-600 dark:text-slate-400" />}
+                        icon={<Info className="w-4 h-4 text-slate-600 dark:text-muted-foreground" />}
                         label="About"
                         onClick={() => setIsMenuOpen(false)}
                       />
                     </div>
 
                     {/* Conditional Bottom Action: Sign Out or Register */}
-                    <div className="pt-4 border-t border-slate-100 dark:border-zinc-800 space-y-2">
+                    <div className="pt-4 border-t border-slate-100 dark:border-border space-y-2">
                       {user ? (
                         <button
                           onClick={() => { handleSignOut(); setIsMenuOpen(false); }}
@@ -403,7 +403,7 @@ export default function Navbar() {
                         <button
                           onClick={() => { signInWithGoogle(); setIsMenuOpen(false); }}
                           disabled={isSigningIn}
-                          className="w-full text-center py-3.5 text-white dark:text-zinc-950 font-bold text-xs uppercase tracking-widest bg-slate-900 dark:bg-white rounded-xl shadow-lg active:scale-95 transition-all disabled:opacity-50"
+                          className="w-full text-center py-3.5 text-white dark:text-background font-bold text-xs uppercase tracking-widest bg-slate-900 dark:bg-white rounded-xl shadow-lg active:scale-95 transition-all disabled:opacity-50"
                         >
                           {isSigningIn ? "Creating Account..." : "Register Free"}
                         </button>
@@ -413,7 +413,7 @@ export default function Navbar() {
                       {mounted && (
                         <button
                           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                          className="w-full flex items-center justify-between px-4 py-3.5 text-slate-600 dark:text-slate-300 font-bold text-xs uppercase tracking-widest border border-slate-100 dark:border-zinc-700 rounded-xl bg-slate-50 dark:bg-zinc-900 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-all"
+                          className="w-full flex items-center justify-between px-4 py-3.5 text-slate-600 dark:text-muted-foreground font-bold text-xs uppercase tracking-widest border border-slate-100 dark:border-border rounded-xl bg-slate-50 dark:bg-card hover:bg-slate-100 dark:hover:bg-muted transition-all"
                           aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
                         >
                           <div className="flex items-center space-x-2">
@@ -453,13 +453,13 @@ function MenuListItem({ href, icon, label, onClick }: { href: string, icon: Reac
     <Link 
       href={href} 
       onClick={onClick} 
-      className="flex items-center justify-between p-4 bg-white dark:bg-zinc-900/50 border border-slate-100 dark:border-zinc-800 rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800 transition-all group"
+      className="flex items-center justify-between p-4 bg-white dark:bg-card/50 border border-slate-100 dark:border-border rounded-xl hover:bg-slate-50 dark:hover:bg-muted transition-all group"
     >
       <div className="flex items-center space-x-3">
         {icon}
-        <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide leading-none">{label}</span>
+        <span className="text-xs font-bold text-slate-700 dark:text-muted-foreground uppercase tracking-wide leading-none">{label}</span>
       </div>
-      <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600 group-hover:translate-x-1 transition-transform" />
+      <ChevronRight className="w-4 h-4 text-slate-300 dark:text-muted-tertiary group-hover:translate-x-1 transition-transform" />
     </Link>
   );
 }

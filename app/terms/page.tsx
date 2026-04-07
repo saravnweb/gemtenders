@@ -7,30 +7,30 @@ export const metadata: Metadata = {
 
 export default function TermsPage() {
   return (
-    <main id="main-content" className="max-w-4xl mx-auto py-16 px-4 sm:px-6 lg:px-8 bg-white dark:bg-zinc-950 mt-10 rounded-xl shadow-sm border border-slate-100 dark:border-zinc-800">
-      <h1 className="text-3xl font-bricolage font-black text-slate-900 dark:text-white mb-6 tracking-tight">Terms of Service</h1>
+    <main id="main-content" className="max-w-4xl mx-auto py-16 px-4 sm:px-6 lg:px-8 bg-white dark:bg-background mt-10 rounded-xl shadow-sm border border-slate-100 dark:border-border">
+      <h1 className="text-3xl font-bricolage font-black text-slate-900 dark:text-foreground mb-6 tracking-tight">Terms of Service</h1>
 
-      <div className="prose dark:prose-invert text-slate-600 dark:text-slate-400">
+      <div className="prose dark:prose-invert text-slate-600 dark:text-muted-foreground">
         <p className="mb-4">
           Last updated: April 2025. By accessing or using GeMTenders.org you agree to be bound by these Terms of Service.
           If you do not agree, please discontinue use of this site immediately.
         </p>
 
-        <h2 className="text-xl font-bold mt-8 mb-4 text-slate-800 dark:text-white">1. Acceptance of Terms</h2>
+        <h2 className="text-xl font-bold mt-8 mb-4 text-slate-800 dark:text-foreground">1. Acceptance of Terms</h2>
         <p className="mb-4">
           These Terms constitute a legally binding agreement between you and MW Content Studio, the operator of GeMTenders.org.
           We reserve the right to update these Terms at any time. Continued use of the service after any update constitutes
           acceptance of the revised Terms.
         </p>
 
-        <h2 className="text-xl font-bold mt-8 mb-4 text-slate-800 dark:text-white">2. Use of Service</h2>
+        <h2 className="text-xl font-bold mt-8 mb-4 text-slate-800 dark:text-foreground">2. Use of Service</h2>
         <p className="mb-4">
           GeMTenders.org aggregates publicly available tender data from India's Government e-Marketplace (GeM) for informational
           purposes. You may use this service for lawful, personal or professional research. You may not reproduce, redistribute,
           or resell the aggregated data in bulk without prior written consent.
         </p>
 
-        <h2 className="text-xl font-bold mt-8 mb-4 text-slate-800 dark:text-white">3. Subscription &amp; Payments</h2>
+        <h2 className="text-xl font-bold mt-8 mb-4 text-slate-800 dark:text-foreground">3. Subscription &amp; Payments</h2>
         <p className="mb-4">
           Paid plans are billed in Indian Rupees (INR) through Razorpay, a PCI-DSS compliant payment gateway. By subscribing
           you authorise Razorpay to charge your selected payment method on the agreed billing cycle.
@@ -45,7 +45,7 @@ export default function TermsPage() {
           acceptance of the new pricing.
         </p>
 
-        <h2 className="text-xl font-bold mt-8 mb-4 text-slate-800 dark:text-white">4. Data Usage</h2>
+        <h2 className="text-xl font-bold mt-8 mb-4 text-slate-800 dark:text-foreground">4. Data Usage</h2>
         <p className="mb-4">
           Tender data displayed on GeMTenders.org is sourced from gem.gov.in and is subject to GeM's own terms. We make no
           warranties as to the accuracy, completeness, or timeliness of the data. You should always verify critical information
@@ -57,7 +57,7 @@ export default function TermsPage() {
           full details.
         </p>
 
-        <h2 className="text-xl font-bold mt-8 mb-4 text-slate-800 dark:text-white">5. Prohibited Uses</h2>
+        <h2 className="text-xl font-bold mt-8 mb-4 text-slate-800 dark:text-foreground">5. Prohibited Uses</h2>
         <p className="mb-4">You agree not to:</p>
         <ul className="list-disc pl-6 mb-4 space-y-1">
           <li>Scrape, crawl, or bulk-download data from GeMTenders.org in a manner that places excessive load on our servers</li>
@@ -66,7 +66,7 @@ export default function TermsPage() {
           <li>Use the service for any purpose that violates applicable Indian law</li>
         </ul>
 
-        <h2 className="text-xl font-bold mt-8 mb-4 text-slate-800 dark:text-white">6. Limitation of Liability</h2>
+        <h2 className="text-xl font-bold mt-8 mb-4 text-slate-800 dark:text-foreground">6. Limitation of Liability</h2>
         <p className="mb-4">
           GeMTenders.org is provided &ldquo;as is&rdquo; without warranties of any kind, express or implied. To the fullest extent
           permitted by law, MW Content Studio shall not be liable for any indirect, incidental, special, or consequential damages
@@ -78,13 +78,13 @@ export default function TermsPage() {
           three months preceding the claim.
         </p>
 
-        <h2 className="text-xl font-bold mt-8 mb-4 text-slate-800 dark:text-white">7. Governing Law &amp; Jurisdiction</h2>
+        <h2 className="text-xl font-bold mt-8 mb-4 text-slate-800 dark:text-foreground">7. Governing Law &amp; Jurisdiction</h2>
         <p className="mb-4">
           These Terms are governed by the laws of India. Any disputes arising out of or in connection with these Terms shall be
           subject to the exclusive jurisdiction of the courts located in Tamil Nadu, India.
         </p>
 
-        <h2 className="text-xl font-bold mt-8 mb-4 text-slate-800 dark:text-white">8. Contact</h2>
+        <h2 className="text-xl font-bold mt-8 mb-4 text-slate-800 dark:text-foreground">8. Contact</h2>
         <p className="mb-4">
           For questions about these Terms, billing disputes, or account issues, please contact us at{' '}
           <a href="mailto:support@gemtenders.org" className="underline hover:text-slate-900 dark:hover:text-white">
