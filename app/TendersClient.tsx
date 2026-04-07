@@ -26,6 +26,25 @@ import { Sidebar } from "@/components/tenders/Sidebar";
 import { toTitleCase, buildSearchOrClause, getCategory } from "@/components/tenders/utils";
 
 
+// ─── Word-boundary OR clause builder ─────────────────────────────────────────
+// Uses PostgreSQL imatch (\y word boundaries) for text fields so "cab" never
+// matches "cable". bid_number/ra_number/state/city keep ilike for code/geo lookups.
+function buildTextSearchOrClause(term: string): string {
+  const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const p = `\\y${escaped}\\y`;
+  return [
+    `title.imatch.${p}`,
+    `bid_number.ilike.%${term}%`,
+    `ra_number.ilike.%${term}%`,
+    `department.imatch.${p}`,
+    `ministry_name.imatch.${p}`,
+    `organisation_name.imatch.${p}`,
+    `state.ilike.%${term}%`,
+    `city.ilike.%${term}%`,
+    `ai_summary.imatch.${p}`,
+  ].join(",");
+}
+
 // ─── Supabase query builder ────────────────────────────────────────────────────
 interface Filters {
   q: string;
@@ -60,9 +79,7 @@ async function queryTendersCount(filters: Filters): Promise<number> {
 
   if (filters.q.trim()) {
     const searchTerms = filters.q.split(',').map(s => s.trim()).filter(Boolean);
-    const orClauses = searchTerms.map(term =>
-      `title.ilike.%${term}%,bid_number.ilike.%${term}%,ra_number.ilike.%${term}%,department.ilike.%${term}%,ministry_name.ilike.%${term}%,organisation_name.ilike.%${term}%,state.ilike.%${term}%,city.ilike.%${term}%`
-    );
+    const orClauses = searchTerms.map(term => buildTextSearchOrClause(term));
     q = q.or(orClauses.join(','));
   }
 
@@ -129,9 +146,12 @@ async function queryForYouTenders(searches: any[]): Promise<any[]> {
 
   if (!uniqueKeywords.length) return [];
 
-  // Search title + ai_summary in the DB query to match the same fields as the regular search.
-  // All other field matching (org, ministry, etc.) is done client-side in forYouTenders.
-  const orString = uniqueKeywords.map(kw => `title.ilike.%${kw}%,ai_summary.ilike.%${kw}%`).join(",");
+  // Use word-boundary imatch so "cab" doesn't match "cable" in the DB fetch either.
+  const orString = uniqueKeywords.map(kw => {
+    const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const p = `\\y${escaped}\\y`;
+    return `title.imatch.${p},ai_summary.imatch.${p}`;
+  }).join(",");
 
   const { data, error } = await requirePublicListingReady(
     supabase
@@ -184,9 +204,7 @@ async function queryTenders(filters: Filters, page: number): Promise<any[]> {
   // Text search
   if (filters.q.trim()) {
     const searchTerms = filters.q.split(',').map(s => s.trim()).filter(Boolean);
-    const orClauses = searchTerms.map(term =>
-      `title.ilike.%${term}%,bid_number.ilike.%${term}%,ra_number.ilike.%${term}%,department.ilike.%${term}%,ministry_name.ilike.%${term}%,organisation_name.ilike.%${term}%,state.ilike.%${term}%,city.ilike.%${term}%`
-    );
+    const orClauses = searchTerms.map(term => buildTextSearchOrClause(term));
     q = q.or(orClauses.join(','));
   }
 
