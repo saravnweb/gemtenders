@@ -25,8 +25,17 @@ export default function PWARegister() {
       console.log('[PWA] App is offline');
     };
 
+    const handleBeforeInstallPrompt = (e: any) => {
+      // Prevent the mini-infobar from appearing on mobile
+      // e.preventDefault();
+      console.log('[PWA] beforeinstallprompt event fired. The app is officially installable.');
+      // Stash the event so it can be triggered later if you have a custom install button
+      // setDeferredPrompt(e);
+    };
+
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
     // Register service worker
     registerServiceWorker();
@@ -34,6 +43,7 @@ export default function PWARegister() {
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     };
   }, []);
 

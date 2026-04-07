@@ -21,6 +21,7 @@ export default function GoogleOneTap() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     
+/*
     const originalConsoleError = console.error;
     const originalConsoleLog = console.log;
     const originalConsoleWarn = console.warn;
@@ -66,9 +67,12 @@ export default function GoogleOneTap() {
       console.warn = originalConsoleWarn;
       window.removeEventListener('unhandledrejection', handleUnhandledRejection);
     };
+    */
+   return;
   }, []);
 
   useEffect(() => {
+    console.log(">>> [GOOGLE ONE TAP] useEffect triggered. scriptLoaded:", isScriptLoaded, "google available:", !!window.google);
     if (!isScriptLoaded || typeof window === "undefined" || !window.google) return;
     
     // Clear the timeout if component remounts quickly (React Strict Mode)
@@ -81,11 +85,18 @@ export default function GoogleOneTap() {
     let isCancelled = false;
 
     const initializeOneTap = async () => {
+      console.log(">>> [GOOGLE ONE TAP] Starting initializeOneTap...");
       // 1. Only run this for unauthenticated users
       const { data: { session } } = await supabase.auth.getSession();
       if (session || isCancelled) {
-        if (session) initialized.current = true; // Stay initialized if they are logged in
-        else initialized.current = false; // Reset if cancelled and not logged in
+        if (session) {
+          console.log(">>> [GOOGLE ONE TAP] User already has a session, skipping One Tap.");
+          initialized.current = true; 
+        }
+        else {
+          console.log(">>> [GOOGLE ONE TAP] Initialization cancelled, skipping.");
+          initialized.current = false;
+        }
         return;
       }
 
@@ -95,6 +106,8 @@ export default function GoogleOneTap() {
         console.warn(">>> [GOOGLE ONE TAP] Missing NEXT_PUBLIC_GOOGLE_CLIENT_ID in env variables.");
         return;
       }
+
+      console.log(">>> [GOOGLE ONE TAP] Client ID found, generating nonce...");
 
       // Generate hash for nonce
       const generateNonce = async () => {
@@ -115,11 +128,13 @@ export default function GoogleOneTap() {
 
       if (isCancelled) return;
 
+      console.log(">>> [GOOGLE ONE TAP] Nonce generated, initializing window.google.accounts.id...");
+
       // 2. Initialize the Google One Tap ID
       window.google.accounts.id.initialize({
         client_id: clientID,
         nonce: hashedNonce,
-        use_fedcm_for_prompt: true,
+        use_fedcm_for_prompt: false, // Changed from true to false for better reliability/compatibility
         callback: async (response: any) => {
           console.log(">>> [GOOGLE ONE TAP] Received credential");
           
@@ -143,8 +158,27 @@ export default function GoogleOneTap() {
         cancel_on_tap_outside: true,
       });
 
+      console.log(">>> [GOOGLE ONE TAP] Calling window.google.accounts.id.prompt()...");
+
       // 4. Show the One Tap prompt
-      window.google.accounts.id.prompt();
+      window.google.accounts.id.prompt((notification: any) => {
+        const reason = notification.getNotDisplayedReason?.() || notification.getSkippedReason?.() || notification.getDismissedReason?.() || "Unknown reason";
+        
+        if (notification.isNotDisplayed()) {
+          console.warn(">>> [GOOGLE ONE TAP] Prompt NOT displayed:", reason);
+          if (reason === 'suppressed_by_user') {
+            console.warn(">>> [GOOGLE ONE TAP] HINT: User has manually dismissed this prompt recently.");
+          } else if (reason === 'opt_out_or_no_session') {
+            console.warn(">>> [GOOGLE ONE TAP] HINT: User is not signed in to a Google account or has opted out.");
+          }
+        } else if (notification.isSkippedMoment()) {
+          console.warn(">>> [GOOGLE ONE TAP] Prompt skipped moment:", reason);
+        } else if (notification.isDismissedMoment()) {
+          console.warn(">>> [GOOGLE ONE TAP] Prompt dismissed moment:", reason);
+        } else {
+          console.log(">>> [GOOGLE ONE TAP] Prompt displayed successfully");
+        }
+      });
     };
 
     initializeOneTap();

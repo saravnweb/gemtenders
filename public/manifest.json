@@ -4,9 +4,11 @@
   "description": "Search, filter and monitor India's Government e-Marketplace (GeM) portal Tenders",
   "start_url": "/",
   "scope": "/",
-  "display": "minimal-ui",
+  "display": "standalone",
   "orientation": "portrait-primary",
   "categories": ["business", "productivity"],
+  "theme_color": "#ffffff",
+  "background_color": "#ffffff",
 
   "icons": [
     {
