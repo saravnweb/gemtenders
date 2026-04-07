@@ -40,9 +40,10 @@ export default function AboutPage() {
         <p className="mb-4">
           For inquiries about our tracking platform, reporting issues, or feature requests, contact us below:
         </p>
-        <p className="mb-4">
-          <strong>Email: </strong> <a href="mailto:contact@gemtenders.org" className="text-blue-600 hover:underline">contact@gemtenders.org</a>
-        </p>
+        <div className="mb-4 space-y-2 flex flex-col">
+          <p><strong>Email:</strong> <a href="mailto:contact@gemtenders.org" className="text-blue-600 dark:text-link hover:underline">contact@gemtenders.org</a></p>
+          <p><strong>WhatsApp:</strong> <a href="https://wa.me/919952749408" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-link hover:underline">+91 9952749408</a></p>
+        </div>
 
         <hr className="my-8 border-slate-200 dark:border-border" />
         

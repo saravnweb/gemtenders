@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, useMemo, Suspense } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo, Suspense } from "react";
 import { supabase } from "@/lib/supabase";
 import {
   Search, Download, Clock, Zap, FileText, Bookmark, Info, RefreshCw,
@@ -11,7 +11,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-import { INDIAN_STATES, normalizeState, normalizeCity } from "@/lib/locations";
+import { INDIAN_STATES, normalizeState, normalizeCity } from "@/lib/locations-client";
 import { fetchTendersByRelevance } from "@/lib/tenders-relevance-query";
 import { requirePublicListingReady } from "@/lib/tender-public-listing";
 const PAGE_SIZE = 21;
@@ -830,7 +830,7 @@ function TendersClient({
             </span>
             <span className="text-xs text-fresh-sky-600 dark:text-fresh-sky-400 font-bold tracking-wide uppercase">Live Updates</span>
           </div>
-          <h2 className="font-bricolage text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-foreground tracking-tight mb-3 sm:mb-4">
+          <h2 className="font-bricolage text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 dark:text-foreground tracking-tight mb-3 sm:mb-4">
             Find Your Next Tender
           </h2>
 
@@ -1064,67 +1064,51 @@ function TendersClient({
             </div>
           </div>
 
-          {/* Row 2: For You (left) + Sort by (right); on same row */}
-          <div className="flex w-full flex-row gap-3 pt-1 pb-2 items-center justify-between">
-            <div className="flex min-w-0 flex-shrink justify-start">
-              {user && savedSearches.length > 0 ? (
+          <div className="flex w-full flex-row gap-2 pt-1 pb-1.5 items-center justify-between">
+            <div className="flex min-w-0 shrink flex-row items-center gap-2 justify-start">
+              <button
+                role="tab"
+                type="button"
+                aria-selected={activeTab === "foryou"}
+                onClick={() => {
+                  if (user && savedSearches.length > 0) setActiveTab("foryou");
+                  else window.location.href = user ? "/dashboard/keywords" : "/login";
+                }}
+                className={`text-sm sm:text-base font-bold inline-flex items-center gap-1.5 transition-all shrink-0 ${
+                  activeTab === "foryou"
+                    ? "text-fresh-sky-600"
+                    : "text-slate-500 hover:text-slate-700 dark:text-muted-foreground dark:hover:text-foreground"
+                }`}
+              >
+                <Zap className={`w-4 h-4 shrink-0 ${activeTab === "foryou" ? "text-fresh-sky-600 dark:text-fresh-sky-400" : "text-slate-400"}`} />
+                <span className="truncate shrink min-w-0">
+                  For You {forYouLoading ? "…" : (savedSearches.length > 0 ? forYouTenders.length : 0)}
+                </span>
+                {activeTab === "foryou" && <div className="hidden sm:block absolute -bottom-1.5 left-0 w-full h-0.5 bg-fresh-sky-500 rounded-full" />}
+              </button>
+
+              {!user && (
                 <button
-                  role="tab"
                   type="button"
-                  aria-selected={activeTab === "foryou"}
-                  onClick={() => setActiveTab("foryou")}
-                  className={`text-xs sm:text-sm font-bold inline-flex items-center gap-1.5 sm:gap-2 rounded-full border px-2.5 py-1.5 sm:px-3 sm:py-2 shadow-sm transition-all active:scale-[0.98] max-w-full ${
-                    activeTab === "foryou"
-                      ? "border-fresh-sky-500 bg-fresh-sky-50 text-fresh-sky-700 shadow-fresh-sky-100/80 dark:border-fresh-sky-700 dark:bg-fresh-sky-900/20 dark:text-fresh-sky-400 dark:shadow-none"
-                      : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-border dark:bg-muted/30 dark:text-muted-foreground dark:hover:border-border dark:hover:bg-muted/50"
-                  }`}
+                  onClick={() => { window.location.href = "/login"; }}
+                  className="group text-xs sm:text-sm font-bold inline-flex items-center gap-1 rounded-full border border-muted-olive-200 bg-muted-olive-50 px-2.5 py-1.5 sm:px-3 sm:py-2 text-muted-olive-900 transition-all hover:bg-muted-olive-100 active:scale-[0.98] shrink-0"
                 >
-                  <Zap className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${activeTab === "foryou" ? "text-fresh-sky-600 dark:text-fresh-sky-400" : "text-slate-500 dark:text-muted-tertiay"}`} />
-                  <span className="truncate">For You</span>
-                  <span
-                    className={`shrink-0 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-black tracking-widest uppercase ${
-                      activeTab === "foryou"
-                        ? "bg-fresh-sky-200/80 text-fresh-sky-900 dark:bg-fresh-sky-900/20 dark:text-fresh-sky-200"
-                        : "bg-slate-100 text-slate-600 dark:bg-muted dark:text-muted-foreground"
-                    }`}
-                  >
-                    {forYouLoading ? "…" : forYouTenders.length}
-                  </span>
+                  <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                  <span className="truncate shrink min-w-0">Keywords</span>
                 </button>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <button
-                    role="tab"
-                    type="button"
-                    aria-selected={false}
-                    onClick={() => { if (!user) window.location.href = "/login"; else window.location.href = "/dashboard/keywords"; }}
-                    className="group text-xs sm:text-sm font-bold inline-flex items-center gap-1.5 sm:gap-2 rounded-full border border-slate-200 bg-white px-2.5 py-1.5 sm:px-3 sm:py-2 text-slate-800 shadow-sm transition-all hover:border-fresh-sky-300 hover:bg-fresh-sky-50/80 hover:shadow active:scale-[0.98] dark:border-border dark:bg-muted/30 dark:text-foreground dark:hover:border-fresh-sky-700 dark:hover:bg-fresh-sky-900/10 max-w-full min-w-0"
-                  >
-                    <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-slate-500 transition-colors group-hover:text-fresh-sky-600 dark:text-muted-tertiary dark:group-hover:text-fresh-sky-400" />
-                    <span className="truncate shrink min-w-0">For You</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { if (!user) window.location.href = "/login"; else window.location.href = "/dashboard/keywords"; }}
-                    className="group text-xs sm:text-sm font-bold inline-flex items-center gap-1.5 sm:gap-2 rounded-full border border-muted-olive-200 bg-muted-olive-100 px-2.5 py-1.5 sm:px-3 sm:py-2 text-muted-olive-900 shadow-sm transition-all hover:bg-muted-olive-200/90 hover:border-muted-olive-300 hover:shadow active:scale-[0.98] dark:border-muted-olive-700 dark:bg-muted-olive-900/20 dark:text-muted-olive-200 dark:hover:bg-muted-olive-800/40 dark:hover:border-muted-olive-700"
-                  >
-                    <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-                    <span className="truncate">Add Keywords</span>
-                  </button>
-                </div>
               )}
             </div>
 
-            <div className="flex flex-shrink-0 items-center justify-end gap-3">
-              <div suppressHydrationWarning className="hidden md:block text-xs font-bold text-slate-500 dark:text-muted-foreground whitespace-nowrap">
+            <div className="flex shrink-0 items-center justify-end gap-1.5 ml-auto">
+              <div suppressHydrationWarning className="hidden lg:block text-xs font-bold text-slate-500 dark:text-muted-foreground whitespace-nowrap">
                 {loading ? "…" : activeTab === "foryou"
                   ? `${forYouTenders.length} results`
                   : activeTab === "archived"
                     ? `${(archivedCount ?? displayTenders.length).toLocaleString()}${hasMore ? "+" : ""} results`
                     : `${(activeCount ?? displayTenders.length).toLocaleString()}${hasMore ? "+" : ""} results`}
               </div>
-              <div className="flex min-w-0 flex-row items-center gap-2">
-                <span className="text-sm font-semibold text-slate-600 dark:text-muted-foreground shrink-0">
+              <div className="flex flex-row items-center gap-1 shrink-0">
+                <span className="text-xs font-semibold text-slate-600 dark:text-muted-foreground shrink-0 lg:inline hidden">
                   Sort by
                 </span>
                 <div className="relative shrink-0">
@@ -1134,16 +1118,16 @@ function TendersClient({
                     onChange={(e) =>
                       setSortOrder(e.target.value as "newest" | "ending_soon" | "relevance")
                     }
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold border transition-all whitespace-nowrap bg-white dark:bg-card border-slate-200 dark:border-border text-slate-600 dark:text-muted-foreground hover:border-slate-300 dark:hover:border-muted-foreground/35 cursor-pointer appearance-none pr-8"
+                    className="flex items-center gap-1 px-2 py-1.5 sm:px-3 sm:py-2 rounded-xl text-[11px] sm:text-sm font-bold border transition-all whitespace-nowrap bg-white dark:bg-card border-slate-200 dark:border-border text-slate-600 dark:text-muted-foreground hover:border-slate-300 dark:hover:border-muted-foreground/35 cursor-pointer appearance-none pr-6 sm:pr-8"
                   >
-                    <option value="newest">Newest First</option>
+                    <option value="newest">Newest</option>
                     <option value="ending_soon">Ending Soon</option>
                     <option value="relevance" disabled={!searchQuery.trim()}>
-                      Relevance (best match)
+                      Match
                     </option>
                   </select>
                   <ChevronDown
-                    className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-600 dark:text-muted-foreground"
+                    className="pointer-events-none absolute right-1 sm:right-2 top-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 -translate-y-1/2 text-slate-600 dark:text-muted-foreground"
                     aria-hidden
                   />
                 </div>
@@ -1325,7 +1309,7 @@ function HighlightedText({ text, highlightTerms }: { text: string; highlightTerm
 }
 
 // ─── Tender Card ──────────────────────────────────────────────────────────────
-function TenderCard({
+const TenderCard = React.memo(function TenderCard({
   tender, setSearchQuery, setSelectedStates, isSaved, onToggleSave, highlightTerms = [],
 }: {
   tender: any;
@@ -1343,33 +1327,33 @@ function TenderCard({
     setIsClosingSoon(!isFallbackDate && (new Date(tender.end_date).getTime() - Date.now() < 86400000));
   }, [isFallbackDate, tender.end_date]);
 
-  const formattedEMD = tender.emd_amount === 0
-    ? "No EMD"
-    : tender.emd_amount
-      ? new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(tender.emd_amount)
-      : "Not Specified";
+  const formattedEMD = useMemo(() => {
+    if (tender.emd_amount === 0) return "No EMD";
+    if (!tender.emd_amount) return "Not Specified";
+    return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(tender.emd_amount);
+  }, [tender.emd_amount]);
 
-  const departmentDisplay = formatDepartmentInfo(tender.ministry_name, tender.department_name || tender.department, tender.organisation_name);
-  const category = (tender.category ? getCategoryById(tender.category) : null) ?? getCategory(tender.title, tender.ai_summary);
+  const departmentDisplay = useMemo(() => formatDepartmentInfo(tender.ministry_name, tender.department_name || tender.department, tender.organisation_name), [tender.ministry_name, tender.department_name, tender.department, tender.organisation_name]);
+  const category = useMemo(() => (tender.category ? getCategoryById(tender.category) : null) ?? getCategory(tender.title, tender.ai_summary), [tender.category, tender.title, tender.ai_summary]);
 
-  let displayInsight = tender.ai_summary;
-  let hasValidInsight = !!tender.ai_summary;
-  try {
-    if (tender.ai_summary && tender.ai_summary.startsWith('{')) {
-      const parsed = JSON.parse(tender.ai_summary);
-      if (parsed.ai_insight) {
-        displayInsight = parsed.ai_insight;
-      } else {
-        hasValidInsight = false; 
+  const insight = useMemo(() => {
+    let displayInsight = tender.ai_summary;
+    let hasValidInsight = !!tender.ai_summary;
+    try {
+      if (tender.ai_summary && tender.ai_summary.startsWith('{')) {
+        const parsed = JSON.parse(tender.ai_summary);
+        if (parsed.ai_insight) displayInsight = parsed.ai_insight;
+        else hasValidInsight = false;
       }
+    } catch(e) { /* fallback */ }
+
+    if (!displayInsight || displayInsight.trim().length === 0 || displayInsight.length > 400 || /[\u0900-\u097F]/.test(displayInsight)) {
+      hasValidInsight = false;
     }
-  } catch(e) { /* fallback */ }
+    return { displayInsight, hasValidInsight };
+  }, [tender.ai_summary]);
 
-  if (!displayInsight || displayInsight.trim().length === 0 || displayInsight.length > 400 || /[\u0900-\u097F]/.test(displayInsight)) {
-    hasValidInsight = false;
-  }
-
-  const formatDate = (d: string) => {
+  const formatDate = useCallback((d: string) => {
     if (!d) return "N/A";
     let date = new Date(d);
     if (isNaN(date.getTime()) && typeof d === "string") {
@@ -1379,7 +1363,7 @@ function TenderCard({
       }
     }
     return isNaN(date.getTime()) ? d : date.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
-  };
+  }, []);
 
   return (
     <div role="row" className="group bg-white dark:bg-card border border-slate-200 dark:border-border rounded-xl p-4 transition-all duration-200 hover:border-slate-300 dark:hover:border-muted-foreground/35 hover:shadow-md flex flex-col h-full relative overflow-hidden">
@@ -1397,7 +1381,7 @@ function TenderCard({
               {isExpanded ? "Show less" : "Show more"}
             </button>
             {category && (
-              <span className="flex items-center space-x-1 px-1.5 py-0.5 bg-slate-100 dark:bg-card border border-slate-200 dark:border-border rounded text-xs font-bold text-slate-500 dark:text-muted-foreground">
+              <span className="ml-auto flex items-center space-x-1 px-1.5 py-0.5 bg-slate-100 dark:bg-card border border-slate-200 dark:border-border rounded text-xs font-bold text-slate-500 dark:text-muted-foreground">
                 <span>{category.icon}</span><span>{category.label}</span>
               </span>
             )}
@@ -1405,7 +1389,7 @@ function TenderCard({
         )}
         {tender.title && tender.title.length <= 60 && category && (
           <div className="flex items-center space-x-2 mt-1 relative z-10">
-            <span className="flex items-center space-x-1 px-1.5 py-0.5 bg-slate-100 dark:bg-card border border-slate-200 dark:border-border rounded text-xs font-bold text-slate-500 dark:text-muted-foreground">
+            <span className="ml-auto flex items-center space-x-1 px-1.5 py-0.5 bg-slate-100 dark:bg-card border border-slate-200 dark:border-border rounded text-xs font-bold text-slate-500 dark:text-muted-foreground">
               <span>{category.icon}</span><span>{category.label}</span>
             </span>
           </div>
@@ -1427,14 +1411,14 @@ function TenderCard({
       </div>
 
       {/* AI Insight */}
-      {hasValidInsight && (
+      {insight.hasValidInsight && (
         <div role="cell" className="mb-3 p-2 sm:p-2.5 bg-fresh-sky-50/40 dark:bg-fresh-sky-900/15 rounded-lg border border-fresh-sky-100 dark:border-fresh-sky-900 relative z-10 w-full">
           <div className="flex items-center space-x-1 mb-1 opacity-60">
             <Zap className="w-2.5 h-2.5 text-fresh-sky-600 dark:text-fresh-sky-500" />
             <span className="text-[9px] font-bold text-fresh-sky-600 dark:text-fresh-sky-400 uppercase tracking-tighter">AI Insight</span>
           </div>
           <p className="text-xs text-slate-600 dark:text-muted-foreground line-clamp-2 leading-relaxed italic">
-            "<HighlightedText text={displayInsight} highlightTerms={highlightTerms} />"
+            "<HighlightedText text={insight.displayInsight} highlightTerms={highlightTerms} />"
           </p>
         </div>
       )}
@@ -1453,7 +1437,7 @@ function TenderCard({
               </>
             )}
             {tender.state && (
-              <button aria-label={`Filter by state ${tender.state}`} onClick={(e) => { e.stopPropagation(); setSelectedStates([tender.state]); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="hover:text-blue-600 hover:underline transition-colors truncate">
+              <button aria-label={`Filter by state ${tender.state}`} onClick={(e) => { e.stopPropagation(); setSelectedStates((prev: string[]) => [tender.state]); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="hover:text-blue-600 hover:underline transition-colors truncate">
                 {toTitleCase(tender.state)}
               </button>
             )}
@@ -1541,7 +1525,11 @@ function TenderCard({
       </div>
     </div>
   );
-}
+}, (prev, next) => {
+  return prev.tender.id === next.tender.id && 
+         prev.isSaved === next.isSaved && 
+         (prev.highlightTerms || []).join(',') === (next.highlightTerms || []).join(',');
+});
 
 // ─── FilterDropdown ────────────────────────────────────────────────────────────
 type FDItem = string | { label: string; value: string; count?: number };

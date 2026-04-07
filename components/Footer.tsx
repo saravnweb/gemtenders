@@ -109,10 +109,13 @@ export default function Footer() {
               {[
                 { label: "About", href: "/about" },
                 { label: "Privacy Policy", href: "/privacy" },
+                { label: "Contact Us", href: "https://wa.me/919952749408", target: "_blank" },
               ].map((l) => (
-                <li key={l.href}>
+                <li key={l.label}>
                   <Link
                     href={l.href}
+                    target={l.target}
+                    rel={l.target === "_blank" ? "noopener noreferrer" : undefined}
                     className="text-[12px] font-medium text-slate-600 dark:text-muted-foreground hover:text-slate-800 dark:hover:text-foreground transition-colors focus-visible:outline-none focus-visible:underline"
                   >
                     {l.label}

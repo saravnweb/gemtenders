@@ -137,15 +137,15 @@ export default function Navbar() {
               <Link href="/" aria-label="Home" className="flex items-center space-x-1.5 sm:space-x-2 group scale-100 sm:scale-105 transition-transform origin-left">
                 <div className="relative h-9 w-9 sm:h-12 sm:w-12 shrink-0 flex items-center justify-center">
                   <Image 
-                    src="/favicon.png" 
+                    src="/android-chrome-192x192.png" 
                     alt="GeMTenders.org Home" 
-                    width={64}
-                    height={64}
+                    width={48}
+                    height={48}
                     priority
                     className="h-full w-auto object-contain transition-transform duration-300 group-hover:scale-105"
                   />
                 </div>
-                <span className="font-bricolage text-base sm:text-xl font-black text-fresh-sky-950 dark:text-foreground tracking-tight flex items-center leading-none">
+                <span className="font-sans text-base sm:text-xl font-black tracking-tight flex items-center leading-none" style={{ color: '#397FB3' }}>
                   GeMTenders.org
                 </span>
               </Link>

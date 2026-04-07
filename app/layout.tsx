@@ -126,11 +126,11 @@ export default function RootLayout({
         {/* Google Analytics */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-3GD5YYRK3M"
-          strategy="afterInteractive"
+          strategy="lazyOnload"
         />
         <Script
           id="google-analytics"
-          strategy="afterInteractive"
+          strategy="lazyOnload"
           dangerouslySetInnerHTML={{
             __html: `
               window.dataLayer = window.dataLayer || [];
@@ -140,6 +140,10 @@ export default function RootLayout({
             `,
           }}
         />
+        <link rel="preconnect" href="https://gemtenders.org" />
+        <link rel="preconnect" href="https://hupvlvscskpserofewox.supabase.co" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://www.googletagmanager.com" />
+        <link rel="preconnect" href="https://accounts.google.com" />
       </head>
       <body className="font-sans antialiased">
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
