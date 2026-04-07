@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback, useMemo, Suspense } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, Suspense } from "react";
 import { supabase } from "@/lib/supabase";
 import {
   Search, Clock, Zap, RefreshCw,
@@ -631,7 +631,19 @@ function TendersClient({
     if (isFirstRender.current) {
       isFirstRender.current = false;
       // Only skip client fetch if SSR already gave us data
-      if (initialTenders.length > 0) return;
+      if (initialTenders.length > 0) {
+        // Still fetch counts in background so sidebar shows real total
+        const f = currentFilters();
+        Promise.all([
+          queryTendersCount({ ...f, tab: "all" }),
+          queryTendersCount({ ...f, tab: "archived" }),
+        ]).then(([count, countArchived]) => {
+          setTotalCount(count);
+          setActiveCount(count);
+          setArchivedCount(countArchived);
+        }).catch(() => {});
+        return;
+      }
     }
 
     if (debounceTimer.current) clearTimeout(debounceTimer.current);

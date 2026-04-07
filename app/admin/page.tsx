@@ -26,16 +26,35 @@ export default async function AdminPage() {
         <div className="max-w-md w-full bg-white p-8 rounded-3xl border border-slate-200 shadow-xl text-center">
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
           <h1 className="text-2xl font-black text-slate-800 mb-2">Access Denied</h1>
-          <p className="text-slate-600 mb-6 font-medium leading-relaxed">
-            Your email <span className="text-slate-900 font-bold underline">{userEmail}</span> is not authorized to access the command center.
-          </p>
-          <div className="space-y-4">
+          
+          {!adminEmail ? (
+            <div className="mt-4 p-4 bg-amber-50 border border-amber-100 rounded-2xl text-left">
+              <p className="text-xs font-bold text-amber-800 uppercase tracking-widest mb-1 items-center flex">
+                 <Shield className="w-3 h-3 mr-1" />
+                 Server Configuration Error
+              </p>
+              <p className="text-slate-600 text-sm font-medium leading-relaxed">
+                The <code className="bg-amber-100 px-1 rounded">ADMIN_EMAIL</code> environment variable is missing on your server.
+              </p>
+              <p className="text-slate-500 text-[11px] mt-2 leading-relaxed">
+                 You must add <code className="bg-slate-100 px-1">ADMIN_EMAIL=saravn.ent@gmail.com</code> to your project's Environment Variables in the Vercel/Production dashboard.
+              </p>
+            </div>
+          ) : (
+            <p className="text-slate-600 mb-6 font-medium leading-relaxed">
+              Your email <span className="text-slate-900 font-bold underline">{userEmail}</span> is not authorized to access the command center.
+            </p>
+          )}
+
+          <div className="space-y-4 mt-6">
              <Link href="/" className="block w-full py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-all">
                Return to Live Site
              </Link>
              <div className="pt-2 border-t border-slate-100">
                <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Administrator Hint</p>
-               <p className="text-[11px] text-slate-500 mt-1">Verify that <span className="font-mono text-slate-800">ADMIN_EMAIL</span> in your <span className="font-mono text-slate-800">.env.local</span> matches the email you are logged in with.</p>
+               <p className="text-[11px] text-slate-500 mt-1">
+                 Ensure the email you are logged in with matches exactly the one configured in your server environment.
+               </p>
              </div>
           </div>
         </div>

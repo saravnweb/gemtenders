@@ -1,4 +1,3 @@
-import React from "react";
 import { Clock } from "lucide-react";
 
 interface SidebarProps {
@@ -14,7 +13,7 @@ export function Sidebar({
   setActiveTab,
   activeCount,
   archivedCount,
-  tendersLength
+  tendersLength,
 }: SidebarProps) {
   return (
     <aside className="hidden lg:flex flex-col gap-1 w-40 shrink-0 sticky top-20">
