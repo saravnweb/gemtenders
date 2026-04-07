@@ -53,7 +53,7 @@ export async function POST(request: Request) {
     await admin.from("bid_reveals").insert({
       user_id: user.id,
       tender_id: tenderId,
-    }).catch(() => {}); // Ignore errors (e.g., duplicate key)
+    }); // Ignore errors (e.g., duplicate key) if any, but properly handled via await
 
     return NextResponse.json({ success: true, allowed: true });
 

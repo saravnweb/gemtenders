@@ -83,12 +83,13 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   icons: {
     icon: [
-      { url: '/favicon.png', sizes: '32x32', type: 'image/png' },
-      { url: '/favicon.png', sizes: '192x192', type: 'image/png' },
-      { url: '/favicon.png', sizes: '512x512', type: 'image/png' },
+      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/android-chrome-192x192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/android-chrome-512x512.png', sizes: '512x512', type: 'image/png' },
     ],
-    shortcut: '/favicon.png',
-    apple: '/favicon.png',
+    shortcut: '/favicon.ico',
+    apple: '/apple-touch-icon.png',
   },
   alternates: {
     canonical: siteUrl,
@@ -116,7 +117,7 @@ export default function RootLayout({
         {/* PWA - Web App Manifest */}
         <link rel="manifest" href="/manifest.json" />
         {/* PWA - Apple Touch Icon */}
-        <link rel="apple-touch-icon" href="/favicon.png" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         {/* PWA - Theme Color for address bar */}
         <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
         <meta name="theme-color" content="#202124" media="(prefers-color-scheme: dark)" />

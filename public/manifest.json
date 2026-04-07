@@ -1,7 +1,7 @@
 {
-  "name": "GeMTenders.org — AI-Powered GeM Portal Tender Tracking",
+  "name": "GeMTenders.org — Searchable GeM Portal Tenders",
   "short_name": "GeMTenders",
-  "description": "Track live bids and tenders on India's Government e-Marketplace (GeM) portal using AI. Search, filter and monitor GeM tenders in real time.",
+  "description": "Search, filter and monitor India's Government e-Marketplace (GeM) portal Tenders",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -11,37 +11,37 @@
   "categories": ["business", "productivity"],
   "screenshots": [
     {
-      "src": "/icon-192x192.svg",
+      "src": "/android-chrome-192x192.png",
       "sizes": "192x192",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "form_factor": "narrow",
       "purpose": "any"
     },
     {
-      "src": "/icon-512x512.svg",
+      "src": "/android-chrome-512x512.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "form_factor": "wide",
       "purpose": "any"
     }
   ],
   "icons": [
     {
-      "src": "/icon-192x192.svg",
+      "src": "/android-chrome-192x192.png",
       "sizes": "192x192",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icon-512x512.svg",
+      "src": "/android-chrome-512x512.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icon-192x192.svg",
+      "src": "/android-chrome-192x192.png",
       "sizes": "192x192",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "maskable"
     }
   ],
@@ -53,9 +53,9 @@
       "url": "/explore?mode=search",
       "icons": [
         {
-          "src": "/icon-192x192.svg",
+          "src": "/android-chrome-192x192.png",
           "sizes": "192x192",
-          "type": "image/svg+xml"
+          "type": "image/png"
         }
       ]
     },
@@ -66,9 +66,9 @@
       "url": "/dashboard",
       "icons": [
         {
-          "src": "/icon-192x192.svg",
+          "src": "/android-chrome-192x192.png",
           "sizes": "192x192",
-          "type": "image/svg+xml"
+          "type": "image/png"
         }
       ]
     }
