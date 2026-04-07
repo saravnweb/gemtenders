@@ -1104,7 +1104,7 @@ function TendersClient({
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all whitespace-nowrap flex-1 justify-center ${activeTab === "all" ? "bg-white dark:bg-muted text-slate-900 dark:text-foreground shadow-sm" : "text-slate-500 dark:text-muted-foreground"}`}
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-green-400 shrink-0" />
-                Live
+                Active
                 {activeCount !== null && !loading && (
                   <span suppressHydrationWarning className="ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300">
                     {activeCount.toLocaleString()}

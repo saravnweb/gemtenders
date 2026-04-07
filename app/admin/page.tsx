@@ -8,12 +8,39 @@ export const dynamic = 'force-dynamic';
 
 export default async function AdminPage() {
   const supabase = await createClient();
-
   // Auth guard — only the admin email may access this page
   const { data: { user } } = await supabase.auth.getUser();
-  const adminEmail = process.env.ADMIN_EMAIL;
-  if (!user || !adminEmail || user.email !== adminEmail) {
-    redirect("/");
+  const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  const userEmail = user?.email?.trim().toLowerCase();
+
+  // Redirect to login if not authenticated
+  if (!user) {
+    redirect("/login?callback=/admin");
+  }
+
+  // Show "Access Denied" if email mismatch
+  if (!adminEmail || userEmail !== adminEmail) {
+    console.log(`[Admin Access Denied] User: ${userEmail}, Expected: ${adminEmail}`);
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white p-8 rounded-3xl border border-slate-200 shadow-xl text-center">
+          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h1 className="text-2xl font-black text-slate-800 mb-2">Access Denied</h1>
+          <p className="text-slate-600 mb-6 font-medium leading-relaxed">
+            Your email <span className="text-slate-900 font-bold underline">{userEmail}</span> is not authorized to access the command center.
+          </p>
+          <div className="space-y-4">
+             <Link href="/" className="block w-full py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-all">
+               Return to Live Site
+             </Link>
+             <div className="pt-2 border-t border-slate-100">
+               <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Administrator Hint</p>
+               <p className="text-[11px] text-slate-500 mt-1">Verify that <span className="font-mono text-slate-800">ADMIN_EMAIL</span> in your <span className="font-mono text-slate-800">.env.local</span> matches the email you are logged in with.</p>
+             </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // Fetch detailed stats on server

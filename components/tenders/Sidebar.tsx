@@ -34,9 +34,9 @@ export function Sidebar({
             <span className="flex items-center gap-2.5">
               {tab === "all"      && <span className="w-1.5 h-1.5 rounded-full bg-green-400 shrink-0" />}
               {tab === "archived" && <Clock className="w-3.5 h-3.5 shrink-0" />}
-              {tab === "all" ? "Live listings" : "Archived Bids"}
+              {tab === "all" ? "Active" : "Archived Bids"}
             </span>
-            <span suppressHydrationWarning className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${activeTab === tab ? "bg-white/20 text-white" : "bg-slate-200 dark:bg-muted text-slate-600 dark:text-muted-foreground"}`}>
+            <span suppressHydrationWarning className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${activeTab === tab ? "bg-white/25 text-white" : "bg-slate-200 dark:bg-slate-600 text-slate-600 dark:text-slate-100"}`}>
               {(cnt ?? (tab === 'all' ? tendersLength : 0)).toLocaleString()}
             </span>
           </button>
