@@ -1,20 +1,31 @@
 import { INDIAN_STATES, normalizeState } from "@/lib/locations";
 import { requirePublicListingReady } from "@/lib/tender-public-listing";
 import ExploreClient from "./ExploreClient";
+import { Suspense } from "react";
 
 export const revalidate = 1800; // cache for 30 minutes
 
 export default async function ExplorePage() {
-  // We can select only active tenders to reduce payload and process counts in JS.
-  // We need to query twice to handle different dates/fields or fetch universally.
-  // Note: we'll use `lib/supabase.ts` or `lib/supabase-server.ts`. 
-  // Wait, let's use the local supabase client as usually done in the app.
-  // To avoid timeouts, let's fetch exactly what's needed.
-  
-  // Dynamic aggregations are best done via PostgREST RPC, but JS aggregation works well for <5000 rows.
-  // Actually, we'll import `getExploreData` from an internal helper or do it right here.
+  return (
+    <Suspense fallback={<ExplorePageSkeleton />}>
+      <ExploreDataFetcher />
+    </Suspense>
+  );
+}
 
-  return <ExploreDataFetcher />;
+// Lightweight skeleton while data loads
+function ExplorePageSkeleton() {
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-background font-sans">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+        <div className="mb-5 animate-pulse">
+          <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded w-64 mb-4"></div>
+          <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-96"></div>
+        </div>
+        <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded w-full mb-4"></div>
+      </main>
+    </div>
+  );
 }
 
 // Separate component to handle the async DB call inside it cleanly.
@@ -36,27 +47,28 @@ async function ExploreDataFetcher() {
       .gte("end_date", now)
   );
 
-  // Multi-Sample Strategy to bypass 1000-row limit and ensure data richness:
-  // 1. Latest 1000 (for real-time counts like closing/added today)
-  // 2. 2000 Enriched (specifically seeking those with organisations/states populated)
+  // Optimized fetch: Get only what we need in parallel
+  // 1. Latest 800 tenders (trending/recent)
+  // 2. 800 with organisation (enriched data)
+  // Reduced from 1000+2000 to 800+800 for better performance
   const [latestRes, enrichedRes] = await Promise.all([
     requirePublicListingReady(
       supabase
         .from("tenders")
         .select("id, title, state, ministry_name, organisation_name, emd_amount, eligibility_msme, eligibility_mii, startup_relaxation, created_at, end_date")
         .gte("end_date", now)
-    )
       .order("created_at", { ascending: false })
-      .limit(1000),
+      .limit(800)
+    ),
     requirePublicListingReady(
       supabase
         .from("tenders")
         .select("id, title, state, ministry_name, organisation_name, emd_amount, eligibility_msme, eligibility_mii, startup_relaxation, created_at, end_date")
         .gte("end_date", now)
-    )
-      .not("organisation_name", "is", null)
+        .not("organisation_name", "is", null)
       .order("created_at", { ascending: false })
-      .limit(2000)
+      .limit(800)
+    )
   ]);
 
   // Combine unique tenders

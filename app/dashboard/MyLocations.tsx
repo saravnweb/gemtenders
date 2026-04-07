@@ -97,7 +97,7 @@ export default function MyLocations({ user }: { user: any }) {
                      <span className="font-semibold text-slate-600">{city}:</span>
                      <span className="text-slate-600">also includes</span>
                      {nearby.map(n => (
-                       <span key={n} className="px-2 py-0.5 bg-blue-50 text-blue-600 border border-blue-100 rounded-md font-medium capitalize">
+                       <span key={n} className="px-2 py-0.5 bg-fresh-sky-50 dark:bg-fresh-sky-900/20 text-fresh-sky-600 dark:text-fresh-sky-400 border border-fresh-sky-100 dark:border-fresh-sky-800 rounded-md font-medium capitalize">
                          {n}
                        </span>
                      ))}
@@ -113,7 +113,7 @@ export default function MyLocations({ user }: { user: any }) {
              onClick={handleSave}
              disabled={isSaving}
              className={`px-6 py-3 font-bold text-xs uppercase tracking-widest rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 ${
-                saveSuccess ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-slate-900 text-white hover:bg-black active:scale-[0.98]'
+                saveSuccess ? 'bg-atomic-tangerine-600 dark:bg-atomic-tangerine-700 text-white hover:bg-atomic-tangerine-700 dark:hover:bg-atomic-tangerine-800' : 'bg-slate-900 dark:bg-slate-800 text-white hover:bg-black dark:hover:bg-slate-900 active:scale-[0.98]'
              }`}
            >
              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : saveSuccess ? <Check className="w-4 h-4" /> : null}

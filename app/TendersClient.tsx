@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback, useMemo, Suspense } from "rea
 import { supabase } from "@/lib/supabase";
 import {
   Search, Download, Clock, Zap, FileText, Bookmark, Info, RefreshCw,
-  X, ChevronDown, Bell, CheckCircle, Loader2, Share2, MapPin
+  X, ChevronDown, Bell, CheckCircle, Loader2, Share2, MapPin, Plus
 } from "lucide-react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
@@ -828,7 +828,7 @@ function TendersClient({
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
               <span className="relative inline-flex rounded-full h-1.5 w-1.5 sm:h-2 sm:w-2 bg-green-500" />
             </span>
-            <span className="text-xs text-blue-600 dark:text-link font-bold tracking-wide uppercase">Live Updates</span>
+            <span className="text-xs text-fresh-sky-600 dark:text-fresh-sky-400 font-bold tracking-wide uppercase">Live Updates</span>
           </div>
           <h2 className="font-bricolage text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-foreground tracking-tight mb-3 sm:mb-4">
             Find Your Next Tender
@@ -850,7 +850,7 @@ function TendersClient({
                   setSearchQuery((e.target as HTMLInputElement).value);
                 }
               }}
-              className="w-full bg-white dark:bg-card border border-slate-200 dark:border-border rounded-2xl py-3 sm:py-3.5 pl-9 sm:pl-12 pr-10 text-sm text-slate-800 dark:text-foreground placeholder:text-slate-400 dark:placeholder:text-muted-tertiary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm"
+              className="w-full bg-white dark:bg-card border border-slate-200 dark:border-border rounded-2xl py-3 sm:py-3.5 pl-9 sm:pl-12 pr-10 text-sm text-slate-800 dark:text-foreground placeholder:text-slate-400 dark:placeholder:text-muted-tertiary focus:outline-none focus:ring-2 focus:ring-fresh-sky-500 focus:border-fresh-sky-500 transition-all shadow-sm"
             />
             {searchQuery && (
               <button
@@ -1064,9 +1064,9 @@ function TendersClient({
             </div>
           </div>
 
-          {/* Row 2: For You (left) + Sort by (right); stack on narrow screens so sort control can be full-width */}
-          <div className="flex w-full flex-col gap-3 pt-1 pb-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-            <div className="flex min-w-0 w-full justify-start sm:flex-1">
+          {/* Row 2: For You (left) + Sort by (right); on same row */}
+          <div className="flex w-full flex-row gap-3 pt-1 pb-2 items-center justify-between">
+            <div className="flex min-w-0 flex-shrink justify-start">
               {user && savedSearches.length > 0 ? (
                 <button
                   role="tab"
@@ -1075,40 +1075,47 @@ function TendersClient({
                   onClick={() => setActiveTab("foryou")}
                   className={`text-xs sm:text-sm font-bold inline-flex items-center gap-1.5 sm:gap-2 rounded-full border px-2.5 py-1.5 sm:px-3 sm:py-2 shadow-sm transition-all active:scale-[0.98] max-w-full ${
                     activeTab === "foryou"
-                      ? "border-blue-500 bg-blue-50 text-blue-700 shadow-blue-100/80 dark:border-blue-500 dark:bg-blue-950/50 dark:text-blue-200 dark:shadow-none"
-                      : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800/90 dark:text-slate-100 dark:hover:border-slate-500 dark:hover:bg-slate-800"
+                      ? "border-fresh-sky-500 bg-fresh-sky-50 text-fresh-sky-700 shadow-fresh-sky-100/80 dark:border-fresh-sky-700 dark:bg-fresh-sky-900/20 dark:text-fresh-sky-400 dark:shadow-none"
+                      : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-border dark:bg-muted/30 dark:text-muted-foreground dark:hover:border-border dark:hover:bg-muted/50"
                   }`}
                 >
-                  <Zap className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${activeTab === "foryou" ? "text-blue-600 dark:text-blue-300" : "text-slate-500 dark:text-slate-400"}`} />
+                  <Zap className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${activeTab === "foryou" ? "text-fresh-sky-600 dark:text-fresh-sky-400" : "text-slate-500 dark:text-muted-tertiay"}`} />
                   <span className="truncate">For You</span>
                   <span
                     className={`shrink-0 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-black tracking-widest uppercase ${
                       activeTab === "foryou"
-                        ? "bg-blue-200/80 text-blue-900 dark:bg-blue-900/60 dark:text-blue-100"
-                        : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-200"
+                        ? "bg-fresh-sky-200/80 text-fresh-sky-900 dark:bg-fresh-sky-900/20 dark:text-fresh-sky-200"
+                        : "bg-slate-100 text-slate-600 dark:bg-muted dark:text-muted-foreground"
                     }`}
                   >
                     {forYouLoading ? "…" : forYouTenders.length}
                   </span>
                 </button>
               ) : (
-                <button
-                  role="tab"
-                  type="button"
-                  aria-selected={false}
-                  onClick={() => { if (!user) window.location.href = "/login"; else window.location.href = "/dashboard/keywords"; }}
-                  className="group text-xs sm:text-sm font-bold inline-flex items-center gap-1.5 sm:gap-2 rounded-full border border-slate-200 bg-white px-2.5 py-1.5 sm:px-3 sm:py-2 text-slate-800 shadow-sm transition-all hover:border-blue-400 hover:bg-blue-50/90 hover:shadow active:scale-[0.98] dark:border-slate-600 dark:bg-slate-800/90 dark:text-slate-100 dark:hover:border-blue-500 dark:hover:bg-blue-950/50 max-w-full min-w-0"
-                >
-                  <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-slate-500 transition-colors group-hover:text-blue-600 dark:text-slate-300 dark:group-hover:text-blue-300" />
-                  <span className="truncate shrink min-w-0">For You</span>
-                  <span className="shrink-0 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-black tracking-widest uppercase bg-blue-100 text-blue-900 ring-1 ring-blue-200/80 transition-colors group-hover:bg-blue-200/90 group-hover:ring-blue-300/80 dark:bg-blue-900/50 dark:text-blue-100 dark:ring-blue-500/50 dark:group-hover:bg-blue-800/60 dark:group-hover:text-blue-50">
-                    + Add Keywords
-                  </span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    role="tab"
+                    type="button"
+                    aria-selected={false}
+                    onClick={() => { if (!user) window.location.href = "/login"; else window.location.href = "/dashboard/keywords"; }}
+                    className="group text-xs sm:text-sm font-bold inline-flex items-center gap-1.5 sm:gap-2 rounded-full border border-slate-200 bg-white px-2.5 py-1.5 sm:px-3 sm:py-2 text-slate-800 shadow-sm transition-all hover:border-fresh-sky-300 hover:bg-fresh-sky-50/80 hover:shadow active:scale-[0.98] dark:border-border dark:bg-muted/30 dark:text-foreground dark:hover:border-fresh-sky-700 dark:hover:bg-fresh-sky-900/10 max-w-full min-w-0"
+                  >
+                    <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-slate-500 transition-colors group-hover:text-fresh-sky-600 dark:text-muted-tertiary dark:group-hover:text-fresh-sky-400" />
+                    <span className="truncate shrink min-w-0">For You</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { if (!user) window.location.href = "/login"; else window.location.href = "/dashboard/keywords"; }}
+                    className="group text-xs sm:text-sm font-bold inline-flex items-center gap-1.5 sm:gap-2 rounded-full border border-muted-olive-200 bg-muted-olive-100 px-2.5 py-1.5 sm:px-3 sm:py-2 text-muted-olive-900 shadow-sm transition-all hover:bg-muted-olive-200/90 hover:border-muted-olive-300 hover:shadow active:scale-[0.98] dark:border-muted-olive-700 dark:bg-muted-olive-900/20 dark:text-muted-olive-200 dark:hover:bg-muted-olive-800/40 dark:hover:border-muted-olive-700"
+                  >
+                    <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                    <span className="truncate">Add Keywords</span>
+                  </button>
+                </div>
               )}
             </div>
 
-            <div className="flex w-full flex-col gap-2 sm:w-auto sm:shrink-0 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
+            <div className="flex flex-shrink-0 items-center justify-end gap-3">
               <div suppressHydrationWarning className="hidden md:block text-xs font-bold text-slate-500 dark:text-muted-foreground whitespace-nowrap">
                 {loading ? "…" : activeTab === "foryou"
                   ? `${forYouTenders.length} results`
@@ -1116,18 +1123,18 @@ function TendersClient({
                     ? `${(archivedCount ?? displayTenders.length).toLocaleString()}${hasMore ? "+" : ""} results`
                     : `${(activeCount ?? displayTenders.length).toLocaleString()}${hasMore ? "+" : ""} results`}
               </div>
-              <div className="flex w-full min-w-0 flex-col gap-1.5 sm:w-auto sm:min-w-[13rem] sm:flex-row sm:items-center sm:gap-2">
-                <span className="text-sm font-semibold text-slate-600 dark:text-muted-foreground sm:shrink-0">
+              <div className="flex min-w-0 flex-row items-center gap-2">
+                <span className="text-sm font-semibold text-slate-600 dark:text-muted-foreground shrink-0">
                   Sort by
                 </span>
-                <div className="relative w-full sm:min-w-[12.5rem]">
+                <div className="relative shrink-0">
                   <select
                     aria-label="Sort order"
                     value={sortOrder === "relevance" && !searchQuery.trim() ? "newest" : sortOrder}
                     onChange={(e) =>
                       setSortOrder(e.target.value as "newest" | "ending_soon" | "relevance")
                     }
-                    className="tenders-sort-select h-12 w-full min-h-[48px] cursor-pointer appearance-none rounded-lg border border-border bg-card pl-4 pr-11 text-base font-bold text-card-foreground leading-normal shadow-sm transition-[box-shadow,border-color] hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-ring/35 dark:border-border dark:hover:border-muted-foreground/40 sm:h-11 sm:min-h-[44px] sm:text-sm"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold border transition-all whitespace-nowrap bg-white dark:bg-card border-slate-200 dark:border-border text-slate-600 dark:text-muted-foreground hover:border-slate-300 dark:hover:border-muted-foreground/35 cursor-pointer appearance-none pr-8"
                   >
                     <option value="newest">Newest First</option>
                     <option value="ending_soon">Ending Soon</option>
@@ -1136,7 +1143,7 @@ function TendersClient({
                     </option>
                   </select>
                   <ChevronDown
-                    className="pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground"
+                    className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-600 dark:text-muted-foreground"
                     aria-hidden
                   />
                 </div>
@@ -1200,7 +1207,7 @@ function TendersClient({
               <>
                 <h3 className="text-lg font-medium text-slate-500 dark:text-muted-foreground">No matching tenders yet.</h3>
                 <p className="text-slate-600 dark:text-muted-foreground mt-1 text-sm">New tenders matching your keywords will appear here automatically.</p>
-                <Link href="/dashboard/keywords" className="mt-4 text-xs font-bold text-blue-600 dark:text-link hover:underline">Update Keywords →</Link>
+                <Link href="/dashboard/keywords" className="mt-4 text-xs font-bold text-fresh-sky-600 dark:text-fresh-sky-400 hover:underline">Update Keywords →</Link>
               </>
             ) : (
               <>
@@ -1249,7 +1256,7 @@ function TendersClient({
                 <button
                   onClick={handleLoadMore}
                   disabled={loadingMore}
-                  className="bg-white dark:bg-card hover:bg-slate-50 dark:hover:bg-muted text-slate-700 dark:text-muted-foreground font-bold py-3 px-8 rounded-xl border border-slate-200 dark:border-border shadow-sm transition-all focus:ring-2 focus:ring-blue-500 focus:outline-none flex items-center space-x-2 disabled:opacity-60"
+                  className="bg-white dark:bg-card hover:bg-slate-50 dark:hover:bg-muted text-slate-700 dark:text-muted-foreground font-bold py-3 px-8 rounded-xl border border-slate-200 dark:border-border shadow-sm transition-all focus:ring-2 focus:ring-fresh-sky-500 focus:outline-none flex items-center space-x-2 disabled:opacity-60"
                 >
                   {loadingMore ? <Loader2 className="w-4 h-4 animate-spin text-slate-600" /> : <RefreshCw className="w-4 h-4 text-slate-600" />}
                   <span suppressHydrationWarning>
@@ -1274,7 +1281,7 @@ function TendersClient({
 // ─── Small reusable components ────────────────────────────────────────────────
 function TabButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
-    <button role="tab" aria-selected={active} onClick={onClick} className={`pb-2 sm:pb-3 text-xs sm:text-sm font-bold transition-all relative whitespace-nowrap ${active ? "text-blue-600 dark:text-link" : "text-slate-600 dark:text-muted-foreground hover:text-slate-800 dark:hover:text-foreground"}`}>
+    <button role="tab" aria-selected={active} onClick={onClick} className={`pb-2 sm:pb-3 text-xs sm:text-sm font-bold transition-all relative whitespace-nowrap ${active ? "text-fresh-sky-600 dark:text-fresh-sky-400" : "text-slate-600 dark:text-muted-foreground hover:text-slate-800 dark:hover:text-foreground"}`}>
       {label}
       {active && <div className="absolute bottom-[-8px] sm:bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-t-full" />}
     </button>
@@ -1283,8 +1290,8 @@ function TabButton({ label, active, onClick }: { label: string; active: boolean;
 
 function FilterTag({ label, onRemove, color = "blue" }: { label: string; onRemove: () => void; color?: "blue" | "indigo" }) {
   const cls = color === "indigo"
-    ? "bg-indigo-50 text-indigo-600 border-indigo-100"
-    : "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-link border-blue-100 dark:border-blue-800";
+    ? "bg-muted-olive-50 text-muted-olive-600 dark:bg-muted-olive-900/20 dark:text-muted-olive-400 border-muted-olive-100 dark:border-muted-olive-800"
+    : "bg-fresh-sky-50 dark:bg-fresh-sky-900/20 text-fresh-sky-600 dark:text-fresh-sky-400 border-fresh-sky-100 dark:border-fresh-sky-800";
   return (
     <button aria-label={`Remove filter ${label}`} onClick={onRemove} className={`flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs border whitespace-nowrap ${cls}`}>
       <span>{label}</span>
@@ -1380,13 +1387,13 @@ function TenderCard({
       {/* Title */}
       <div role="cell" className="mb-2 w-full">
         <Link href={`/bids/${encodeURIComponent(tender.slug || "")}`} className="hover:no-underline group/title focus:outline-none">
-          <h3 className={`text-sm sm:text-[15px] font-medium text-slate-800 dark:text-foreground leading-snug transition-colors group-hover/title:text-blue-700 dark:group-hover/title:text-blue-300 after:absolute after:inset-0 after:z-0 ${isExpanded ? "" : "line-clamp-2"}`}>
+          <h3 className={`text-sm sm:text-[15px] font-medium text-slate-800 dark:text-foreground leading-snug transition-colors group-hover/title:text-fresh-sky-700 dark:group-hover/title:text-fresh-sky-400 after:absolute after:inset-0 after:z-0 ${isExpanded ? "" : "line-clamp-2"}`}>
             <HighlightedText text={tender.title} highlightTerms={highlightTerms} />
           </h3>
         </Link>
         {tender.title && tender.title.length > 60 && (
           <div className="flex items-center space-x-2 mt-1 relative z-10">
-            <button aria-expanded={isExpanded} aria-label={isExpanded ? "Show less title" : "Show more title"} onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsExpanded(!isExpanded); }} className="text-xs text-blue-600 dark:text-link hover:text-blue-800 dark:hover:text-link-hover">
+            <button aria-expanded={isExpanded} aria-label={isExpanded ? "Show less title" : "Show more title"} onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsExpanded(!isExpanded); }} className="text-xs text-fresh-sky-600 dark:text-fresh-sky-400 hover:text-fresh-sky-800 dark:hover:text-fresh-sky-300">
               {isExpanded ? "Show less" : "Show more"}
             </button>
             {category && (
@@ -1410,7 +1417,7 @@ function TenderCard({
         <div className="flex flex-wrap gap-x-1.5 gap-y-1 text-xs text-slate-500 dark:text-muted-foreground leading-tight">
           {departmentDisplay.split(", ").filter(Boolean).map((part, idx, arr) => (
             <span key={idx} className="flex items-center">
-              <button aria-label={`Search for ${part}`} onClick={(e) => { e.stopPropagation(); setSearchQuery(part); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="hover:text-blue-600 hover:underline transition-colors text-left py-1">
+              <button aria-label={`Search for ${part}`} onClick={(e) => { e.stopPropagation(); setSearchQuery(part); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="hover:text-fresh-sky-600 dark:hover:text-fresh-sky-400 hover:underline transition-colors text-left py-1">
                 {part}
               </button>
               {idx < arr.length - 1 && <span className="ml-1 text-slate-300 dark:text-muted-tertiary">,</span>}
@@ -1421,10 +1428,10 @@ function TenderCard({
 
       {/* AI Insight */}
       {hasValidInsight && (
-        <div role="cell" className="mb-3 p-2 sm:p-2.5 bg-blue-50/50 dark:bg-blue-900/20 rounded-lg border border-blue-50 dark:border-blue-900 relative z-10 w-full">
+        <div role="cell" className="mb-3 p-2 sm:p-2.5 bg-fresh-sky-50/40 dark:bg-fresh-sky-900/15 rounded-lg border border-fresh-sky-100 dark:border-fresh-sky-900 relative z-10 w-full">
           <div className="flex items-center space-x-1 mb-1 opacity-60">
-            <Zap className="w-2.5 h-2.5 text-blue-500" />
-            <span className="text-[9px] font-bold text-blue-600 dark:text-link uppercase tracking-tighter">AI Insight</span>
+            <Zap className="w-2.5 h-2.5 text-fresh-sky-600 dark:text-fresh-sky-500" />
+            <span className="text-[9px] font-bold text-fresh-sky-600 dark:text-fresh-sky-400 uppercase tracking-tighter">AI Insight</span>
           </div>
           <p className="text-xs text-slate-600 dark:text-muted-foreground line-clamp-2 leading-relaxed italic">
             "<HighlightedText text={displayInsight} highlightTerms={highlightTerms} />"
@@ -1454,11 +1461,11 @@ function TenderCard({
           </div>
         </div>
         <div className="flex items-center space-x-1 shrink-0">
-          {tender.eligibility_msme && <span className="text-xs font-bold px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-link rounded border border-blue-100 dark:border-blue-800" title="MSE Preferred">MSE</span>}
-          {tender.eligibility_mii  && <span className="text-xs font-bold px-1.5 py-0.5 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded border border-amber-100 dark:border-amber-800" title="MII Preferred">MII</span>}
+          {tender.eligibility_msme && <span className="text-xs font-bold px-1.5 py-0.5 bg-fresh-sky-50 dark:bg-fresh-sky-900/20 text-fresh-sky-600 dark:text-fresh-sky-400 rounded border border-fresh-sky-100 dark:border-fresh-sky-800" title="MSE Preferred">MSE</span>}
+          {tender.eligibility_mii  && <span className="text-xs font-bold px-1.5 py-0.5 bg-atomic-tangerine-50 dark:bg-atomic-tangerine-900/20 text-atomic-tangerine-600 dark:text-atomic-tangerine-400 rounded border border-atomic-tangerine-100 dark:border-atomic-tangerine-800" title="MII Preferred">MII</span>}
           {tender.ra_number && (
             <span
-              className="text-xs font-bold px-1.5 py-0.5 bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded border border-purple-100 dark:border-purple-800 cursor-help"
+              className="text-xs font-bold px-1.5 py-0.5 bg-muted-olive-50 dark:bg-muted-olive-900/20 text-muted-olive-600 dark:text-muted-olive-400 rounded border border-muted-olive-100 dark:border-muted-olive-800 cursor-help"
               title={`This bid moved to Reverse Auction\nRA No: ${tender.ra_number}\nClick to search by RA number`}
               onClick={(e) => { e.stopPropagation(); setSearchQuery(tender.ra_number); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
             >
@@ -1496,7 +1503,7 @@ function TenderCard({
       <div role="cell" className="flex gap-2 items-center relative z-20 mt-auto w-full">
         <Link
           href={`/bids/${encodeURIComponent(tender.slug || '')}`}
-          className="flex-1 h-10 rounded-xl border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-link-hover text-xs sm:text-sm font-bold flex items-center justify-center transition-all hover:bg-blue-100 dark:hover:bg-blue-800/30 active:scale-[0.98]"
+          className="flex-1 h-10 rounded-xl border border-fresh-sky-200 dark:border-fresh-sky-700 bg-fresh-sky-50 dark:bg-fresh-sky-900/20 text-fresh-sky-700 dark:text-fresh-sky-400 text-xs sm:text-sm font-bold flex items-center justify-center transition-all hover:bg-fresh-sky-100 dark:hover:bg-fresh-sky-800/30 active:scale-[0.98]"
         >
           View Full Details
         </Link>
@@ -1524,12 +1531,12 @@ function TenderCard({
             e.stopPropagation();
             onToggleSave();
           }}
-          className={`w-10 h-10 shrink-0 rounded-xl border flex items-center justify-center transition-all active:scale-[0.98] ${isSaved ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700 text-blue-600 dark:text-link shadow-sm' : 'bg-white dark:bg-card border-slate-200 dark:border-border text-slate-500 dark:text-muted-foreground hover:bg-slate-50 dark:hover:bg-muted hover:text-slate-700 dark:hover:text-muted-foreground'}`}
+          className={`w-10 h-10 shrink-0 rounded-xl border flex items-center justify-center transition-all active:scale-[0.98] ${isSaved ? 'bg-fresh-sky-50 dark:bg-fresh-sky-900/20 border-fresh-sky-200 dark:border-fresh-sky-700 text-fresh-sky-600 dark:text-fresh-sky-400 shadow-sm' : 'bg-white dark:bg-card border-slate-200 dark:border-border text-slate-500 dark:text-muted-foreground hover:bg-slate-50 dark:hover:bg-muted hover:text-slate-700 dark:hover:text-muted-foreground'}`}
           title={isSaved ? "Saved" : "Save tender"}
           aria-label={isSaved ? `Unsave ${tender.title}` : `Save ${tender.title}`}
           aria-pressed={isSaved}
         >
-          <Bookmark className={`w-4 h-4 ${isSaved ? "fill-current text-blue-600 dark:text-link" : ""}`} />
+          <Bookmark className={`w-4 h-4 ${isSaved ? "fill-current text-fresh-sky-600 dark:text-fresh-sky-400" : ""}`} />
         </button>
       </div>
     </div>

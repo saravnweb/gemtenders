@@ -177,7 +177,7 @@ export default function LocationCard({ search, membershipPlan }: { search: any, 
                         <button
                             type="submit"
                             disabled={!newCity || isUpdating || isPending}
-                            className="shrink-0 w-10 h-10 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 active:scale-95 transition-all flex items-center justify-center shadow-sm disabled:opacity-50"
+                            className="shrink-0 w-10 h-10 bg-fresh-sky-600 dark:bg-fresh-sky-700 text-white rounded-xl hover:bg-fresh-sky-700 dark:hover:bg-fresh-sky-800 active:scale-95 transition-all flex items-center justify-center shadow-sm disabled:opacity-50"
                         >
                             <Plus className="w-4 h-4" />
                         </button>
@@ -194,13 +194,13 @@ export default function LocationCard({ search, membershipPlan }: { search: any, 
                 ) : (
                     <div className="flex flex-wrap gap-2">
                         {states.map((st: string, idx: number) => (
-                            <div key={`st-${idx}`} className="flex items-center gap-1.5 text-xs font-semibold bg-emerald-50 dark:bg-emerald-900/30 px-2.5 py-1 rounded-lg border border-emerald-100 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 group">
+                            <div key={`st-${idx}`} className="flex items-center gap-1.5 text-xs font-semibold bg-muted-olive-50 dark:bg-muted-olive-900/20 px-2.5 py-1 rounded-lg border border-muted-olive-200 dark:border-muted-olive-800 text-muted-olive-700 dark:text-muted-olive-400 group">
                                 <MapPin className="w-3.5 h-3.5 opacity-50" />
                                 <span>{st}</span>
                                 <button 
                                     type="button" 
                                     onClick={() => handleRemoveState(idx)}
-                                    className="hover:bg-emerald-200 dark:hover:bg-emerald-800 p-0.5 rounded-full transition-colors focus:outline-none opacity-50 hover:opacity-100 ml-1" 
+                                    className="hover:bg-muted-olive-200 dark:hover:bg-muted-olive-800/50 p-0.5 rounded-full transition-colors focus:outline-none opacity-50 hover:opacity-100 ml-1" 
                                     title="Remove state"
                                 >
                                     <X className="w-3.5 h-3.5" />
@@ -208,13 +208,13 @@ export default function LocationCard({ search, membershipPlan }: { search: any, 
                             </div>
                         ))}
                         {cities.map((city: string, idx: number) => (
-                            <div key={`ct-${idx}`} className="flex items-center gap-1.5 text-xs font-semibold bg-purple-50 dark:bg-purple-900/30 px-2.5 py-1 rounded-lg border border-purple-100 dark:border-purple-800 text-purple-700 dark:text-purple-400 group">
+                            <div key={`ct-${idx}`} className="flex items-center gap-1.5 text-xs font-semibold bg-fresh-sky-50 dark:bg-fresh-sky-900/20 px-2.5 py-1 rounded-lg border border-fresh-sky-200 dark:border-fresh-sky-800 text-fresh-sky-700 dark:text-fresh-sky-400 group">
                                 <MapPin className="w-3.5 h-3.5 opacity-50" />
                                 <span>{city}</span>
                                 <button 
                                     type="button" 
                                     onClick={() => handleRemoveCity(idx)}
-                                    className="hover:bg-purple-200 dark:hover:bg-purple-800 p-0.5 rounded-full transition-colors focus:outline-none opacity-50 hover:opacity-100 ml-1" 
+                                    className="hover:bg-fresh-sky-200 dark:hover:bg-fresh-sky-800/50 p-0.5 rounded-full transition-colors focus:outline-none opacity-50 hover:opacity-100 ml-1" 
                                     title="Remove city"
                                 >
                                     <X className="w-3.5 h-3.5" />

@@ -92,12 +92,12 @@ export default function KeywordsCard({ search, membershipPlan, totalKeywords }: 
                 ) : (
                     <div className="flex flex-wrap gap-2">
                         {keywords.map((keyword: string, idx: number) => (
-                            <div key={idx} className="flex items-center gap-1.5 text-xs font-semibold bg-blue-50 dark:bg-blue-900/30 px-2.5 py-1 rounded-lg border border-blue-100 dark:border-blue-800 text-blue-700 dark:text-link group">
+                            <div key={idx} className="flex items-center gap-1.5 text-xs font-semibold bg-fresh-sky-50 dark:bg-fresh-sky-900/20 px-2.5 py-1 rounded-lg border border-fresh-sky-100 dark:border-fresh-sky-800 text-fresh-sky-700 dark:text-fresh-sky-400 group">
                                 <span>{keyword}</span>
                                 <button
                                     type="button" 
                                     onClick={() => handleRemoveKeyword(idx)}
-                                    className="hover:bg-blue-200 dark:hover:bg-blue-800 p-0.5 rounded-full transition-colors focus:outline-none opacity-50 hover:opacity-100"
+                                    className="hover:bg-fresh-sky-200 dark:hover:bg-fresh-sky-800/50 p-0.5 rounded-full transition-colors focus:outline-none opacity-50 hover:opacity-100"
                                     title="Remove keyword"
                                 >
                                     <X className="w-3.5 h-3.5" />
@@ -114,12 +114,12 @@ export default function KeywordsCard({ search, membershipPlan, totalKeywords }: 
                     value={newKeyword}
                     onChange={(e) => setNewKeyword(e.target.value)}
                     placeholder="e.g. Solar, Security, Computers..."
-                    className="flex-1 px-4 py-2.5 bg-slate-50 dark:bg-background border border-slate-200 dark:border-border rounded-xl text-sm font-medium focus:bg-white dark:focus:bg-zinc-900 focus:ring-2 focus:ring-blue-500 outline-none shadow-inner transition-all dark:text-foreground"
+                    className="flex-1 px-4 py-2.5 bg-slate-50 dark:bg-background border border-slate-200 dark:border-border rounded-xl text-sm font-medium focus:bg-white dark:focus:bg-zinc-900 focus:ring-2 focus:ring-fresh-sky-500 outline-none shadow-inner transition-all dark:text-foreground"
                 />
                 <button
                     type="submit"
                     disabled={!newKeyword.trim() || isUpdating || isPending}
-                    className="shrink-0 w-10 h-10 bg-blue-600 text-white rounded-xl hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center shadow-sm disabled:opacity-50"
+                    className="shrink-0 w-10 h-10 bg-fresh-sky-600 dark:bg-fresh-sky-700 text-white rounded-xl hover:bg-fresh-sky-700 dark:hover:bg-fresh-sky-800 active:scale-95 transition-all flex items-center justify-center shadow-sm disabled:opacity-50"
                 >
                     <Plus className="w-4 h-4" />
                 </button>

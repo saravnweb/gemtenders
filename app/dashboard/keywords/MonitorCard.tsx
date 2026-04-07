@@ -214,14 +214,14 @@ export default function MonitorCard({ search, membershipPlan, totalKeywords }: {
                 limitCount={upgradeModal.limitCount}
             />
         )}
-        <div className={`group bg-white border border-slate-200 rounded-xl p-6 hover:border-slate-300 hover:shadow-md transition-all relative overflow-hidden shadow-sm ${isUpdating ? 'opacity-70 pointer-events-none' : ''}`}>
+            <div className={`group bg-white dark:bg-card border border-slate-200 dark:border-border rounded-xl p-6 hover:border-slate-300 dark:hover:border-muted-foreground/30 hover:shadow-md transition-all relative overflow-hidden shadow-sm ${isUpdating ? 'opacity-70 pointer-events-none' : ''}`}>
             <div className="flex items-start justify-between mb-4">
                 <div className="w-10 h-10 bg-slate-50 rounded-lg flex items-center justify-center border border-slate-100">
                     <Bell className="w-4 h-4 text-atomic-tangerine-600" />
                 </div>
-                <div className="flex items-center space-x-1.5 bg-green-50 px-2.5 py-1 rounded-full border border-green-100">
-                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
-                    <span className="text-[9px] font-bold text-green-700 uppercase tracking-widest leading-none">Tracking</span>
+                <div className="flex items-center space-x-1.5 bg-muted dark:bg-muted/50 px-2.5 py-1 rounded-full border border-border dark:border-muted-foreground/30">
+                    <span className="w-1.5 h-1.5 bg-atomic-tangerine-600 dark:bg-atomic-tangerine-500 rounded-full animate-pulse"></span>
+                    <span className="text-[9px] font-bold text-muted-foreground dark:text-muted-foreground uppercase tracking-widest leading-none">Tracking</span>
                 </div>
             </div>
 
@@ -233,13 +233,13 @@ export default function MonitorCard({ search, membershipPlan, totalKeywords }: {
                             value={editNameValue}
                             onChange={(e) => setEditNameValue(e.target.value)}
                             onKeyDown={handleNameKeyDown}
-                            className="flex-1 text-base font-bold text-slate-900 border-b-2 border-blue-500 focus:outline-none focus:border-blue-700 uppercase tracking-tight bg-transparent"
+                            className="flex-1 text-base font-bold text-slate-900 dark:text-foreground border-b-2 border-link dark:border-link focus:outline-none focus:border-link-hover dark:focus:border-link-hover uppercase tracking-tight bg-transparent"
                             autoFocus
                         />
                         <button
                             type="button"
                             onClick={handleUpdateName}
-                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                            className="p-1.5 text-link dark:text-link hover:bg-muted dark:hover:bg-muted/50 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-link"
                             aria-label="Save monitor name"
                         >
                             <Check className="w-4 h-4" />
@@ -258,13 +258,13 @@ export default function MonitorCard({ search, membershipPlan, totalKeywords }: {
                     </div>
                 ) : (
                     <div className="flex items-center gap-2">
-                        <h3 className="text-base font-bold text-slate-900 group-hover/title:text-blue-600 transition-colors uppercase tracking-tight">
+                        <h3 className="text-base font-bold text-slate-900 dark:text-foreground group-hover/title:text-link dark:group-hover/title:text-link transition-colors uppercase tracking-tight">
                             {name}
                         </h3>
                         <button
                             type="button"
                             onClick={() => setIsEditingName(true)}
-                            className="opacity-0 group-hover/title:opacity-100 focus:opacity-100 p-1 text-slate-600 hover:text-blue-600 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+                            className="opacity-0 group-hover/title:opacity-100 focus:opacity-100 p-1 text-slate-600 dark:text-muted-foreground hover:text-link dark:hover:text-link transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-link rounded"
                             aria-label="Edit monitor name"
                         >
                             <Pencil className="w-3.5 h-3.5" />
@@ -276,12 +276,12 @@ export default function MonitorCard({ search, membershipPlan, totalKeywords }: {
             <div className="space-y-4">
                 <div className="flex flex-wrap gap-2">
                     {keywords.map((keyword: string, idx: number) => (
-                        <div key={idx} className="flex items-center gap-1 text-xs font-bold uppercase tracking-widest bg-blue-50 px-2.5 py-1.5 rounded-full border border-blue-100 text-blue-700 group/pill">
+                        <div key={idx} className="flex items-center gap-1 text-xs font-bold uppercase tracking-widest bg-muted dark:bg-muted/50 px-2.5 py-1.5 rounded-full border border-border dark:border-muted-foreground/30 text-muted-foreground dark:text-muted-foreground group/pill">
                             <span>{keyword}</span>
                             <button
                                 type="button"
                                 onClick={() => handleRemoveKeyword(idx)}
-                                className="hover:bg-blue-200 p-0.5 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                                className="hover:bg-border dark:hover:bg-muted-foreground/20 p-0.5 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-link"
                                 aria-label={`Remove keyword ${keyword}`}
                             >
                                 <X className="w-3 h-3" />
@@ -289,12 +289,12 @@ export default function MonitorCard({ search, membershipPlan, totalKeywords }: {
                         </div>
                     ))}
                     {states.map((st: string, idx: number) => (
-                        <div key={`st-${idx}`} className="flex items-center gap-1 text-xs font-bold uppercase tracking-widest bg-emerald-50 px-2.5 py-1.5 rounded-full border border-emerald-100 text-emerald-700 group/pill">
+                        <div key={`st-${idx}`} className="flex items-center gap-1 text-xs font-bold uppercase tracking-widest bg-muted-olive-50 dark:bg-muted-olive-900/20 px-2.5 py-1.5 rounded-full border border-muted-olive-200 dark:border-muted-olive-800 text-muted-olive-700 dark:text-muted-olive-400 group/pill">
                             <span>{st}</span>
                             <button
                                 type="button"
                                 onClick={() => handleRemoveState(idx)}
-                                className="hover:bg-emerald-200 p-0.5 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                                className="hover:bg-muted-olive-200 dark:hover:bg-muted-olive-800/50 p-0.5 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-muted-olive-500"
                                 aria-label={`Remove state ${st}`}
                             >
                                 <X className="w-3 h-3" />
@@ -304,7 +304,7 @@ export default function MonitorCard({ search, membershipPlan, totalKeywords }: {
                     {isAddingState ? (
                         <select
                             aria-label="Select a state to add"
-                            className="text-xs font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border border-emerald-200 focus:outline-none focus:border-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500 bg-white"
+                            className="text-xs font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border border-muted-foreground/30 dark:border-muted-foreground/30 focus:outline-none focus:border-link dark:focus:border-link focus-visible:ring-2 focus-visible:ring-link bg-white dark:bg-card"
                             autoFocus
                             onChange={handleAddState}
                             onBlur={() => setIsAddingState(false)}
@@ -318,7 +318,7 @@ export default function MonitorCard({ search, membershipPlan, totalKeywords }: {
                         <button 
                             type="button" 
                             onClick={() => setIsAddingState(true)}
-                            className="flex items-center gap-1 text-xs font-bold uppercase tracking-widest bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1.5 rounded-full border border-dashed border-emerald-300 text-emerald-700 transition-colors"
+                            className="flex items-center gap-1 text-xs font-bold uppercase tracking-widest bg-muted dark:bg-muted/50 hover:bg-border dark:hover:bg-muted-foreground/20 px-2.5 py-1.5 rounded-full border border-dashed border-muted-foreground/30 text-muted-foreground dark:text-muted-foreground transition-colors"
                         >
                             <Plus className="w-3 h-3" />
                             <span>State</span>
@@ -326,12 +326,12 @@ export default function MonitorCard({ search, membershipPlan, totalKeywords }: {
                     )}
 
                     {cities.map((city: string, idx: number) => (
-                        <div key={`ct-${idx}`} className="flex items-center gap-1 text-xs font-bold uppercase tracking-widest bg-purple-50 px-2.5 py-1.5 rounded-full border border-purple-100 text-purple-700 group/pill">
+                        <div key={`ct-${idx}`} className="flex items-center gap-1 text-xs font-bold uppercase tracking-widest bg-fresh-sky-50 dark:bg-fresh-sky-900/20 px-2.5 py-1.5 rounded-full border border-fresh-sky-200 dark:border-fresh-sky-800 text-fresh-sky-700 dark:text-fresh-sky-400 group/pill">
                             <span>{city}</span>
                             <button
                                 type="button"
                                 onClick={() => handleRemoveCity(idx)}
-                                className="hover:bg-purple-200 p-0.5 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500"
+                                className="hover:bg-fresh-sky-200 dark:hover:bg-fresh-sky-800/50 p-0.5 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fresh-sky-500"
                                 aria-label={`Remove city ${city}`}
                             >
                                 <X className="w-3 h-3" />
@@ -346,7 +346,7 @@ export default function MonitorCard({ search, membershipPlan, totalKeywords }: {
                                 value={newCity}
                                 onChange={(e) => setNewCity(e.target.value)}
                                 placeholder="e.g. Mumbai, Pune"
-                                className="text-xs font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border border-purple-200 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 w-36 bg-white"
+                                className="text-xs font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border border-muted-foreground/30 dark:border-muted-foreground/30 focus:outline-none focus:border-link dark:focus:border-link focus:ring-1 focus:ring-link w-36 bg-white dark:bg-card dark:text-foreground"
                                 autoFocus
                                 onBlur={() => setIsAddingCity(false)}
                             />
@@ -355,7 +355,7 @@ export default function MonitorCard({ search, membershipPlan, totalKeywords }: {
                         <button 
                             type="button" 
                             onClick={() => setIsAddingCity(true)}
-                            className="flex items-center gap-1 text-xs font-bold uppercase tracking-widest bg-purple-50 hover:bg-purple-100 px-2.5 py-1.5 rounded-full border border-dashed border-purple-300 text-purple-700 transition-colors"
+                            className="flex items-center gap-1 text-xs font-bold uppercase tracking-widest bg-muted dark:bg-muted/50 hover:bg-border dark:hover:bg-muted-foreground/20 px-2.5 py-1.5 rounded-full border border-dashed border-muted-foreground/30 text-muted-foreground dark:text-muted-foreground transition-colors"
                         >
                             <Plus className="w-3 h-3" />
                             <span>City</span>
@@ -370,7 +370,7 @@ export default function MonitorCard({ search, membershipPlan, totalKeywords }: {
                                 value={newKeyword}
                                 onChange={(e) => setNewKeyword(e.target.value)}
                                 placeholder="New keyword"
-                                className="text-xs font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border border-blue-200 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 w-32"
+                                className="text-xs font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border border-muted-foreground/30 dark:border-muted-foreground/30 focus:outline-none focus:border-link dark:focus:border-link focus:ring-1 focus:ring-link w-32 bg-white dark:bg-card dark:text-foreground"
                                 autoFocus
                                 onBlur={() => setIsAdding(false)}
                             />
@@ -397,7 +397,7 @@ export default function MonitorCard({ search, membershipPlan, totalKeywords }: {
                     </Link>
                     <button
                         onClick={handleDeleteMonitor}
-                        className="p-2.5 text-slate-300 hover:text-red-500 transition-colors hover:bg-red-50 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                        className="p-2.5 text-muted-foreground dark:text-muted-foreground hover:text-red-600 dark:hover:text-red-400 transition-colors hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
                         aria-label="Delete monitor"
                     >
                         <Trash2 className="w-4 h-4" />

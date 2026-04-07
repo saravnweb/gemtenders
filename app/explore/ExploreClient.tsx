@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { CATEGORIES } from "@/lib/categories";
 import { supabase } from "@/lib/supabase";
+import { LiveCountUpdater } from "./LiveCountUpdater";
 import {
   Building2, MapPin, Search, Tags, Shapes, Rocket, FileText,
   Map, GraduationCap, PackageOpen, Award, Shield, FileCheck, Info,
@@ -127,7 +128,9 @@ export default function ExploreClient({
             Explore GeM Tenders
           </h1>
           <p className="mt-1 text-xs sm:text-sm text-slate-500 dark:text-muted-foreground font-medium">
-            <span className="font-bold text-blue-600 dark:text-link">{stats.totalActive.toLocaleString()} active bids</span> — browse by category, ministry, state, keyword or type.
+            <span className="font-bold text-blue-600 dark:text-link">
+              <LiveCountUpdater initialCount={stats.totalActive} />
+            </span> — browse by category, ministry, state, keyword or type.
           </p>
         </div>
 

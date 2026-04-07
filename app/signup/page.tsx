@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { supabase } from "@/lib/supabase";
 import { UserPlus } from "lucide-react";
 import Image from "next/image";
 
 export default function SignupPage() {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const signInWithGoogle = async () => {
@@ -26,6 +26,11 @@ export default function SignupPage() {
       setLoading(false);
     }
   };
+
+  // Auto-trigger Google sign-in on page load
+  useEffect(() => {
+    signInWithGoogle();
+  }, []);
 
   return (
     <div id="main-content" className="min-h-[calc(100vh-64px)] flex items-center justify-center p-6 bg-fresh-sky-50 font-sans">

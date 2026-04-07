@@ -69,10 +69,10 @@ export default function AddMonitorForm({ userId, membershipPlan, totalKeywords }
                 >
                     <div className="flex items-center justify-between mb-1 pb-3 border-b border-slate-100">
                         <div className="flex items-center gap-2">
-                           <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center">
+                           <div className="w-8 h-8 rounded-full bg-fresh-sky-50 dark:bg-fresh-sky-900/20 text-fresh-sky-600 dark:text-fresh-sky-400 flex items-center justify-center">
                               <Plus className="w-4 h-4" />
                            </div>
-                           <span className="text-sm font-bold uppercase tracking-widest text-slate-800">Advanced Alert</span>
+                           <span className="text-sm font-bold uppercase tracking-widest text-slate-800 dark:text-foreground">Advanced Alert</span>
                         </div>
                         <button
                             type="button"

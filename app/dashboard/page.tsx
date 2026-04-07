@@ -64,7 +64,7 @@ export default async function ProfilePage() {
           {/* Account Metrics */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
              <MetricCard
-                icon={<Bookmark className="w-5 h-5 text-blue-500" />}
+                icon={<Bookmark className="w-5 h-5 text-fresh-sky-600 dark:text-fresh-sky-400" />}
                 label="Saved Bids"
                 value={savedTenders?.length || 0}
                 href="/dashboard/saved"
@@ -125,9 +125,9 @@ export default async function ProfilePage() {
 
 function MetricCard({ icon, label, value, href, color }: { icon: any, label: string, value: number, href: string, color: 'blue' | 'orange' }) {
     return (
-        <Link href={href} className="bg-white dark:bg-card rounded-xl p-6 border border-slate-200 dark:border-border shadow-sm flex items-center justify-between hover:border-slate-300 hover:shadow-md transition-all group">
+        <Link href={href} className="bg-white dark:bg-card rounded-xl p-6 border border-slate-200 dark:border-border shadow-sm flex items-center justify-between hover:border-slate-300 dark:hover:border-border hover:shadow-md transition-all group">
             <div className="flex items-center gap-4">
-               <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${color === 'blue' ? 'bg-blue-50 dark:bg-blue-900/30' : 'bg-orange-50'}`}>
+               <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${color === 'blue' ? 'bg-fresh-sky-50 dark:bg-fresh-sky-900/20' : 'bg-atomic-tangerine-50 dark:bg-atomic-tangerine-900/20'}`}>
                   {icon}
                </div>
                <div>

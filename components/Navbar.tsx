@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Zap, LogOut, Menu, X, LayoutDashboard, Bookmark, CreditCard, ChevronRight, Bell, Sun, Moon, Inbox, CheckCircle2, Info } from "lucide-react";
+import { Zap, LogOut, Menu, X, LayoutDashboard, Bookmark, CreditCard, ChevronRight, Bell, Sun, Moon, Inbox, CheckCircle2, Info, Trash2 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useTheme } from "next-themes";
 import { supabase } from "@/lib/supabase";
@@ -99,6 +99,21 @@ export default function Navbar() {
     await supabase.auth.signOut();
   };
 
+  const handleClearAll = async () => {
+    try {
+      const response = await fetch('/api/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clearAll: true })
+      });
+      if (response.ok) {
+        setNotifications([]);
+      }
+    } catch (err) {
+      console.error('Failed to clear notifications:', err);
+    }
+  };
+
   return (
     <>
       <header className="border-b border-fresh-sky-100 dark:border-fresh-sky-900 bg-white/80 dark:bg-background/80 backdrop-blur-md sticky top-0 z-50 shadow-sm font-sans">
@@ -108,7 +123,7 @@ export default function Navbar() {
             <div className="md:hidden flex items-center z-10">
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="text-fresh-sky-700 p-2 hover:bg-fresh-sky-50 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-blue-500"
+                className="text-fresh-sky-700 dark:text-fresh-sky-300 p-2 hover:bg-fresh-sky-50 dark:hover:bg-fresh-sky-900/30 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-blue-500 dark:focus-visible:ring-blue-400"
                 aria-label={isMenuOpen ? "Close navigation menu" : "Open navigation menu"}
                 aria-expanded={isMenuOpen}
                 aria-controls="mobile-menu"
@@ -159,7 +174,19 @@ export default function Navbar() {
                     <div role="dialog" aria-label="Notifications panel" className="absolute right-0 mt-2 w-[min(20rem,calc(100vw-1rem))] bg-white dark:bg-card border border-slate-100 dark:border-border rounded-2xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-200">
                       <div className="p-4 border-b border-slate-50 dark:border-border bg-slate-50/50 dark:bg-card/50 flex items-center justify-between">
                         <span className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-foreground">Alerts</span>
-                        <span className="bg-atomic-tangerine-100 text-atomic-tangerine-700 text-[10px] font-bold px-2 py-0.5 rounded-full">{notifications.filter(n => !n.is_read).length} New</span>
+                        <div className="flex items-center gap-2">
+                          <span className="bg-atomic-tangerine-100 text-atomic-tangerine-700 text-[10px] font-bold px-2 py-0.5 rounded-full">{notifications.filter(n => !n.is_read).length} New</span>
+                          {notifications.length > 0 && (
+                            <button
+                              onClick={handleClearAll}
+                              className="p-1.5 hover:bg-slate-200 dark:hover:bg-muted rounded transition-colors text-slate-500 hover:text-slate-700 dark:text-muted-foreground dark:hover:text-foreground"
+                              aria-label="Clear all notifications"
+                              title="Clear all notifications"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
                       </div>
                       <div className="max-h-[300px] overflow-y-auto">
                         {notifications.length === 0 ? (

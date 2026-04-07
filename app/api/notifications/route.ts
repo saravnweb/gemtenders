@@ -34,8 +34,23 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { id } = await req.json();
+  const { id, clearAll } = await req.json();
 
+  if (clearAll) {
+    // Clear all notifications (mark as read or delete)
+    const { error } = await supabase
+      .from('in_app_notifications')
+      .delete()
+      .eq('user_id', user.id);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, cleared: 'all' });
+  }
+
+  // Mark single notification as read
   const { error } = await supabase
     .from('in_app_notifications')
     .update({ is_read: true })

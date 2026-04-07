@@ -79,10 +79,10 @@ export default async function SavedBidsPage() {
                           {tender.bid_number}
                         </span>
                         {tender.eligibility_msme && (
-                          <span className="text-xs font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-link px-2 py-0.5 rounded border border-blue-100 dark:border-blue-800">MSE</span>
+                          <span className="text-xs font-medium bg-fresh-sky-50 dark:bg-fresh-sky-900/20 text-fresh-sky-600 dark:text-fresh-sky-400 px-2 py-0.5 rounded border border-fresh-sky-100 dark:border-fresh-sky-800">MSE</span>
                         )}
                       </div>
-                      <h3 className="text-lg font-bold text-slate-900 dark:text-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-snug">
+                      <h3 className="text-lg font-bold text-slate-900 dark:text-foreground group-hover:text-fresh-sky-600 dark:group-hover:text-fresh-sky-400 transition-colors leading-snug">
                         {tender.title}
                       </h3>
                       <p className="text-xs text-slate-500 dark:text-muted-foreground font-medium mt-1 flex items-center">
