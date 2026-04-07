@@ -20,5 +20,7 @@ export interface Tender {
   ra_number: string | null;
   ra_end_date: string | null;
   ra_notified: boolean;
+  is_indexed: boolean;
+  indexed_at: string | null;
   created_at: string;
 }

@@ -21,7 +21,7 @@ const nextConfig = {
             {
                 source: "/:path*",
                 headers: [
-                    { key: "Content-Security-Policy", value: `default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://checkout.razorpay.com; style-src 'self' 'unsafe-inline' https://accounts.google.com; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://*.supabase.co https://accounts.google.com https://api.razorpay.com https://lumberjack.razorpay.com${isDev ? ' ws://localhost:* ws://127.0.0.1:*' : ''}; frame-src https://accounts.google.com https://api.razorpay.com https://checkout.razorpay.com;` },
+                    { key: "Content-Security-Policy", value: `default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://checkout.razorpay.com https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://accounts.google.com; img-src 'self' data: https: https://www.googletagmanager.com; font-src 'self' data:; connect-src 'self' https://*.supabase.co https://accounts.google.com https://api.razorpay.com https://lumberjack.razorpay.com https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com${isDev ? ' ws://localhost:* ws://127.0.0.1:*' : ''}; frame-src https://accounts.google.com https://api.razorpay.com https://checkout.razorpay.com;` },
                     { key: "X-Content-Type-Options", value: "nosniff" },
                     { key: "X-Frame-Options", value: "DENY" },
                     { key: "X-XSS-Protection", value: "1; mode=block" },
@@ -30,7 +30,7 @@ const nextConfig = {
                     { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
                     { key: "X-DNS-Prefetch-Control", value: "on" },
                     { key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },
-                    { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
+                    { key: "Cross-Origin-Resource-Policy", value: "cross-origin" },
                 ],
             },
         ];

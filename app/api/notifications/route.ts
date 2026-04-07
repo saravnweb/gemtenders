@@ -34,10 +34,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { id, clearAll } = await req.json();
+  const { id, clearAll, delete: isDelete } = await req.json();
 
   if (clearAll) {
-    // Clear all notifications (mark as read or delete)
+    // Clear all notifications 
     const { error } = await supabase
       .from('in_app_notifications')
       .delete()
@@ -48,6 +48,21 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ success: true, cleared: 'all' });
+  }
+
+  if (isDelete && id) {
+    // Delete single notification
+    const { error } = await supabase
+      .from('in_app_notifications')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, deleted: id });
   }
 
   // Mark single notification as read

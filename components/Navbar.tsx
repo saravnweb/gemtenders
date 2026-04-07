@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Zap, LogOut, Menu, X, LayoutDashboard, Bookmark, CreditCard, ChevronRight, Bell, Sun, Moon, Inbox, CheckCircle2, Info, Trash2 } from "lucide-react";
+import { Zap, LogOut, Menu, X, LayoutDashboard, Bookmark, CreditCard, ChevronRight, Bell, Sun, Moon, Inbox, CheckCircle2, Info, Trash2, Settings } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useTheme } from "next-themes";
 import { supabase } from "@/lib/supabase";
@@ -101,16 +101,29 @@ export default function Navbar() {
 
   const handleClearAll = async () => {
     try {
+      setNotifications([]);
       const response = await fetch('/api/notifications', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ clearAll: true })
       });
-      if (response.ok) {
-        setNotifications([]);
-      }
     } catch (err) {
       console.error('Failed to clear notifications:', err);
+    }
+  };
+
+  const handleDelete = async (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      setNotifications(current => current.filter(n => n.id !== id));
+      await fetch('/api/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, delete: true })
+      });
+    } catch (err) {
+      console.error('Failed to delete notification:', err);
     }
   };
 
@@ -197,25 +210,33 @@ export default function Navbar() {
                         ) : (
                           <div className="divide-y divide-slate-50 dark:divide-border/50">
                             {notifications.map((notif: any) => (
-                              <button
-                                key={notif.id}
-                                onClick={async () => {
-                                  if (!notif.is_read) {
-                                    setNotifications(current => current.map(n => n.id === notif.id ? { ...n, is_read: true } : n));
-                                    await fetch('/api/notifications', { method: 'POST', body: JSON.stringify({ id: notif.id }) });
-                                  }
-                                  setIsNotificationsOpen(false);
-                                  if (notif.link) router.push(notif.link);
-                                }}
-                                className={`w-full text-left p-4 hover:bg-slate-50 dark:hover:bg-muted/50 transition-colors flex flex-col gap-1 ${notif.is_read ? 'opacity-60' : 'bg-blue-50/30 dark:bg-blue-900/10'}`}
-                              >
-                                <div className="flex items-start justify-between gap-2">
-                                  <span className="text-xs font-bold text-slate-900 dark:text-foreground line-clamp-1">{notif.title}</span>
-                                  {!notif.is_read && <span className="w-1.5 h-1.5 shrink-0 bg-blue-500 rounded-full mt-1.5"></span>}
-                                </div>
-                                <p className="text-[11px] text-slate-500 dark:text-muted-foreground line-clamp-2 leading-relaxed">{notif.message}</p>
-                                <span suppressHydrationWarning className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-wider">{new Date(notif.created_at).toLocaleDateString()}</span>
-                              </button>
+                              <div key={notif.id} className="relative group/notif">
+                                <button
+                                  onClick={async () => {
+                                    if (!notif.is_read) {
+                                      setNotifications(current => current.map(n => n.id === notif.id ? { ...n, is_read: true } : n));
+                                      await fetch('/api/notifications', { method: 'POST', body: JSON.stringify({ id: notif.id }) });
+                                    }
+                                    setIsNotificationsOpen(false);
+                                    if (notif.link) router.push(notif.link);
+                                  }}
+                                  className={`w-full text-left p-4 pr-10 hover:bg-slate-50 dark:hover:bg-muted/50 transition-colors flex flex-col gap-1 ${notif.is_read ? 'opacity-60' : 'bg-blue-50/30 dark:bg-blue-900/10'}`}
+                                >
+                                  <div className="flex items-start justify-between gap-2">
+                                    <span className="text-xs font-bold text-slate-900 dark:text-foreground line-clamp-1">{notif.title}</span>
+                                    {!notif.is_read && <span className="w-1.5 h-1.5 shrink-0 bg-blue-500 rounded-full mt-1.5"></span>}
+                                  </div>
+                                  <p className="text-[11px] text-slate-500 dark:text-muted-foreground line-clamp-2 leading-relaxed">{notif.message}</p>
+                                  <span suppressHydrationWarning className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-wider">{new Date(notif.created_at).toLocaleDateString()}</span>
+                                </button>
+                                <button
+                                  onClick={(e) => handleDelete(e, notif.id)}
+                                  className="absolute right-2 top-4 p-1.5 opacity-0 group-hover/notif:opacity-100 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-all text-slate-400 hover:text-red-500 z-10"
+                                  aria-label="Delete notification"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
                             ))}
                           </div>
                         )}
@@ -258,6 +279,11 @@ export default function Navbar() {
                 <Link href="/about" className="flex items-center space-x-1.5 text-xs font-black uppercase tracking-widest text-fresh-sky-700 dark:text-fresh-sky-300 hover:text-atomic-tangerine-600 transition-colors">
                   <Info className="w-4 h-4" />
                   <span>About</span>
+                </Link>
+
+                <Link href="/settings" className="flex items-center space-x-1.5 text-xs font-black uppercase tracking-widest text-fresh-sky-700 dark:text-fresh-sky-300 hover:text-atomic-tangerine-600 transition-colors">
+                  <Settings className="w-4 h-4" />
+                  <span>Settings</span>
                 </Link>
 
                 <div className="h-6 w-px bg-fresh-sky-100 mx-2"></div>
@@ -412,6 +438,12 @@ export default function Navbar() {
                         href="/about"
                         icon={<Info className="w-4 h-4 text-slate-600 dark:text-muted-foreground" />}
                         label="About"
+                        onClick={() => setIsMenuOpen(false)}
+                      />
+                      <MenuListItem
+                        href="/settings"
+                        icon={<Settings className="w-4 h-4 text-slate-600 dark:text-muted-foreground" />}
+                        label="Settings"
                         onClick={() => setIsMenuOpen(false)}
                       />
                     </div>

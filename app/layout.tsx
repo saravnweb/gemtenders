@@ -40,11 +40,6 @@ export const metadata: Metadata = {
   keywords: ["GeM tenders", "Government e-Marketplace", "GeM bid", "tender tracking", "government tenders India", "GeM portal bids", "tender alerts"],
   authors: [{ name: "GeMTenders.org" }],
   creator: "GeMTenders.org",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "black-translucent",
-    title: "GeMTenders",
-  },
   robots: {
     index: true,
     follow: true,
@@ -114,15 +109,6 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${outfit.variable} ${jetbrainsMono.variable} ${bricolage.variable}`} suppressHydrationWarning>
       <head>
-        {/* PWA - Web App Manifest */}
-        <link rel="manifest" href="/manifest.json" />
-        {/* PWA - Apple Touch Icon */}
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        {/* PWA - Theme Color for address bar */}
-        <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
-        <meta name="theme-color" content="#202124" media="(prefers-color-scheme: dark)" />
-        {/* PWA - App Status Bar */}
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         {/* Google Analytics */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-3GD5YYRK3M"

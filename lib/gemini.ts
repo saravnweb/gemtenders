@@ -255,12 +255,13 @@ export async function extractTenderDataFromPdfBytes(pdfBuffer: Buffer) {
 export function generateSlug(bidNumber: string, title: string): string {
   const cleanTitle = title
     .toLowerCase()
+    .replace(/_/g, "-") // replace underscores with dashes
     .replace(/[^\w\s-]/g, "") // remove special chars
-    .replace(/\s+/g, "-") // replace spaces with -
-    .replace(/-+/g, "-") // collapse --
+    .replace(/\s+/g, "-") // replace spaces with dashes
+    .replace(/-+/g, "-") // collapse multiple dashes
     .trim();
 
   const cleanBid = bidNumber.replace(/\//g, "-").toLowerCase();
 
-  return `${cleanBid}-${cleanTitle}`.substring(0, 200);
+  return `${cleanBid}-${cleanTitle}`.substring(0, 120);
 }

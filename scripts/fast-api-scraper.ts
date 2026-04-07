@@ -28,7 +28,12 @@ const CHECKPOINT = path.join(process.cwd(), 'fast-scrape-progress.json');
 
 function generateSlug(bidNumber: string, title: string): string {
   const cleanBid   = bidNumber.replace(/\//g, '-').toLowerCase();
-  const cleanTitle = title.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').trim();
+  const cleanTitle = title.toLowerCase()
+    .replace(/_/g, '-') // Replace underscores with dashes
+    .replace(/[^\w\s-]/g, '') // Keep alphanumeric, whitespace, and dashes
+    .replace(/\s+/g, '-') // Replace spaces with dashes
+    .replace(/-+/g, '-') // Collapse multiple dashes
+    .trim();
   return `${cleanBid}-${cleanTitle}`.slice(0, 120);
 }
 const MAX_SESSION_RETRY = 3;

@@ -22,7 +22,7 @@ export async function createClient() {
           return fetch(url, {
             ...options,
             next: {
-              revalidate: 60 // globally cache identical Supabase queries for 60 seconds
+              revalidate: 0 // Disable cache to ensure fresh data for all Supabase queries
             }
           })
         }

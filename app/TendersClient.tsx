@@ -468,9 +468,22 @@ function TendersClient({
     }
   }, [searchParams]);
 
-  // Relevance only applies when there is search text; avoid a stuck "relevance" sort with no query
+  const prevSearchRef = useRef("");
+  // Relevance only applies when there is search text; switch automatically when starting search from empty
   useEffect(() => {
-    if (!searchQuery.trim() && sortOrder === "relevance") setSortOrder("newest");
+    const qTrim = searchQuery.trim();
+    const prevTrim = prevSearchRef.current.trim();
+    
+    // Switch to newest if empty
+    if (!qTrim && sortOrder === "relevance") {
+      setSortOrder("newest");
+    } 
+    // Auto-switch to relevance ONLY if we just started searching from an empty state and are on default newest
+    else if (qTrim && !prevTrim && sortOrder === "newest") {
+      setSortOrder("relevance");
+    }
+    
+    prevSearchRef.current = searchQuery;
   }, [searchQuery, sortOrder]);
 
   // ── Persist location preferences ──
@@ -1074,29 +1087,19 @@ function TendersClient({
                   if (user && savedSearches.length > 0) setActiveTab("foryou");
                   else window.location.href = user ? "/dashboard/keywords" : "/login";
                 }}
-                className={`text-sm sm:text-base font-bold inline-flex items-center gap-1.5 transition-all shrink-0 ${
+                className={`text-sm sm:text-base font-bold inline-flex items-center gap-1.5 transition-all shrink-0 leading-none ${
                   activeTab === "foryou"
                     ? "text-fresh-sky-600"
                     : "text-slate-500 hover:text-slate-700 dark:text-muted-foreground dark:hover:text-foreground"
                 }`}
               >
-                <Zap className={`w-4 h-4 shrink-0 ${activeTab === "foryou" ? "text-fresh-sky-600 dark:text-fresh-sky-400" : "text-slate-400"}`} />
-                <span className="truncate shrink min-w-0">
-                  For You {forYouLoading ? "…" : (savedSearches.length > 0 ? forYouTenders.length : 0)}
+                <Zap className={`w-4 h-4 shrink-0 -mt-px ${activeTab === "foryou" ? "text-fresh-sky-600 dark:text-fresh-sky-400" : "text-slate-400"}`} />
+                <span className="truncate leading-none">For You</span>
+                <span suppressHydrationWarning className={`flex h-5 items-center justify-center px-1.5 rounded-full text-[10px] font-bold leading-none ${activeTab === "foryou" ? "bg-fresh-sky-100 dark:bg-fresh-sky-900/40 text-fresh-sky-700 dark:text-fresh-sky-300" : "bg-slate-100 dark:bg-muted text-slate-500 dark:text-muted-foreground"}`}>
+                  {forYouLoading ? "…" : (savedSearches.length > 0 ? forYouTenders.length : 0)}
                 </span>
                 {activeTab === "foryou" && <div className="hidden sm:block absolute -bottom-1.5 left-0 w-full h-0.5 bg-fresh-sky-500 rounded-full" />}
               </button>
-
-              {!user && (
-                <button
-                  type="button"
-                  onClick={() => { window.location.href = "/login"; }}
-                  className="group text-xs sm:text-sm font-bold inline-flex items-center gap-1 rounded-full border border-muted-olive-200 bg-muted-olive-50 px-2.5 py-1.5 sm:px-3 sm:py-2 text-muted-olive-900 transition-all hover:bg-muted-olive-100 active:scale-[0.98] shrink-0"
-                >
-                  <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-                  <span className="truncate shrink min-w-0">Keywords</span>
-                </button>
-              )}
             </div>
 
             <div className="flex shrink-0 items-center justify-end gap-1.5 ml-auto">
@@ -1108,7 +1111,7 @@ function TendersClient({
                     : `${(activeCount ?? displayTenders.length).toLocaleString()}${hasMore ? "+" : ""} results`}
               </div>
               <div className="flex flex-row items-center gap-1 shrink-0">
-                <span className="text-xs font-semibold text-slate-600 dark:text-muted-foreground shrink-0 lg:inline hidden">
+                <span className="text-xs font-semibold text-slate-600 dark:text-muted-foreground shrink-0">
                   Sort by
                 </span>
                 <div className="relative shrink-0">
@@ -1123,7 +1126,7 @@ function TendersClient({
                     <option value="newest">Newest</option>
                     <option value="ending_soon">Ending Soon</option>
                     <option value="relevance" disabled={!searchQuery.trim()}>
-                      Match
+                      Relevance
                     </option>
                   </select>
                   <ChevronDown
@@ -1606,32 +1609,36 @@ function FilterDropdown({
     return () => document.removeEventListener("keydown", handler);
   }, [open]);
 
-  // Close on scroll/resize (panel is fixed, won't track the button)
+  const updatePosition = useCallback(() => {
+    if (!open || !btnRef.current) return;
+    const rect = btnRef.current.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const panelW = Math.min(360, vw - 16);
+    let left = rect.left;
+    if (left + panelW > vw - 8) left = vw - panelW - 8;
+    left = Math.max(8, left);
+    setPanelStyle({ position: "fixed", top: rect.bottom + 6, left, width: panelW, zIndex: 9999 });
+  }, [open]);
+
+  useEffect(() => {
+    if (open) updatePosition();
+  }, [open, updatePosition]);
+
+  // Update position on window scroll/resize or filter bar scroll
   useEffect(() => {
     if (!open) return;
-    function close(e: any) {
-      if (panelRef.current && panelRef.current.contains(e.target)) return;
-      setOpen(false);
-    }
-    window.addEventListener("scroll", close, { passive: true, capture: true });
-    window.addEventListener("resize", close);
+    const handler = () => updatePosition();
+    window.addEventListener("scroll", handler, { passive: true, capture: true });
+    window.addEventListener("resize", handler);
     return () => {
-      window.removeEventListener("scroll", close, { capture: true });
-      window.removeEventListener("resize", close);
+      window.removeEventListener("scroll", handler, { capture: true });
+      window.removeEventListener("resize", handler);
     };
-  }, [open]);
+  }, [open, updatePosition]);
 
   function handleToggle() {
     if (disabled) return;
     if (!open && !opened.current) { opened.current = true; onOpen?.(); }
-    if (!open && btnRef.current) {
-      const rect = btnRef.current.getBoundingClientRect();
-      const panelW = 360;
-      const vw = window.innerWidth;
-      let left = rect.left;
-      if (left + panelW > vw - 8) left = Math.max(8, vw - panelW - 8);
-      setPanelStyle({ position: "fixed", top: rect.bottom + 6, left, width: panelW, zIndex: 9999 });
-    }
     setOpen((v) => !v);
     setQuery("");
   }

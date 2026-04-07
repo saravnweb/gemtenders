@@ -10,6 +10,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import DownloadButtons from "./DownloadButtons";
 import RevealBidNumber from "./RevealBidNumber";
+import { createClient } from "@/lib/supabase-server";
 export const revalidate = 3600; // Revalidate hourly
 export const dynamicParams = true;
 export async function generateStaticParams() {
@@ -32,15 +33,12 @@ const siteUrl = "https://gemtenders.org";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/tenders?slug=eq.${slug}&select=title,ai_summary,ministry_name,department_name,end_date,slug&limit=1`, {
-    headers: {
-      apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string,
-      Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`
-    },
-    next: { revalidate: 3600 }
-  });
-  const data = await res.json();
-  const tender = data && data.length > 0 ? data[0] : null;
+  const supabase = await createClient();
+  const { data: tender, error } = await supabase
+    .from('tenders')
+    .select('title,ai_summary,ministry_name,department_name,end_date,slug')
+    .eq('slug', slug)
+    .maybeSingle();
 
   if (!tender) {
     return {
@@ -151,16 +149,12 @@ function formatDepartmentInfo(ministry?: string, dept?: string, org?: string): s
 
 export default async function TenderDetailsPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  
-  const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/tenders?slug=eq.${slug}&select=*&limit=1`, {
-    headers: {
-      apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string,
-      Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`
-    },
-    cache: 'no-store'
-  });
-  const data = await res.json();
-  const tender = data && data.length > 0 ? data[0] : null;
+  const supabase = await createClient();
+  const { data: tender } = await supabase
+    .from('tenders')
+    .select('*')
+    .eq('slug', slug)
+    .maybeSingle();
 
   if (!tender) {
     notFound();

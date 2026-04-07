@@ -22,15 +22,15 @@ const STATIC_ASSETS = /\.(js|css|woff|woff2|ttf|eot|svg|png|jpg|jpeg|gif|webp|ic
  * Install event - cache critical assets
  */
 self.addEventListener('install', (event) => {
-  console.log('[ServiceWorker] Installing...');
+  
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[ServiceWorker] Caching app shell');
+      
       return cache.addAll(INSTALL_CACHE_URLS).catch((err) => {
         console.warn('[ServiceWorker] Some assets failed to cache during install:', err);
       });
     }).then(() => {
-      console.log('[ServiceWorker] Skip waiting - activate immediately');
+      
       return self.skipWaiting();
     })
   );
@@ -40,19 +40,19 @@ self.addEventListener('install', (event) => {
  * Activate event - clean up old caches
  */
 self.addEventListener('activate', (event) => {
-  console.log('[ServiceWorker] Activating...');
+  
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheName !== CACHE_NAME && cacheName !== RUNTIME_CACHE && cacheName !== API_CACHE) {
-            console.log('[ServiceWorker] Deleting old cache:', cacheName);
+            
             return caches.delete(cacheName);
           }
         })
       );
     }).then(() => {
-      console.log('[ServiceWorker] Claiming clients');
+      
       return self.clients.claim();
     })
   );
@@ -110,7 +110,7 @@ async function networkFirst(request) {
     
     return response;
   } catch (error) {
-    console.log('[ServiceWorker] Network request failed, trying cache. URL:', request.url);
+    
     
     const cachedResponse = await caches.match(request);
     if (cachedResponse) {
@@ -157,7 +157,7 @@ async function networkFirstApi(request) {
     
     return response;
   } catch (error) {
-    console.log('[ServiceWorker] API request failed, trying cache. URL:', request.url);
+    
     
     const cachedResponse = await caches.match(request);
     if (cachedResponse) {
@@ -191,7 +191,7 @@ async function cacheFirst(request) {
           });
         }
       }).catch((error) => {
-        console.log('[ServiceWorker] Background fetch failed:', request.url);
+        
       });
       
       return cachedResponse;
@@ -207,7 +207,7 @@ async function cacheFirst(request) {
     }
     return response;
   } catch (error) {
-    console.log('[ServiceWorker] Fetch failed for static asset:', request.url);
+    
     
     // Try cache as fallback
     const cachedResponse = await caches.match(request);
@@ -223,7 +223,7 @@ async function cacheFirst(request) {
  * Handle messages from clients
  */
 self.addEventListener('message', (event) => {
-  console.log('[ServiceWorker] Message received:', event.data);
+  
   
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();

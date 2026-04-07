@@ -31,7 +31,9 @@ export default function GoogleOneTap() {
         msg.includes('[GSI_LOGGER]:') || 
         msg.includes('FedCM get() rejects with AbortError') || 
         msg.includes('stop functioning when FedCM becomes mandatory') ||
-        msg.includes('The request has been aborted')
+        msg.includes('The request has been aborted') ||
+        msg.includes('FedCM was disabled') ||
+        msg.includes('gsi/status')
       ) {
         return;
       }
@@ -49,7 +51,9 @@ export default function GoogleOneTap() {
         msg.includes('[GSI_LOGGER]:') || 
         msg.includes('FedCM get() rejects with AbortError') || 
         msg.includes('signal is aborted without reason') ||
-        msg.includes('The request has been aborted')
+        msg.includes('The request has been aborted') ||
+        msg.includes('FedCM was disabled') ||
+        msg.includes('gsi/status')
       ) {
         event.preventDefault();
       }
@@ -73,14 +77,17 @@ export default function GoogleOneTap() {
       timeoutRef.current = null;
     }
 
-    if (initialized.current) return;
-    
+    initialized.current = true;
     let isCancelled = false;
 
     const initializeOneTap = async () => {
       // 1. Only run this for unauthenticated users
       const { data: { session } } = await supabase.auth.getSession();
-      if (session || isCancelled) return;
+      if (session || isCancelled) {
+        if (session) initialized.current = true; // Stay initialized if they are logged in
+        else initialized.current = false; // Reset if cancelled and not logged in
+        return;
+      }
 
       const clientID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
       
@@ -107,7 +114,6 @@ export default function GoogleOneTap() {
       const { nonce, hashedNonce } = await generateNonce();
 
       if (isCancelled) return;
-      initialized.current = true;
 
       // 2. Initialize the Google One Tap ID
       window.google.accounts.id.initialize({
