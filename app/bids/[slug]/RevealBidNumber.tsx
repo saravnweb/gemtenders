@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Eye } from "lucide-react";
+import { Eye, Copy, Check } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 export default function RevealBidNumber({ 
@@ -17,6 +17,13 @@ export default function RevealBidNumber({
   const [isLoading, setIsLoading] = useState(false);
   const [limitError, setLimitError] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(bidNumber);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -58,8 +65,21 @@ export default function RevealBidNumber({
   if (revealed) {
     if (asButton) {
       return (
-        <div className="flex w-full py-3.5 bg-slate-100 dark:bg-card border-2 border-slate-200/80 dark:border-border text-slate-800 dark:text-foreground text-base rounded-2xl font-mono font-bold items-center justify-center tracking-widest shadow-inner">
-          {bidNumber}
+        <div className="flex w-full items-center gap-2">
+          <div className="flex flex-1 py-3.5 bg-slate-100 dark:bg-card border-2 border-slate-200/80 dark:border-border text-slate-800 dark:text-foreground text-base rounded-2xl font-mono font-bold items-center justify-center tracking-widest shadow-inner">
+            {bidNumber}
+          </div>
+          <button
+            onClick={handleCopy}
+            title="Copy bid number"
+            className="shrink-0 flex items-center justify-center w-12 h-12 rounded-2xl border-2 border-slate-200/80 dark:border-border bg-slate-100 dark:bg-card hover:bg-slate-200 dark:hover:bg-muted transition-colors"
+          >
+            {copied ? (
+              <Check className="w-4 h-4 text-green-500" />
+            ) : (
+              <Copy className="w-4 h-4 text-slate-500 dark:text-muted-foreground" />
+            )}
+          </button>
         </div>
       );
     }

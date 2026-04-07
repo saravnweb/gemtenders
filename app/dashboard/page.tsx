@@ -24,13 +24,13 @@ export default async function ProfilePage() {
         {/* Welcome Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-fresh-sky-950 tracking-tight">Account Overview</h1>
+            <h1 className="text-2xl font-bold text-fresh-sky-950 dark:text-foreground tracking-tight">Account Overview</h1>
             <p className="text-sm text-slate-500 dark:text-muted-foreground font-medium">Manage your search monitors and saved opportunities.</p>
           </div>
-          <div className="flex items-center space-x-2 bg-white dark:bg-card px-3 py-1.5 rounded-lg border border-slate-200 dark:border-border shadow-sm">
-             <div className={`w-2 h-2 rounded-full ${isPremium ? 'bg-amber-500 animate-pulse' : 'bg-slate-300'}`}></div>
-             <span className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-muted-foreground">Plan:</span>
-             <span className="text-xs font-bold text-slate-600 dark:text-muted-foreground uppercase">{membershipPlan}</span>
+          <div className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg border shadow-sm ${isPremium ? 'bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-700' : 'bg-slate-100 border-slate-300 dark:bg-slate-800 dark:border-slate-600'}`}>
+             <div className={`w-2 h-2 rounded-full ${isPremium ? 'bg-amber-500 animate-pulse' : 'bg-slate-400'}`}></div>
+             <span className={`text-xs font-bold uppercase tracking-wider ${isPremium ? 'text-amber-700 dark:text-amber-400' : 'text-slate-500 dark:text-slate-400'}`}>Plan:</span>
+             <span className={`text-xs font-black uppercase tracking-widest ${isPremium ? 'text-amber-700 dark:text-amber-400' : 'text-slate-700 dark:text-slate-300'}`}>{membershipPlan}</span>
           </div>
         </div>
 
@@ -43,7 +43,7 @@ export default async function ProfilePage() {
                      <User className="w-8 h-8 text-white" />
                   </div>
                   <div className="flex-1 text-center sm:text-left">
-                     <h2 className="text-xl font-bold text-fresh-sky-950 truncate mb-1">{user?.email?.split('@')[0]}</h2>
+                     <h2 className="text-xl font-bold text-fresh-sky-950 dark:text-foreground truncate mb-1">{user?.email?.split('@')[0]}</h2>
                      <div className="flex flex-wrap justify-center sm:justify-start gap-x-4 gap-y-1 text-slate-600 dark:text-muted-foreground font-medium text-xs">
                         <div className="flex items-center gap-1">
                            <Mail className="w-3.5 h-3.5" />
@@ -86,10 +86,10 @@ export default async function ProfilePage() {
                 <div className="relative z-10">
                   <div className="flex items-center gap-2 mb-3">
                      <CreditCard className="w-4 h-4 text-atomic-tangerine-400" />
-                     <span className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-muted-foreground">Subscription</span>
+                     <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Subscription</span>
                   </div>
                   <h3 className="text-lg font-bold mb-4 capitalize">{membershipPlan} Plan</h3>
-                  <p className="text-slate-600 dark:text-muted-foreground text-xs font-medium mb-6 leading-relaxed">
+                  <p className="text-slate-400 text-xs font-medium mb-6 leading-relaxed">
                      Tracking {savedSearches?.length || 0} smart monitors. Get Platinum for instant WhatsApp alerts.
                   </p>
                   <Link href="/dashboard/subscriptions" className="flex items-center justify-between bg-white dark:bg-card text-slate-900 dark:text-foreground px-4 py-3 rounded-lg transition-all hover:bg-slate-100 dark:hover:bg-muted group">

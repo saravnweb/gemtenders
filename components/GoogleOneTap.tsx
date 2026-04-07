@@ -72,7 +72,6 @@ export default function GoogleOneTap() {
   }, []);
 
   useEffect(() => {
-    console.log(">>> [GOOGLE ONE TAP] useEffect triggered. scriptLoaded:", isScriptLoaded, "google available:", !!window.google);
     if (!isScriptLoaded || typeof window === "undefined" || !window.google) return;
     
     // Clear the timeout if component remounts quickly (React Strict Mode)
@@ -85,42 +84,28 @@ export default function GoogleOneTap() {
     let isCancelled = false;
 
     const initializeOneTap = async () => {
-      console.log(">>> [GOOGLE ONE TAP] Starting initializeOneTap...");
       // 1. Only run this for unauthenticated users
       const { data: { session } } = await supabase.auth.getSession();
       if (session || isCancelled) {
-        if (session) {
-          console.log(">>> [GOOGLE ONE TAP] User already has a session, skipping One Tap.");
-          initialized.current = true; 
-        }
-        else {
-          console.log(">>> [GOOGLE ONE TAP] Initialization cancelled, skipping.");
-          initialized.current = false;
-        }
+        initialized.current = !!session;
         return;
       }
 
       const clientID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-      
-      if (!clientID) {
-        console.warn(">>> [GOOGLE ONE TAP] Missing NEXT_PUBLIC_GOOGLE_CLIENT_ID in env variables.");
-        return;
-      }
-
-      console.log(">>> [GOOGLE ONE TAP] Client ID found, generating nonce...");
+      if (!clientID) return;
 
       // Generate hash for nonce
       const generateNonce = async () => {
         const nonce = Array.from(crypto.getRandomValues(new Uint8Array(32)))
           .map((b) => b.toString(16).padStart(2, '0'))
           .join('');
-        
+
         const encoder = new TextEncoder();
         const encodedNonce = encoder.encode(nonce);
         const hashBuffer = await crypto.subtle.digest('SHA-256', encodedNonce);
         const hashArray = Array.from(new Uint8Array(hashBuffer));
         const hashedNonce = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-        
+
         return { nonce, hashedNonce };
       };
 
@@ -128,16 +113,12 @@ export default function GoogleOneTap() {
 
       if (isCancelled) return;
 
-      console.log(">>> [GOOGLE ONE TAP] Nonce generated, initializing window.google.accounts.id...");
-
       // 2. Initialize the Google One Tap ID
       window.google.accounts.id.initialize({
         client_id: clientID,
         nonce: hashedNonce,
-        use_fedcm_for_prompt: false, // Changed from true to false for better reliability/compatibility
+        use_fedcm_for_prompt: false,
         callback: async (response: any) => {
-          console.log(">>> [GOOGLE ONE TAP] Received credential");
-          
           // 3. Send the ID token to Supabase
           const { data, error } = await supabase.auth.signInWithIdToken({
             provider: "google",
@@ -146,39 +127,19 @@ export default function GoogleOneTap() {
           });
 
           if (data && !error) {
-            console.log(">>> [GOOGLE ONE TAP] Successfully signed in");
             router.refresh();
           }
-          
+
           if (error) {
-            console.error(">>> [GOOGLE ONE TAP] Supabase Auth Error:", error.message);
+            console.error("[GoogleOneTap] Supabase Auth Error:", error.message);
           }
         },
-        auto_select: false, // Set to true for automatic sign-in if the user has only one account
+        auto_select: false,
         cancel_on_tap_outside: true,
       });
 
-      console.log(">>> [GOOGLE ONE TAP] Calling window.google.accounts.id.prompt()...");
-
       // 4. Show the One Tap prompt
-      window.google.accounts.id.prompt((notification: any) => {
-        const reason = notification.getNotDisplayedReason?.() || notification.getSkippedReason?.() || notification.getDismissedReason?.() || "Unknown reason";
-        
-        if (notification.isNotDisplayed()) {
-          console.warn(">>> [GOOGLE ONE TAP] Prompt NOT displayed:", reason);
-          if (reason === 'suppressed_by_user') {
-            console.warn(">>> [GOOGLE ONE TAP] HINT: User has manually dismissed this prompt recently.");
-          } else if (reason === 'opt_out_or_no_session') {
-            console.warn(">>> [GOOGLE ONE TAP] HINT: User is not signed in to a Google account or has opted out.");
-          }
-        } else if (notification.isSkippedMoment()) {
-          console.warn(">>> [GOOGLE ONE TAP] Prompt skipped moment:", reason);
-        } else if (notification.isDismissedMoment()) {
-          console.warn(">>> [GOOGLE ONE TAP] Prompt dismissed moment:", reason);
-        } else {
-          console.log(">>> [GOOGLE ONE TAP] Prompt displayed successfully");
-        }
-      });
+      window.google.accounts.id.prompt(() => {});
     };
 
     initializeOneTap();

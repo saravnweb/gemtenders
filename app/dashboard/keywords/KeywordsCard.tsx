@@ -92,12 +92,12 @@ export default function KeywordsCard({ search, membershipPlan, totalKeywords }: 
                 ) : (
                     <div className="flex flex-wrap gap-2">
                         {keywords.map((keyword: string, idx: number) => (
-                            <div key={idx} className="flex items-center gap-1.5 text-xs font-semibold bg-fresh-sky-50 dark:bg-fresh-sky-900/20 px-2.5 py-1 rounded-lg border border-fresh-sky-100 dark:border-fresh-sky-800 text-fresh-sky-700 dark:text-fresh-sky-400 group">
+                            <div key={idx} className="flex items-center gap-1.5 text-xs font-semibold bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-white group">
                                 <span>{keyword}</span>
                                 <button
                                     type="button" 
                                     onClick={() => handleRemoveKeyword(idx)}
-                                    className="hover:bg-fresh-sky-200 dark:hover:bg-fresh-sky-800/50 p-0.5 rounded-full transition-colors focus:outline-none opacity-50 hover:opacity-100"
+                                    className="hover:bg-slate-200 dark:hover:bg-slate-700 p-0.5 rounded-full transition-colors focus:outline-none opacity-50 hover:opacity-100"
                                     title="Remove keyword"
                                 >
                                     <X className="w-3.5 h-3.5" />

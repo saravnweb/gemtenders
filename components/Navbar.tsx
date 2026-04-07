@@ -19,7 +19,7 @@ export default function Navbar() {
   const [welcomeToast, setWelcomeToast] = useState<{ name: string } | null>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
   const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const { theme, setTheme } = useTheme();
+  const { setTheme, resolvedTheme } = useTheme();
   const router = useRouter();
 
   useEffect(() => {
@@ -102,7 +102,7 @@ export default function Navbar() {
   const handleClearAll = async () => {
     try {
       setNotifications([]);
-      const response = await fetch('/api/notifications', {
+      await fetch('/api/notifications', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ clearAll: true })
@@ -471,16 +471,21 @@ export default function Navbar() {
                       {/* Dark Mode Toggle */}
                       {mounted && (
                         <button
-                          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                          className="w-full flex items-center justify-between px-4 py-3.5 text-slate-600 dark:text-muted-foreground font-bold text-xs uppercase tracking-widest border border-slate-100 dark:border-border rounded-xl bg-slate-50 dark:bg-card hover:bg-slate-100 dark:hover:bg-muted transition-all"
-                          aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+                          onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+                          className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-slate-100 dark:border-border bg-white dark:bg-card/50 hover:bg-slate-50 dark:hover:bg-muted transition-colors"
+                          aria-label={`Switch to ${resolvedTheme === "dark" ? "light" : "dark"} mode`}
                         >
-                          <div className="flex items-center space-x-2">
-                            {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                            <span>Dark Mode</span>
+                          <div className="flex items-center gap-2.5">
+                            {resolvedTheme === "dark"
+                              ? <Moon className="w-4 h-4 text-fresh-sky-400" />
+                              : <Sun className="w-4 h-4 text-amber-500" />}
+                            <span className="text-xs font-bold uppercase tracking-wide text-slate-700 dark:text-muted-foreground">
+                              {resolvedTheme === "dark" ? "Dark Mode" : "Light Mode"}
+                            </span>
                           </div>
-                          <div className={`relative w-10 h-5 rounded-full transition-colors duration-200 ${theme === "dark" ? "bg-fresh-sky-600" : "bg-slate-300"}`}>
-                            <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${theme === "dark" ? "translate-x-5" : "translate-x-0.5"}`} />
+                          {/* Pill toggle */}
+                          <div className={`relative w-11 h-6 rounded-full transition-colors duration-300 shrink-0 ${resolvedTheme === "dark" ? "bg-sky-500" : "bg-slate-300"}`}>
+                            <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all duration-300 ${resolvedTheme === "dark" ? "left-6" : "left-1"}`} />
                           </div>
                         </button>
                       )}

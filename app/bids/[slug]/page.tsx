@@ -348,28 +348,28 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
               {tender.title}
             </h1>
 
-            <div className="flex flex-wrap items-center gap-2 mb-2">
+            <div className="flex flex-wrap items-center gap-1.5 mb-2">
               {departments.map((part, idx) => (
                 <div key={idx} className="flex items-center">
                   <Link
                     href={`/?q=${encodeURIComponent(part)}`}
-                    className="flex items-center space-x-1.5 bg-indigo-50/50 hover:bg-indigo-100/80 text-indigo-700 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 border border-indigo-100"
+                    className="flex items-center gap-1 bg-indigo-50/50 hover:bg-indigo-100/80 text-indigo-700 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-200 border border-indigo-100"
                   >
-                    {idx === 0 && <Landmark className="w-3.5 h-3.5" />}
-                    {idx === 1 && <Building2 className="w-3.5 h-3.5" />}
-                    {idx === 2 && <Building className="w-3.5 h-3.5" />}
+                    {idx === 0 && <Landmark className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />}
+                    {idx === 1 && <Building2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />}
+                    {idx === 2 && <Building className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />}
                     <span>{part}</span>
                   </Link>
                   {idx < departments.length - 1 && (
-                    <span className="text-slate-300 dark:text-muted-tertiary mx-1">{'>'}</span>
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-300 dark:text-muted-tertiary mx-0.5 shrink-0" />
                   )}
                 </div>
               ))}
             </div>
 
             {officeDisplay && (
-              <div className="flex items-center text-sm font-medium text-slate-500 dark:text-muted-foreground mt-3 bg-slate-50 dark:bg-card w-fit px-3 py-1.5 rounded-lg border border-slate-100 dark:border-border">
-                <MapPin className="w-4 h-4 mr-2 text-slate-600 dark:text-muted-foreground" />
+              <div className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-medium text-slate-500 dark:text-muted-foreground mt-2 bg-slate-50 dark:bg-card px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg border border-slate-100 dark:border-border">
+                <MapPin className="w-3.5 h-3.5 shrink-0 text-slate-600 dark:text-muted-foreground" />
                 Office: {officeDisplay}
               </div>
             )}
@@ -636,18 +636,20 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
                 </div>
               </div>
 
-              {/* Disclaimer Card */}
-              <div className="bg-slate-100/50 dark:bg-card border border-slate-200 dark:border-border rounded-3xl p-5 flex items-start space-x-3">
-                <Info className="w-5 h-5 text-slate-600 dark:text-muted-foreground shrink-0 mt-0.5" />
-                <p className="text-xs text-slate-500 dark:text-muted-foreground leading-relaxed font-medium">
-                  Summary information is processed by AI. Always refer to the official tender document for accurate dates, requirements, and legal specifics before bidding.
-                </p>
-              </div>
 
             </div>
           </div>
 
         </div>
+
+        {/* Disclaimer Card */}
+        <div className="mt-6 bg-slate-100/50 dark:bg-card border border-slate-200 dark:border-border rounded-3xl p-5 flex items-start space-x-3">
+          <Info className="w-5 h-5 text-slate-600 dark:text-muted-foreground shrink-0 mt-0.5" />
+          <p className="text-xs text-slate-500 dark:text-muted-foreground leading-relaxed font-medium">
+            Summary information is processed by AI. Always refer to the official tender document for accurate dates, requirements, and legal specifics before bidding.
+          </p>
+        </div>
+
       </main>
     </div>
   );

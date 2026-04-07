@@ -66,7 +66,13 @@
       "Bash(curl -sv -b /tmp/gem_cookies.txt -H 'Content-Type: application/x-www-form-urlencoded; charset=UTF-8' -H 'User-Agent: Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\) AppleWebKit/537.36 \\(KHTML, like Gecko\\) Chrome/120.0.0.0 Safari/537.36' -H 'Accept: application/json, text/javascript, */*; q=0.01' -H 'X-Requested-With: XMLHttpRequest' -H 'Referer: https://bidplus.gem.gov.in/all-bids' -d 'csrf_gem_token=2423d7ab512fb6dabfe2c982105ed226&searchBid=&searchType=&bidStatusType=&byType=&highBidValue=&byEndDate=&sort=&page=1' https://bidplus.gem.gov.in/all-bids-data)",
       "Bash(grep -v \"^$\")",
       "Bash(curl -s https://tlregrteeeqwvptgpiib.supabase.co/rest/v1/rpc/query -H 'apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRscmVncnRlZWVxd3ZwdGdwaWliIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Mjk5MTU5MSwiZXhwIjoyMDg4NTY3NTkxfQ.-c_VrZmrvSY4lNdljc494n5eey5oBuTF8HNXgIZW4uc' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRscmVncnRlZWVxd3ZwdGdwaWliIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Mjk5MTU5MSwiZXhwIjoyMDg4NTY3NTkxfQ.-c_VrZmrvSY4lNdljc494n5eey5oBuTF8HNXgIZW4uc' -H 'Content-Type: application/json' -d '{\"query\": \"SELECT DATE\\(start_date AT TIME ZONE '\\\\''Asia/Kolkata'\\\\''\\) AS day, COUNT\\(*\\) AS count FROM tenders WHERE start_date >= NOW\\(\\) - INTERVAL '\\\\''14 days'\\\\'' GROUP BY day ORDER BY day DESC\"}')",
-      "Bash(python3 -c ':*)"
+      "Bash(python3 -c ':*)",
+      "Bash(identify d:/websites/Tenders/public/android-chrome-192x192.png)",
+      "Bash(ls -lh d:/websites/Tenders/public/*.png d:/websites/Tenders/public/*.jpg)",
+      "Read(//d/websites/Tenders/**)",
+      "Bash(mv /tmp/tenders_clean.tsx \"d:/websites/Tenders/app/TendersClient.tsx\")",
+      "Bash(node_modules/.bin/tsc --noEmit)",
+      "Bash(echo \"exit:$?\")"
     ],
     "additionalDirectories": [
       "d:\\websites\\Tenders\\scripts"

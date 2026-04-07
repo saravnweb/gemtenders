@@ -133,38 +133,7 @@ async function TendersResult({ searchParams }: { searchParams: Promise<any> }) {
       .then(({ data }) => data || []);
   }
 
-  // For total count
-  let countQuery = supabase
-    .from('tenders')
-    .select('*', { count: 'exact', head: true });
-
-  if (!isDirectGemLookup) {
-    countQuery = requirePublicListingReady(
-      countQuery.gte('end_date', new Date().toISOString()).not('ai_summary', 'is', null)
-    );
-  }
-
-  if (qStr) {
-    const terms = qStr.split(",").map(t => t.trim()).filter(Boolean);
-    const orClauses = terms.map(term =>
-      `title.ilike.%${term}%,bid_number.ilike.%${term}%,ra_number.ilike.%${term}%,department.ilike.%${term}%,ministry_name.ilike.%${term}%,organisation_name.ilike.%${term}%,state.ilike.%${term}%,city.ilike.%${term}%,ai_summary.ilike.%${term}%`
-    );
-    countQuery = countQuery.or(orClauses.join(','));
-  }
-  if (initialStates.length > 0) {
-    countQuery = countQuery.or(initialStates.map(s => `state.ilike."${s}"`).join(','));
-  }
-  if (categoryStr) {
-    countQuery = countQuery.eq('category', categoryStr);
-  }
-
-  const [tendersData, countData] = await Promise.all([
-    tendersPromise,
-    countQuery
-  ]);
-
-  const initialTenders = (tendersData as any[]) || [];
-  const count = countData.count ?? 0;
+  const initialTenders = ((await tendersPromise) as any[]) || [];
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -187,7 +156,7 @@ async function TendersResult({ searchParams }: { searchParams: Promise<any> }) {
         initialQ={qStr}
         initialStates={initialStates}
         initialCategory={categoryStr}
-        initialTotalCount={count ?? 0}
+
         initialSortOrder={initialSortOrder}
       />
     </>

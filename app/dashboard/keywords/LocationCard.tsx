@@ -133,9 +133,13 @@ export default function LocationCard({ search, membershipPlan }: { search: any, 
             />
         )}
         <div className={`bg-white dark:bg-card border border-slate-200 dark:border-border rounded-xl p-6 hover:border-slate-300 dark:hover:border-zinc-600 hover:shadow-md transition-all flex flex-col h-full shadow-sm ${isUpdating || isPending ? 'opacity-70 pointer-events-none' : ''}`}>
-            <div className="flex flex-col mb-6">
+            <div className="flex flex-col mb-4">
                 <h2 className="text-base font-bold text-slate-900 dark:text-foreground tracking-tight">Location Filters</h2>
-                <p className="text-sm text-slate-500 dark:text-muted-foreground font-medium mt-1">Narrow down by State and City.</p>
+                <p className="text-sm text-slate-500 dark:text-muted-foreground font-medium mt-1">Per-monitor filter — narrows this monitor to specific states/cities.</p>
+            </div>
+            <div className="flex items-start gap-2 mb-4 px-3 py-2 bg-slate-50 dark:bg-background border border-slate-200 dark:border-border rounded-lg text-xs text-slate-500 dark:text-muted-foreground font-medium">
+                <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0 opacity-50" />
+                <span>Overrides your <strong>Profile Location Defaults</strong> for this monitor only. Set profile defaults in <a href="/dashboard" className="underline hover:text-slate-700 dark:hover:text-foreground">Account Overview</a>.</span>
             </div>
 
             <div className="space-y-4 mb-6">
@@ -194,13 +198,13 @@ export default function LocationCard({ search, membershipPlan }: { search: any, 
                 ) : (
                     <div className="flex flex-wrap gap-2">
                         {states.map((st: string, idx: number) => (
-                            <div key={`st-${idx}`} className="flex items-center gap-1.5 text-xs font-semibold bg-muted-olive-50 dark:bg-muted-olive-900/20 px-2.5 py-1 rounded-lg border border-muted-olive-200 dark:border-muted-olive-800 text-muted-olive-700 dark:text-muted-olive-400 group">
+                            <div key={`st-${idx}`} className="flex items-center gap-1.5 text-xs font-semibold bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-white group">
                                 <MapPin className="w-3.5 h-3.5 opacity-50" />
                                 <span>{st}</span>
                                 <button 
                                     type="button" 
                                     onClick={() => handleRemoveState(idx)}
-                                    className="hover:bg-muted-olive-200 dark:hover:bg-muted-olive-800/50 p-0.5 rounded-full transition-colors focus:outline-none opacity-50 hover:opacity-100 ml-1" 
+                                    className="hover:bg-slate-200 dark:hover:bg-slate-700 p-0.5 rounded-full transition-colors focus:outline-none opacity-50 hover:opacity-100 ml-1" 
                                     title="Remove state"
                                 >
                                     <X className="w-3.5 h-3.5" />
@@ -208,13 +212,13 @@ export default function LocationCard({ search, membershipPlan }: { search: any, 
                             </div>
                         ))}
                         {cities.map((city: string, idx: number) => (
-                            <div key={`ct-${idx}`} className="flex items-center gap-1.5 text-xs font-semibold bg-fresh-sky-50 dark:bg-fresh-sky-900/20 px-2.5 py-1 rounded-lg border border-fresh-sky-200 dark:border-fresh-sky-800 text-fresh-sky-700 dark:text-fresh-sky-400 group">
+                            <div key={`ct-${idx}`} className="flex items-center gap-1.5 text-xs font-semibold bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-white group">
                                 <MapPin className="w-3.5 h-3.5 opacity-50" />
                                 <span>{city}</span>
                                 <button 
                                     type="button" 
                                     onClick={() => handleRemoveCity(idx)}
-                                    className="hover:bg-fresh-sky-200 dark:hover:bg-fresh-sky-800/50 p-0.5 rounded-full transition-colors focus:outline-none opacity-50 hover:opacity-100 ml-1" 
+                                    className="hover:bg-slate-200 dark:hover:bg-slate-700 p-0.5 rounded-full transition-colors focus:outline-none opacity-50 hover:opacity-100 ml-1" 
                                     title="Remove city"
                                 >
                                     <X className="w-3.5 h-3.5" />

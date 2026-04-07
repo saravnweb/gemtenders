@@ -44,6 +44,10 @@ async function setupDatabase() {
       CREATE POLICY "Users can update their own notifications"
         ON public.in_app_notifications FOR UPDATE
         USING (auth.uid() = user_id);
+
+      CREATE POLICY "Users can delete their own notifications"
+        ON public.in_app_notifications FOR DELETE
+        USING (auth.uid() = user_id);
       `);
   } else {
       console.log('Table in_app_notifications already exists or another error occurred:', error?.message || 'Success');
