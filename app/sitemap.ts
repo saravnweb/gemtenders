@@ -1,6 +1,6 @@
 import { MetadataRoute } from 'next'
 
-const baseUrl = 'https://www.gemtenders.org'
+const baseUrl = 'https://gemtenders.org'
 
 // Number of tenders per sitemap page
 const PAGE_SIZE = 1000

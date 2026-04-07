@@ -101,7 +101,7 @@ export async function GET(req: Request) {
     }
 
     // 5. Send ONE digest notification per user
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.gemtenders.org';
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://gemtenders.org';
     let notifiedUsers = 0;
 
     for (const [userId, count] of userMatchCount.entries()) {

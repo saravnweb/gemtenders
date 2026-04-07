@@ -18,7 +18,7 @@ const bricolage = Bricolage_Grotesque({
   variable: "--font-bricolage",
 });
 
-const siteUrl = "https://www.gemtenders.org";
+const siteUrl = "https://gemtenders.org";
 
 export const viewport: Viewport = {
   width: "device-width",

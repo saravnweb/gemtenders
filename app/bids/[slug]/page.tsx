@@ -28,7 +28,7 @@ export async function generateStaticParams() {
   return tenders.map((t: any) => ({ slug: t.slug }));
 }
 
-const siteUrl = "https://www.gemtenders.org";
+const siteUrl = "https://gemtenders.org";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -257,26 +257,26 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
     },
     "availableChannel": {
       "@type": "ServiceChannel",
-      "serviceUrl": `https://www.gemtenders.org/bids/${tender.slug}`,
+      "serviceUrl": `https://gemtenders.org/bids/${tender.slug}`,
     },
     "identifier": tender.bid_number,
   };
 
   const breadcrumbItems = [
-    { name: "Home", url: "https://www.gemtenders.org/" },
-    { name: "Tenders", url: "https://www.gemtenders.org/" }
+    { name: "Home", url: "https://gemtenders.org/" },
+    { name: "Tenders", url: "https://gemtenders.org/" }
   ];
 
   if (departments.length > 0) {
     breadcrumbItems.push({
       name: departments[0],
-      url: `https://www.gemtenders.org/?q=${encodeURIComponent(departments[0])}`
+      url: `https://gemtenders.org/?q=${encodeURIComponent(departments[0])}`
     });
   }
 
   breadcrumbItems.push({
     name: tender.bid_number,
-    url: `https://www.gemtenders.org/bids/${slug}`
+    url: `https://gemtenders.org/bids/${slug}`
   });
 
   const breadcrumbJsonLd = {

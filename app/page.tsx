@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Live GeM Tenders — AI-Powered Bid Tracking | GeMTenders.org',
     description: 'Discover 10,000+ live GeM portal tenders with our advanced search tool. Find the best government bids by category, ministry, and state, updated daily.',
-    url: 'https://www.gemtenders.org',
+    url: 'https://gemtenders.org',
     siteName: 'GeMTenders.org',
     images: [
       {
@@ -146,7 +146,7 @@ export default async function Page({
     "itemListElement": initialTenders.map((tender: any, index: number) => ({
       "@type": "ListItem",
       "position": index + 1,
-      "url": `https://www.gemtenders.org/bids/${tender.slug}`
+      "url": `https://gemtenders.org/bids/${tender.slug}`
     }))
   };
 
