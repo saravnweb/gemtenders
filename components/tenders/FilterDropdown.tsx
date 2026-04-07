@@ -220,7 +220,7 @@ export function FilterDropdown({
           )}
           <button
             onClick={() => setOpen(false)}
-            className={`${(mode === "multi" || selected.length > 0) ? "flex-[2]" : "w-full"} py-2.5 px-4 text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 rounded-xl transition-all shadow-md active:scale-[0.98] text-center`}
+            className={`${(mode === "multi" || selected.length > 0) ? "flex-2" : "w-full"} py-2.5 px-4 text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 rounded-xl transition-all shadow-md active:scale-[0.98] text-center`}
           >
             {mode === "multi" ? "Apply Filter" : "Close"}
           </button>

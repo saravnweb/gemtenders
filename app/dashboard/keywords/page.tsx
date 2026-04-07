@@ -1,9 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { ChevronRight, Settings } from 'lucide-react';
-import Link from 'next/link';
-import KeywordsCard from './KeywordsCard';
-import LocationCard from './LocationCard';
+import { Settings } from 'lucide-react';
+import AlertSetupCard from './AlertSetupCard';
 
 export default async function KeywordsPage() {
   const supabase = await createClient();
@@ -83,34 +81,17 @@ export default async function KeywordsPage() {
       masterConfig = newConfig;
   }
 
-  const queryParams = masterConfig?.query_params || { q: '', states: [], cities: [] };
-  const keywordsList = queryParams.q ? queryParams.q.split(',').filter(Boolean) : [];
-  const totalKeywords = keywordsList.length;
-
-  const liveBidsUrl = `/?q=${encodeURIComponent(keywordsList.join(',') || '')}${queryParams.states?.length > 0 ? `&states=${encodeURIComponent(queryParams.states.join(','))}` : ''}${queryParams.cities?.length > 0 ? `&cities=${encodeURIComponent(queryParams.cities.join(','))}` : ''}`;
-
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 max-w-lg">
       <div className="border-b border-slate-100 dark:border-border pb-6">
         <h1 className="text-2xl font-bold text-slate-900 dark:text-foreground tracking-tight flex items-center gap-2">
           <Settings className="w-5 h-5 text-link dark:text-link" />
           Alert Preferences
         </h1>
-        <p className="text-sm text-slate-500 dark:text-muted-foreground font-medium">Configure keywords and locations for automatic tracking and daily emails.</p>
+        <p className="text-sm text-slate-500 dark:text-muted-foreground font-medium">Configure keywords and location for automatic tracking and daily emails.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
-         <KeywordsCard search={masterConfig} membershipPlan={membershipPlan} totalKeywords={totalKeywords} />
-         <LocationCard search={masterConfig} membershipPlan={membershipPlan} />
-      </div>
-
-      <Link
-          href={liveBidsUrl}
-          className="px-5 py-2.5 bg-fresh-sky-50 dark:bg-fresh-sky-900/20 text-fresh-sky-700 dark:text-fresh-sky-400 rounded-xl text-sm font-semibold hover:bg-fresh-sky-100 dark:hover:bg-fresh-sky-800/30 transition-all flex items-center justify-center space-x-2 border border-fresh-sky-200 dark:border-fresh-sky-800 shadow-sm"
-      >
-          <span>View Matching Bids</span>
-          <ChevronRight className="w-4 h-4" />
-      </Link>
+      <AlertSetupCard search={masterConfig} membershipPlan={membershipPlan} />
     </div>
   );
 }

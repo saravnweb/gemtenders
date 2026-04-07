@@ -3,7 +3,7 @@
 import { X, Zap, Check, ArrowRight, Lock } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-export type UpgradeReason = 'keywords' | 'state' | 'city';
+export type UpgradeReason = 'keywords' | 'state' | 'city' | 'pdf' | 'save';
 
 interface UpgradeModalProps {
     isOpen: boolean;
@@ -42,6 +42,20 @@ const REASON_CONFIG: Record<UpgradeReason, {
         starterBenefit: "Filter by up to 5 cities per monitor",
         proBenefit: "Unlimited cities across all monitors",
     },
+    pdf: {
+        title: "PDF Downloads Require Starter",
+        subtitle: () => "PDF downloads are available on Starter and Pro plans.",
+        lockedFeature: "Download tender PDFs",
+        starterBenefit: "Unlimited PDF downloads",
+        proBenefit: "Unlimited PDFs + instant WhatsApp alerts",
+    },
+    save: {
+        title: "Saving Tenders Requires Starter",
+        subtitle: () => "Bookmark and track tenders with a Starter subscription.",
+        lockedFeature: "Save & bookmark tenders",
+        starterBenefit: "Save unlimited tenders",
+        proBenefit: "Save tenders + team sharing",
+    },
 };
 
 export default function UpgradeModal({
@@ -79,7 +93,7 @@ export default function UpgradeModal({
             <div className="relative bg-white dark:bg-card rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
 
                 {/* Header gradient */}
-                <div className="relative bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 px-6 pt-6 pb-10">
+                <div className="relative bg-linear-to-br from-blue-600 via-blue-700 to-indigo-800 px-6 pt-6 pb-10">
                     <button
                         onClick={onClose}
                         className="absolute top-4 right-4 p-1.5 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors"
@@ -126,7 +140,7 @@ export default function UpgradeModal({
                         ].map((feat) => (
                             <li key={feat} className="flex items-center gap-3">
                                 <div className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center shrink-0">
-                                    <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400 stroke-[3]" />
+                                    <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400 stroke-3" />
                                 </div>
                                 <span className="text-sm font-medium text-slate-700 dark:text-muted-foreground">{feat}</span>
                             </li>
@@ -138,7 +152,7 @@ export default function UpgradeModal({
                 <div className="px-6 pt-4 pb-6 flex flex-col gap-2.5">
                     <button
                         onClick={handleUpgrade}
-                        className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black text-sm uppercase tracking-widest rounded-xl shadow-lg shadow-blue-500/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                        className="w-full py-3.5 bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black text-sm uppercase tracking-widest rounded-xl shadow-lg shadow-blue-500/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                     >
                         <Zap className="w-4 h-4 fill-current" />
                         Upgrade to Starter

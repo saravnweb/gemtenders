@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Download, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import UpgradeModal from "@/components/UpgradeModal";
 
 export default function DownloadButtons({
     pdfUrl,
@@ -19,6 +20,7 @@ export default function DownloadButtons({
     const router = useRouter();
     const [isPremium, setIsPremium] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [showUpgrade, setShowUpgrade] = useState(false);
 
     useEffect(() => {
         supabase.auth.getUser().then(({ data: { user } }) => {
@@ -36,23 +38,9 @@ export default function DownloadButtons({
         e.preventDefault();
         if (loading) return;
 
-        // Free user daily limit (client-side)
         if (!isPremium) {
-            const today = new Date().toDateString();
-            const storageKey = "gem_pdf_downloads";
-            try {
-                const stored = localStorage.getItem(storageKey);
-                let data = stored ? JSON.parse(stored) : { date: today, count: 0 };
-                if (data.date !== today) data = { date: today, count: 0 };
-                if (data.count >= 5) {
-                    if (confirm(`Free plan allows up to 5 PDF downloads daily.\n\nYou've reached your limit. Upgrade to download unlimited PDFs?`)) {
-                        router.push("/dashboard/subscriptions");
-                    }
-                    return;
-                }
-                data.count += 1;
-                localStorage.setItem(storageKey, JSON.stringify(data));
-            } catch {}
+            setShowUpgrade(true);
+            return;
         }
 
         setLoading(true);
@@ -63,10 +51,8 @@ export default function DownloadButtons({
                 router.push("/login");
                 return;
             }
-            if (res.status === 403) {
-                if (confirm("Upgrade to a paid plan to download PDFs. Go to subscriptions?")) {
-                    router.push("/dashboard/subscriptions");
-                }
+            if (res.status === 402) {
+                setShowUpgrade(true);
                 return;
             }
             if (!res.ok) {
@@ -96,6 +82,29 @@ export default function DownloadButtons({
     const btnClass = (base: string) =>
         `${base} ${loading ? "opacity-60 cursor-wait" : ""}`;
 
+    return (
+        <>
+            <UpgradeModal isOpen={showUpgrade} onClose={() => setShowUpgrade(false)} reason="pdf" />
+            <DownloadButtonsInner
+                pdfUrl={pdfUrl}
+                detailsUrl={detailsUrl}
+                loading={loading}
+                btnClass={btnClass}
+                handleDownload={handleDownload}
+                isMobile={isMobile}
+            />
+        </>
+    );
+}
+
+function DownloadButtonsInner({ pdfUrl, detailsUrl, loading, btnClass, handleDownload, isMobile }: {
+    pdfUrl: string | null;
+    detailsUrl: string;
+    loading: boolean;
+    btnClass: (base: string) => string;
+    handleDownload: (e: React.MouseEvent) => void;
+    isMobile: boolean;
+}) {
     if (!pdfUrl) {
         return (
             <div className="flex flex-col w-full gap-3">

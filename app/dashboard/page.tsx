@@ -21,6 +21,19 @@ export default async function ProfilePage() {
   const isPremium = membershipPlan !== 'free';
   return (
       <div className="space-y-8">
+        {/* Upgrade banner for free users */}
+        {membershipPlan === 'free' && (
+          <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <p className="font-bold text-amber-800 dark:text-amber-300 text-sm">Unlock all features with Starter</p>
+              <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">PDF downloads, keyword alerts, save tenders, and more — from ₹99/month.</p>
+            </div>
+            <Link href="/dashboard/subscriptions" className="shrink-0 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-lg transition-colors text-center">
+              Upgrade Now
+            </Link>
+          </div>
+        )}
+
         {/* Welcome Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>

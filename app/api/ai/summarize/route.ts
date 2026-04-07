@@ -28,23 +28,10 @@ export async function POST(req: Request) {
   const plan: string = profile?.membership_plan ?? 'free';
 
   if (plan === 'free') {
-    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-    const isToday = profile?.ai_summary_date === today;
-    const callsToday: number = isToday ? (profile?.ai_summary_calls ?? 0) : 0;
-
-    if (callsToday >= FREE_DAILY_LIMIT) {
-      return NextResponse.json(
-        { error: `Free plan limit reached (${FREE_DAILY_LIMIT} AI summaries/day). Upgrade to get unlimited access.` },
-        { status: 429 }
-      );
-    }
-
-    // Optimistically increment before the expensive Gemini call so concurrent
-    // requests don't both sneak through at count = limit - 1.
-    await admin
-      .from('profiles')
-      .update({ ai_summary_calls: callsToday + 1, ai_summary_date: today })
-      .eq('id', user.id);
+    return NextResponse.json(
+      { error: 'AI summaries require a Starter or Pro plan.', requiresUpgrade: true },
+      { status: 402 }
+    );
   }
 
   // ── Summarize ─────────────────────────────────────────────────────────────

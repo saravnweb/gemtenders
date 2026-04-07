@@ -74,7 +74,10 @@
       "Bash(node_modules/.bin/tsc --noEmit)",
       "Bash(echo \"exit:$?\")",
       "Bash(node -e \"const m=require\\('./lib/city-state-map.json'\\); console.log\\(Object.keys\\(m\\).length\\)\")",
-      "Bash(echo \"Done - $\\(node -e \"const m=require\\('./lib/city-state-map.json'\\); console.log\\(Object.keys\\(m\\).length\\)\"\\) cities\")"
+      "Bash(echo \"Done - $\\(node -e \"const m=require\\('./lib/city-state-map.json'\\); console.log\\(Object.keys\\(m\\).length\\)\"\\) cities\")",
+      "Bash(grep -E \"\\\\.\\(sql|ts\\)$\")",
+      "Bash(iconv -f UTF-16LE -t UTF-8 d:/websites/Tenders/schema.sql)",
+      "Bash(iconv -f UTF-16LE -t UTF-8 d:/websites/Tenders/lib/schema.sql)"
     ],
     "additionalDirectories": [
       "d:\\websites\\Tenders\\scripts"
