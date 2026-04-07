@@ -117,7 +117,7 @@ export default function GoogleOneTap() {
       window.google.accounts.id.initialize({
         client_id: clientID,
         nonce: hashedNonce,
-        use_fedcm_for_prompt: false,
+        use_fedcm_for_prompt: true,
         callback: async (response: any) => {
           // 3. Send the ID token to Supabase
           const { data, error } = await supabase.auth.signInWithIdToken({
@@ -138,8 +138,8 @@ export default function GoogleOneTap() {
         cancel_on_tap_outside: true,
       });
 
-      // 4. Show the One Tap prompt
-      window.google.accounts.id.prompt(() => {});
+      // 4. Show the One Tap prompt (no callback — FedCM doesn't support prompt UI status methods)
+      window.google.accounts.id.prompt();
     };
 
     initializeOneTap();

@@ -80,6 +80,6 @@ export function formatDepartmentInfo(ministry?: string, dept?: string, org?: str
 export function buildSearchOrClause(q: string): string {
   const terms = q.split(",").map((s) => s.trim()).filter(Boolean);
   return terms.map((term) =>
-    `title.ilike.%${term}%,bid_number.ilike.%${term}%,ra_number.ilike.%${term}%,department.ilike.%${term}%,ministry_name.ilike.%${term}%,organisation_name.ilike.%${term}%,state.ilike.%${term}%,city.ilike.%${term}%,ai_summary.ilike.%${term}%`
+    `title.ilike.%${term}%,bid_number.ilike.%${term}%,ra_number.ilike.%${term}%,department.ilike.%${term}%,ministry_name.ilike.%${term}%,organisation_name.ilike.%${term}%,state.ilike.%${term}%,city.ilike.%${term}%`
   ).join(",");
 }

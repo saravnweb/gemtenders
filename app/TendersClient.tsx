@@ -61,15 +61,28 @@ async function queryTendersCount(filters: Filters): Promise<number> {
   if (filters.q.trim()) {
     const searchTerms = filters.q.split(',').map(s => s.trim()).filter(Boolean);
     const orClauses = searchTerms.map(term =>
-      `title.ilike.%${term}%,bid_number.ilike.%${term}%,ra_number.ilike.%${term}%,department.ilike.%${term}%,ministry_name.ilike.%${term}%,organisation_name.ilike.%${term}%,state.ilike.%${term}%,city.ilike.%${term}%,ai_summary.ilike.%${term}%`
+      `title.ilike.%${term}%,bid_number.ilike.%${term}%,ra_number.ilike.%${term}%,department.ilike.%${term}%,ministry_name.ilike.%${term}%,organisation_name.ilike.%${term}%,state.ilike.%${term}%,city.ilike.%${term}%`
     );
     q = q.or(orClauses.join(','));
   }
 
-  if (filters.states.length > 0)     q = q.or(filters.states.map(s => `state.ilike."${s}"`).join(','));
-  if (filters.cities.length > 0)     q = q.or(filters.cities.map(c => `city.ilike."${c}"`).join(','));
-  if (filters.ministries.length > 0) q = q.or(filters.ministries.map(m => `ministry_name.ilike."${m}"`).join(','));
-  if (filters.orgs.length > 0)       q = q.or(filters.orgs.map(o => `organisation_name.ilike."${o}"`).join(','));
+  if (filters.states.length > 0) {
+    const stateClauses = filters.states.map(s => s === "Unknown State" ? `state.is.null` : `state.ilike."${s}"`);
+    q = q.or(stateClauses.join(','));
+  }
+  if (filters.cities.length > 0) {
+    const cityClauses = filters.cities.map(c => c === "Other Cities" ? `city.is.null` : `city.ilike."${c}"`);
+    q = q.or(cityClauses.join(','));
+  }
+  if (filters.ministries.length > 0) {
+    const minClauses = filters.ministries.map(m => m === "Not Specified" ? `ministry_name.is.null` : `ministry_name.ilike."${m}"`);
+    q = q.or(minClauses.join(','));
+  }
+  if (filters.orgs.length > 0) {
+    const orgClauses = filters.orgs.map(o => o === "Not Specified" ? `organisation_name.is.null` : `organisation_name.ilike."${o}"`);
+    q = q.or(orgClauses.join(','));
+  }
+
   if (filters.msmeOnly) q = q.eq("eligibility_msme", true);
   if (filters.miiOnly)  q = q.eq("eligibility_mii",  true);
 
@@ -116,9 +129,9 @@ async function queryForYouTenders(searches: any[]): Promise<any[]> {
 
   if (!uniqueKeywords.length) return [];
 
-  // Use ONLY title in the DB query to keep the OR clause short (avoids URL length limits).
-  // All field matching (org, ministry, ai_summary, etc.) is done client-side in forYouTenders.
-  const orString = uniqueKeywords.map(kw => `title.ilike.%${kw}%`).join(",");
+  // Search title + ai_summary in the DB query to match the same fields as the regular search.
+  // All other field matching (org, ministry, etc.) is done client-side in forYouTenders.
+  const orString = uniqueKeywords.map(kw => `title.ilike.%${kw}%,ai_summary.ilike.%${kw}%`).join(",");
 
   const { data, error } = await requirePublicListingReady(
     supabase
@@ -172,16 +185,28 @@ async function queryTenders(filters: Filters, page: number): Promise<any[]> {
   if (filters.q.trim()) {
     const searchTerms = filters.q.split(',').map(s => s.trim()).filter(Boolean);
     const orClauses = searchTerms.map(term =>
-      `title.ilike.%${term}%,bid_number.ilike.%${term}%,ra_number.ilike.%${term}%,department.ilike.%${term}%,ministry_name.ilike.%${term}%,organisation_name.ilike.%${term}%,state.ilike.%${term}%,city.ilike.%${term}%,ai_summary.ilike.%${term}%`
+      `title.ilike.%${term}%,bid_number.ilike.%${term}%,ra_number.ilike.%${term}%,department.ilike.%${term}%,ministry_name.ilike.%${term}%,organisation_name.ilike.%${term}%,state.ilike.%${term}%,city.ilike.%${term}%`
     );
     q = q.or(orClauses.join(','));
   }
 
   // Location
-  if (filters.states.length > 0)     q = q.or(filters.states.map(s => `state.ilike."${s}"`).join(','));
-  if (filters.cities.length > 0)     q = q.or(filters.cities.map(c => `city.ilike."${c}"`).join(','));
-  if (filters.ministries.length > 0) q = q.or(filters.ministries.map(m => `ministry_name.ilike."${m}"`).join(','));
-  if (filters.orgs.length > 0)       q = q.or(filters.orgs.map(o => `organisation_name.ilike."${o}"`).join(','));
+  if (filters.states.length > 0) {
+    const stateClauses = filters.states.map(s => s === "Unknown State" ? `state.is.null` : `state.ilike."${s}"`);
+    q = q.or(stateClauses.join(','));
+  }
+  if (filters.cities.length > 0) {
+    const cityClauses = filters.cities.map(c => c === "Other Cities" ? `city.is.null` : `city.ilike."${c}"`);
+    q = q.or(cityClauses.join(','));
+  }
+  if (filters.ministries.length > 0) {
+    const minClauses = filters.ministries.map(m => m === "Not Specified" ? `ministry_name.is.null` : `ministry_name.ilike."${m}"`);
+    q = q.or(minClauses.join(','));
+  }
+  if (filters.orgs.length > 0) {
+    const orgClauses = filters.orgs.map(o => o === "Not Specified" ? `organisation_name.is.null` : `organisation_name.ilike."${o}"`);
+    q = q.or(orgClauses.join(','));
+  }
 
   // Eligibility
   if (filters.msmeOnly) q = q.eq("eligibility_msme", true);
@@ -362,13 +387,25 @@ function TendersClient({
     const tab = searchParams.get("tab");
     if ((tab === "foryou" || tab === "all" || tab === "archived") && tab !== activeTab) setActiveTab(tab);
 
-    const sort = searchParams.get("sort");
+    const sort = searchParams.get("sort") || searchParams.get("sortOrder");
     if (
       (sort === "newest" || sort === "ending_soon" || sort === "relevance") &&
       sort !== sortOrder
     ) {
       setSortOrder(sort);
     }
+
+    const msme = searchParams.get("msmeOnly");
+    if (msme !== null) setMsmeOnly(msme === "true");
+
+    const mii = searchParams.get("miiOnly");
+    if (mii !== null) setMiiOnly(mii === "true");
+
+    const emd = searchParams.get("emdFilter");
+    if (emd && ["free", "<1L", "1-5L", ">5L"].includes(emd)) setEmdFilter(emd);
+
+    const dateP = searchParams.get("dateFilter");
+    if (dateP && ["today", "week"].includes(dateP)) setDateFilter(dateP);
 
     // Instantly remove any tenders that have precisely expired but were kept around by SSR cache
     if (isFirstRender.current) {
@@ -447,34 +484,39 @@ function TendersClient({
   }, [savedSearches]);
 
   // ── Helper: row array → sorted counted items ──
-  function toCounted(rows: any[], key: string) {
+  function toCounted(rows: any[], key: string, fallbackLabel?: string) {
     const map: Record<string, number> = {};
     rows.forEach((r) => {
       let v = r[key];
+      let normalized = "";
       if (v) {
         v = v.trim();
-        // Custom normalization for common issues
-        let normalized = "";
         if (key === 'state') {
           normalized = normalizeState(v) || "";
         } else if (key === 'city') {
           normalized = normalizeCity(v) || "";
         } else {
-          // General cleanup for other filters (ministries/organisations)
-          v = v.replace(/\s+/g, ' '); // Replace double spaces
-          v = v.replace(/\.+$/, '');   // Remove trailing dots
-          v = v.replace(/[\*\_\#]+$/, ''); // Remove trailing stars/hashes
+          v = v.replace(/\s+/g, ' ');
+          v = v.replace(/\.+$/, '');
+          v = v.replace(/[\*\_\#]+$/, '');
           normalized = toTitleCase(v);
         }
-        
-        if (normalized) {
-           map[normalized] = (map[normalized] || 0) + 1;
-        }
+      }
+      
+      const targetLabel = normalized || fallbackLabel;
+      if (targetLabel) {
+        map[targetLabel] = (map[targetLabel] || 0) + 1;
       }
     });
     return Object.entries(map)
       .map(([v, c]) => ({ label: v, value: v, count: c }))
-      .sort((a, b) => a.label.localeCompare(b.label));
+      .sort((a, b) => {
+        if (fallbackLabel) {
+          if (a.label === fallbackLabel) return 1;
+          if (b.label === fallbackLabel) return -1;
+        }
+        return a.label.localeCompare(b.label);
+      });
   }
 
   // ── Lazy-load states for filter panel ──
@@ -483,7 +525,7 @@ function TendersClient({
     const { data } = await requirePublicListingReady(
       supabase.from("tenders").select("state").gte("end_date", new Date().toISOString())
     ).limit(10000);
-    if (data) { setStates(toCounted(data, "state")); setStatesLoaded(true); }
+    if (data) { setStates(toCounted(data, "state", "Unknown State")); setStatesLoaded(true); }
   }
 
   // ── Lazy-load ministries ──
@@ -492,7 +534,7 @@ function TendersClient({
     const { data } = await requirePublicListingReady(
       supabase.from("tenders").select("ministry_name").gte("end_date", new Date().toISOString())
     ).not("ministry_name", "is", null).limit(10000);
-    if (data) { setMinistries(toCounted(data, "ministry_name")); setMinistriesLoaded(true); }
+    if (data) { setMinistries(toCounted(data, "ministry_name", "Not Specified")); setMinistriesLoaded(true); }
   }
 
   // ── Lazy-load organisations ──
@@ -501,7 +543,7 @@ function TendersClient({
     const { data } = await requirePublicListingReady(
       supabase.from("tenders").select("organisation_name").gte("end_date", new Date().toISOString())
     ).not("organisation_name", "is", null).limit(10000);
-    if (data) { setOrgs(toCounted(data, "organisation_name")); setOrgsLoaded(true); }
+    if (data) { setOrgs(toCounted(data, "organisation_name", "Not Specified")); setOrgsLoaded(true); }
   }
 
   // ── Contextual filter options cache ──
@@ -521,7 +563,7 @@ function TendersClient({
     )
       .in("state", selectedStates).limit(10000)
       .then((res: { data: { city: string | null }[] | null }) => {
-        if (res.data) setCities(toCounted(res.data, "city"));
+        if (res.data) setCities(toCounted(res.data, "city", "Other Cities"));
       });
   }, [selectedStates, statesLoaded]);
 
@@ -550,7 +592,7 @@ function TendersClient({
     }
 
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
-    const delay = searchQuery ? 350 : 0; // Debounce text search; instant for toggles
+    const delay = searchQuery ? 500 : 0; // Increased debounce for text search to 500ms
 
     // Clear contextual data immediately when search query changes
     const q = searchQuery.trim();
@@ -567,8 +609,20 @@ function TendersClient({
       setLoading(true);
       setPage(0);
 
-      // Fetch contextual filter options in parallel with main results
-      const needContextual = !!q && contextualQueryCache.current !== q;
+      const f = currentFilters();
+      
+      // 1. Fetch main results first (FAST path)
+      const resultsPromise = queryTenders(f, 0);
+      
+      const results = await resultsPromise;
+      if (seq !== fetchSeq.current) return;
+      
+      setTenders(results);
+      setHasMore(results.length === PAGE_SIZE);
+      setLoading(false); // STOP primary loading spinner here
+
+      // 2. Fetch counts and contextual filters in background (SLOW path)
+      const needContextual = !!q && q.length > 2 && contextualQueryCache.current !== q;
       const ctxPromise = needContextual
         ? requirePublicListingReady(
             supabase.from("tenders")
@@ -580,32 +634,31 @@ function TendersClient({
             .limit(1000)
         : Promise.resolve(null);
 
-      const f = currentFilters();
-      const [results, count, countArchived, ctxResult] = await Promise.all([
-        queryTenders(f, 0),
+      Promise.all([
         queryTendersCount({ ...f, tab: "all" }),
         queryTendersCount({ ...f, tab: "archived" }),
         ctxPromise,
-      ]);
+      ]).then(([count, countArchived, ctxResult]) => {
+        if (seq !== fetchSeq.current) return;
+        
+        setTotalCount(count);
+        setActiveCount(count);
+        setArchivedCount(countArchived);
 
-      if (seq !== fetchSeq.current) return; // Discard stale response
-      setTenders(results);
-      setTotalCount(count);
-      setActiveCount(count);
-      setArchivedCount(countArchived);
-      setHasMore(results.length === PAGE_SIZE);
-      setLoading(false);
-
-      if (needContextual && ctxResult) {
-        const { data } = ctxResult as any;
-        if (data) {
-          contextualQueryCache.current = q;
-          setContextualStates(toCounted(data, "state"));
-          setContextualMinistries(toCounted(data, "ministry_name"));
-          setContextualOrgs(toCounted(data, "organisation_name"));
+        if (needContextual && ctxResult) {
+          const { data } = ctxResult as any;
+          if (data) {
+            contextualQueryCache.current = q;
+            setContextualStates(toCounted(data, "state", "Unknown State"));
+            setContextualMinistries(toCounted(data, "ministry_name", "Not Specified"));
+            setContextualOrgs(toCounted(data, "organisation_name", "Not Specified"));
+          }
+          setContextualLoading(false);
         }
-        setContextualLoading(false);
-      }
+      }).catch(err => {
+        console.error("[Background Fetch Error]", err);
+        if (seq === fetchSeq.current) setContextualLoading(false);
+      });
     }, delay);
 
     return () => { if (debounceTimer.current) clearTimeout(debounceTimer.current); };
@@ -758,14 +811,14 @@ function TendersClient({
             </span>
             <span className="text-xs text-fresh-sky-600 dark:text-fresh-sky-400 font-bold tracking-wide uppercase">Live Updates</span>
           </div>
-          <h2 className="font-bricolage text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 dark:text-foreground tracking-tight mb-3 sm:mb-4">
+          <h2 className="font-bricolage text-lg sm:text-xl lg:text-2xl font-bold text-slate-900 dark:text-foreground tracking-tight mb-2 sm:mb-3">
             Find Your Next Tender
           </h2>
 
           {/* Search bar */}
           <div className="relative max-w-3xl">
             <label htmlFor="tender-search" className="sr-only">Search tenders by keywords or bid number</label>
-            <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-slate-400 pointer-events-none" aria-hidden="true" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 text-slate-400 pointer-events-none" aria-hidden="true" />
             <input
               id="tender-search"
               type="text"
@@ -778,7 +831,7 @@ function TendersClient({
                   setSearchQuery((e.target as HTMLInputElement).value);
                 }
               }}
-              className="w-full bg-white dark:bg-card border border-slate-200 dark:border-border rounded-2xl py-3 sm:py-3.5 pl-9 sm:pl-12 pr-10 text-sm text-slate-800 dark:text-foreground placeholder:text-slate-400 dark:placeholder:text-muted-tertiary focus:outline-none focus:ring-2 focus:ring-fresh-sky-500 focus:border-fresh-sky-500 transition-all shadow-sm"
+              className="w-full bg-white dark:bg-card border border-slate-200 dark:border-border rounded-xl py-2 sm:py-2.5 pl-8 sm:pl-10 pr-8 text-sm text-slate-800 dark:text-foreground placeholder:text-slate-400 dark:placeholder:text-muted-tertiary focus:outline-none focus:ring-2 focus:ring-fresh-sky-500 focus:border-fresh-sky-500 transition-all shadow-sm"
             />
             {searchQuery && (
               <button
@@ -905,6 +958,40 @@ function TendersClient({
               onClick={() => { if (isPremium) setMiiOnly(!miiOnly); else window.location.href = user ? "/dashboard/subscriptions" : "/login"; }}
             />
           </div>
+
+          {/* ── Active filter tags ── */}
+          {hasActiveFilters && (
+            <div className="mt-2 flex items-center space-x-2 overflow-x-auto pb-2 no-scrollbar min-h-[32px] max-w-4xl">
+              <div className="flex items-center space-x-2">
+                {selectedCategory && (
+                  <FilterTag label={`Category: ${CATEGORIES.find((c) => c.id === selectedCategory)?.label}`} onRemove={() => setSelectedCategory(null)} />
+                )}
+                {descriptionQuery && <FilterTag label={`Details: ${descriptionQuery}`} onRemove={() => setDescriptionQuery("")} />}
+                {selectedStates.map((st) => (
+                  <FilterTag key={st} label={st} onRemove={() => { setSelectedStates((p) => p.filter((s) => s !== st)); setSelectedCities([]); }} />
+                ))}
+                {selectedCities.map((ct) => (
+                  <FilterTag key={ct} label={ct} onRemove={() => setSelectedCities((p) => p.filter((c) => c !== ct))} />
+                ))}
+                {selectedMinistries.map((m) => (
+                  <FilterTag key={m} label={m} onRemove={() => setSelectedMinistries((p) => p.filter((x) => x !== m))} />
+                ))}
+                {selectedOrgs.map((o) => (
+                  <FilterTag key={o} label={o} onRemove={() => setSelectedOrgs((p) => p.filter((x) => x !== o))} />
+                ))}
+                {msmeOnly && <FilterTag label="MSE" onRemove={() => setMsmeOnly(false)} color="indigo" />}
+                {miiOnly  && <FilterTag label="MII" onRemove={() => setMiiOnly(false)}  color="indigo" />}
+                {emdFilter !== "all" && <FilterTag label={`EMD: ${emdFilter}`} onRemove={() => setEmdFilter("all")} />}
+                {dateFilter !== "all" && <FilterTag label={`Date: ${dateFilter}`} onRemove={() => setDateFilter("all")} />}
+                <button
+                  onClick={() => { setSelectedStates([]); setSelectedCities([]); setSelectedMinistries([]); setSelectedOrgs([]); setEmdFilter("all"); setDateFilter("all"); setMsmeOnly(false); setMiiOnly(false); setDescriptionQuery(""); setSelectedCategory(null); }}
+                  className="text-xs text-slate-500 dark:text-muted-foreground hover:text-slate-800 dark:hover:text-foreground transition-colors ml-1 px-2 py-1 whitespace-nowrap"
+                >
+                  Clear all
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Save search — shown when query or filters are active */}
           {(searchQuery.trim() || hasActiveFilters) && (
@@ -1045,39 +1132,6 @@ function TendersClient({
           </div>
         </div>
 
-        {/* ── Active filter tags ── */}
-        {hasActiveFilters && (
-          <div className="flex items-center space-x-2 mb-4 overflow-x-auto pb-1 no-scrollbar min-h-[32px]">
-            <div className="flex items-center space-x-2">
-              {selectedCategory && (
-                <FilterTag label={`Category: ${CATEGORIES.find((c) => c.id === selectedCategory)?.label}`} onRemove={() => setSelectedCategory(null)} />
-              )}
-              {descriptionQuery && <FilterTag label={`Details: ${descriptionQuery}`} onRemove={() => setDescriptionQuery("")} />}
-              {selectedStates.map((st) => (
-                <FilterTag key={st} label={st} onRemove={() => { setSelectedStates((p) => p.filter((s) => s !== st)); setSelectedCities([]); }} />
-              ))}
-              {selectedCities.map((ct) => (
-                <FilterTag key={ct} label={ct} onRemove={() => setSelectedCities((p) => p.filter((c) => c !== ct))} />
-              ))}
-              {selectedMinistries.map((m) => (
-                <FilterTag key={m} label={m} onRemove={() => setSelectedMinistries((p) => p.filter((x) => x !== m))} />
-              ))}
-              {selectedOrgs.map((o) => (
-                <FilterTag key={o} label={o} onRemove={() => setSelectedOrgs((p) => p.filter((x) => x !== o))} />
-              ))}
-              {msmeOnly && <FilterTag label="MSE" onRemove={() => setMsmeOnly(false)} color="indigo" />}
-              {miiOnly  && <FilterTag label="MII" onRemove={() => setMiiOnly(false)}  color="indigo" />}
-              {emdFilter !== "all" && <FilterTag label={`EMD: ${emdFilter}`} onRemove={() => setEmdFilter("all")} />}
-              {dateFilter !== "all" && <FilterTag label={`Date: ${dateFilter}`} onRemove={() => setDateFilter("all")} />}
-              <button
-                onClick={() => { setSelectedStates([]); setSelectedCities([]); setSelectedMinistries([]); setSelectedOrgs([]); setEmdFilter("all"); setDateFilter("all"); setMsmeOnly(false); setMiiOnly(false); setDescriptionQuery(""); setSelectedCategory(null); }}
-                className="text-xs text-slate-600 dark:text-muted-foreground hover:text-slate-600 transition-colors ml-1 px-2 py-1"
-              >
-                Clear all
-              </button>
-            </div>
-          </div>
-        )}
 
 
         {/* ── Tender Grid ── */}

@@ -37,10 +37,11 @@ export function FilterDropdown({
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [panelStyle, setPanelStyle] = useState<React.CSSProperties>({});
+  const [panelStyle, setPanelStyle] = useState<React.CSSProperties>({ position: "fixed", visibility: "hidden" });
   const [mounted, setMounted] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const opened = useRef(false);
   const prevOnOpen = useRef(onOpen);
 
@@ -84,7 +85,9 @@ export function FilterDropdown({
     let left = rect.left;
     if (left + panelW > vw - 8) left = vw - panelW - 8;
     left = Math.max(8, left);
-    setPanelStyle({ position: "fixed", top: rect.bottom + 6, left, width: panelW, zIndex: 9999 });
+    setPanelStyle({ position: "fixed", top: rect.bottom + 6, left, width: panelW, zIndex: 9999, visibility: "visible" });
+    // Focus after position is set so the browser doesn't scroll to the portal element
+    requestAnimationFrame(() => { searchInputRef.current?.focus({ preventScroll: true }); });
   }, [open]);
 
   useEffect(() => {
@@ -106,6 +109,7 @@ export function FilterDropdown({
   function handleToggle() {
     if (disabled) return;
     if (!open && !opened.current) { opened.current = true; onOpen?.(); }
+    if (open) setPanelStyle({ position: "fixed", visibility: "hidden" });
     setOpen((v) => !v);
     setQuery("");
   }
@@ -115,11 +119,7 @@ export function FilterDropdown({
     : items;
 
   const isActive = selected.length > 0;
-  const buttonLabel = isActive
-    ? selected.length === 1
-      ? (items.find((i) => fdValue(i) === selected[0]) ? fdLabel(items.find((i) => fdValue(i) === selected[0])!) : selected[0])
-      : `${label} (${selected.length})`
-    : label;
+  const buttonLabel = label;
 
   const panel = (
     <div
@@ -132,7 +132,7 @@ export function FilterDropdown({
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
             <input
-              autoFocus
+              ref={searchInputRef}
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -207,29 +207,21 @@ export function FilterDropdown({
         ref={btnRef}
         onClick={handleToggle}
         disabled={disabled}
-        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold border transition-all whitespace-nowrap ${
+        className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-all whitespace-nowrap ${
           disabled
             ? "opacity-40 cursor-not-allowed bg-white dark:bg-card border-slate-200 dark:border-border text-slate-400"
             : isActive
-              ? "bg-blue-600 text-white border-blue-600 shadow-sm pr-1.5"
+              ? "bg-blue-50 dark:bg-blue-900/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800/50"
               : "bg-white dark:bg-card border-slate-200 dark:border-border text-slate-600 dark:text-muted-foreground hover:border-slate-300 dark:hover:border-muted-foreground/35"
         }`}
       >
-        <span className="max-w-[180px] sm:max-w-[240px] truncate">{buttonLabel}</span>
-        {isActive ? (
-          <span
-            role="button"
-            tabIndex={0}
-            aria-label={`Clear ${label}`}
-            onClick={(e) => { e.stopPropagation(); onClear(); }}
-            onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); onClear(); } }}
-            className="ml-0.5 p-0.5 rounded-full hover:bg-blue-500 transition-colors"
-          >
-            <X className="w-3 h-3" />
+        <span className="max-w-[140px] sm:max-w-[200px] truncate">{buttonLabel}</span>
+        {isActive && selected.length > 0 && (
+          <span className="ml-0.5 px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-[10px] font-bold">
+            {selected.length}
           </span>
-        ) : (
-          <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`} />
         )}
+        <ChevronDown className={`w-2.5 h-2.5 text-slate-400 transition-transform ${open ? "rotate-180" : ""} ${isActive ? "text-blue-500" : ""}`} />
       </button>
 
       {open && mounted && createPortal(panel, document.body)}

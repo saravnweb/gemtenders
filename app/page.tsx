@@ -113,7 +113,7 @@ async function TendersResult({ searchParams }: { searchParams: Promise<any> }) {
     if (qStr) {
       const terms = qStr.split(",").map(t => t.trim()).filter(Boolean);
       const orClauses = terms.map(term =>
-        `title.ilike.%${term}%,bid_number.ilike.%${term}%,ra_number.ilike.%${term}%,department.ilike.%${term}%,ministry_name.ilike.%${term}%,organisation_name.ilike.%${term}%,state.ilike.%${term}%,city.ilike.%${term}%,ai_summary.ilike.%${term}%`
+        `title.ilike.%${term}%,bid_number.ilike.%${term}%,ra_number.ilike.%${term}%,department.ilike.%${term}%,ministry_name.ilike.%${term}%,organisation_name.ilike.%${term}%,state.ilike.%${term}%,city.ilike.%${term}%`
       );
       query = query.or(orClauses.join(','));
     }
