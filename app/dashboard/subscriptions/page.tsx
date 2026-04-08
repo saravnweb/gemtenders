@@ -18,7 +18,7 @@ export default function SubscriptionsPage() {
   useEffect(() => {
     async function loadProfile() {
       try {
-        const res = await fetch("/api/profile");
+        const res = await fetch("/api/profile", { cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
           setProfile(data);
@@ -84,7 +84,7 @@ export default function SubscriptionsPage() {
                throw new Error(result.error || "Payment verification failed on server.");
             }
 
-            const refreshRes = await fetch("/api/profile");
+            const refreshRes = await fetch("/api/profile", { cache: 'no-store' });
             if (!refreshRes.ok) throw new Error("Failed to refresh profile");
             const data = await refreshRes.json();
             setProfile(data);
@@ -129,7 +129,7 @@ export default function SubscriptionsPage() {
     try {
       await cancelRazorpaySubscription();
       alert("Subscription cancelled. Access continues until month end.");
-      const cancelRes = await fetch("/api/profile");
+      const cancelRes = await fetch("/api/profile", { cache: 'no-store' });
       if (cancelRes.ok) setProfile(await cancelRes.json());
     } catch (e: any) {
       alert(e.message || "Failed to cancel subscription");

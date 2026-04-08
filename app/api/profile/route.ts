@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { createClient } from "@supabase/supabase-js";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   const supabase = await createServerClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -18,11 +20,24 @@ export async function GET() {
     .from("profiles")
     .select("*")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
   if (error) {
+    console.error("[/api/profile] DB error:", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ ...data, email: user.email });
+  if (data) {
+    return NextResponse.json({ ...data, email: user.email });
+  }
+
+  // No profile row yet — return safe default
+  return NextResponse.json({
+    id: user.id,
+    email: user.email,
+    full_name: user.user_metadata?.full_name ?? null,
+    membership_plan: 'free',
+    subscription_status: null,
+    subscription_id: null,
+  });
 }
