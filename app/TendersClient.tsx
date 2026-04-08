@@ -887,6 +887,29 @@ function TendersClient({
             Find Your Next Tender
           </h2>
 
+          {/* Social proof bar */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mb-3 sm:mb-4">
+            {totalCount != null && totalCount > 0 && (
+              <>
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-muted-foreground">
+                  <span className="text-emerald-500 font-bold text-sm">{totalCount.toLocaleString('en-IN')}</span> active tenders
+                </div>
+                <span className="hidden sm:block w-px h-3 bg-slate-200 dark:bg-border" />
+              </>
+            )}
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-muted-foreground">
+              <span className="text-fresh-sky-600 dark:text-fresh-sky-400 font-bold text-sm">Daily</span> updates from GeM portal
+            </div>
+            <span className="hidden sm:block w-px h-3 bg-slate-200 dark:bg-border" />
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-muted-foreground">
+              <span className="text-atomic-tangerine-600 font-bold text-sm">AI</span> summaries — no PDF reading
+            </div>
+            <span className="hidden sm:block w-px h-3 bg-slate-200 dark:bg-border" />
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-muted-foreground">
+              <span className="text-slate-700 dark:text-foreground font-bold text-sm">Free</span> to search & browse
+            </div>
+          </div>
+
           {/* Search bar */}
           <div className="relative max-w-3xl">
             <label htmlFor="tender-search" className="sr-only">Search tenders by keywords or bid number</label>

@@ -293,9 +293,9 @@ export default function SubscriptionsPage() {
 
            <ul className="space-y-3">
              <FeatureItem text="Everything in Starter" />
-             <FeatureItem text="Instant WhatsApp & SMS alerts" />
-             <FeatureItem text="Deep AI breakdown of tender requirements" />
-             <FeatureItem text="Team dashboard (multi-user)" />
+             <FeatureItem text="Deep AI analysis — bid worthiness, checklist & tips" />
+             <FeatureItem text="WhatsApp & SMS alerts (coming soon)" />
+             <FeatureItem text="Team dashboard (coming soon)" />
              <FeatureItem text="Priority VIP support" />
            </ul>
         </div>

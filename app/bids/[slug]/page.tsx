@@ -10,6 +10,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import DownloadButtons from "./DownloadButtons";
 import RevealBidNumber from "./RevealBidNumber";
+import ProAnalysis from "./ProAnalysis";
 import { createClient } from "@/lib/supabase-server";
 export const revalidate = 3600; // Revalidate hourly
 export const dynamicParams = true;
@@ -150,14 +151,19 @@ function formatDepartmentInfo(ministry?: string, dept?: string, org?: string): s
 export default async function TenderDetailsPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const supabase = await createClient();
-  const { data: tender } = await supabase
-    .from('tenders')
-    .select('*')
-    .eq('slug', slug)
-    .maybeSingle();
+  const [{ data: tender }, { data: { user } }] = await Promise.all([
+    supabase.from('tenders').select('*').eq('slug', slug).maybeSingle(),
+    supabase.auth.getUser(),
+  ]);
 
   if (!tender) {
     notFound();
+  }
+
+  let membershipPlan = 'free';
+  if (user) {
+    const { data: profile } = await supabase.from('profiles').select('membership_plan').eq('id', user.id).single();
+    membershipPlan = profile?.membership_plan || 'free';
   }
 
   let parsedAiSummary: any = null;
@@ -636,6 +642,21 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
                 </div>
               </div>
 
+              {/* Pro AI Analysis */}
+              <ProAnalysis
+                tender={{
+                  title: tender.title,
+                  ai_summary: typeof tender.ai_summary === 'string' ? tender.ai_summary.substring(0, 500) : undefined,
+                  emd_amount: tender.emd_amount,
+                  end_date: tender.end_date,
+                  eligibility_msme: tender.eligibility_msme,
+                  eligibility_mii: tender.eligibility_mii,
+                  ministry_name: tender.ministry_name,
+                  organisation_name: tender.organisation_name,
+                  state: tender.state,
+                }}
+                isPro={membershipPlan === 'pro'}
+              />
 
             </div>
           </div>

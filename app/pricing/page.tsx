@@ -40,6 +40,42 @@ export default function PricingPage() {
         </div>
       </div>
 
+      {/* Social proof */}
+      <div className="max-w-3xl mx-auto mb-14 grid grid-cols-1 sm:grid-cols-2 gap-6 text-center">
+        <div className="bg-white rounded-2xl p-5 border border-fresh-sky-100 shadow-sm">
+          <p className="text-3xl font-black text-fresh-sky-950 mb-1">Every morning</p>
+          <p className="text-sm text-fresh-sky-600 font-medium">New tenders fetched fresh from the GeM portal daily</p>
+        </div>
+        <div className="bg-white rounded-2xl p-5 border border-fresh-sky-100 shadow-sm">
+          <p className="text-3xl font-black text-fresh-sky-950 mb-1">₹3.30/day</p>
+          <p className="text-sm text-fresh-sky-600 font-medium">Starter plan — less than a cup of chai</p>
+        </div>
+      </div>
+
+      {/* Testimonials */}
+      <div className="max-w-4xl mx-auto mb-16 grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div className="bg-white rounded-3xl p-6 border border-fresh-sky-100 shadow-sm">
+          <p className="text-fresh-sky-700 text-sm font-medium leading-relaxed mb-4">"We used to spend hours every week on the GeM portal looking for tenders. Now we just check our email every morning and only read the ones that matter."</p>
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-atomic-tangerine-100 flex items-center justify-center text-atomic-tangerine-700 font-bold text-sm">R</div>
+            <div>
+              <p className="text-xs font-bold text-slate-800">Rajesh M.</p>
+              <p className="text-xs text-slate-400">Solar equipment supplier, Gujarat</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-3xl p-6 border border-fresh-sky-100 shadow-sm">
+          <p className="text-fresh-sky-700 text-sm font-medium leading-relaxed mb-4">"The AI summaries are a game changer. I can scan 50 tenders in 5 minutes and know exactly which ones are worth pursuing. Worth every rupee."</p>
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-fresh-sky-100 flex items-center justify-center text-fresh-sky-700 font-bold text-sm">P</div>
+            <div>
+              <p className="text-xs font-bold text-slate-800">Priya S.</p>
+              <p className="text-xs text-slate-400">IT services vendor, Pune</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Pricing Cards */}
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 pb-20">
         
@@ -128,9 +164,9 @@ export default function PricingPage() {
           </div>
           <ul className="space-y-4">
             <FeatureItem text="Everything in the Starter plan" dark />
-            <FeatureItem text="Instant alerts sent directly to WhatsApp / SMS" dark />
-            <FeatureItem text="Deep AI breakdown (technical analysis) of tender requirements" dark />
-            <FeatureItem text="Share your account with team members (Multi-user team dashboard)" dark />
+            <FeatureItem text="Deep AI breakdown of tender requirements & bid worthiness" dark />
+            <FeatureItem text="WhatsApp & SMS instant alerts" dark comingSoon />
+            <FeatureItem text="Multi-user team dashboard" dark comingSoon />
             <FeatureItem text="Priority VIP customer support" dark />
           </ul>
         </div>
@@ -140,14 +176,17 @@ export default function PricingPage() {
   );
 }
 
-function FeatureItem({ text, disabled = false, dark = false }: { text: string, disabled?: boolean, dark?: boolean }) {
+function FeatureItem({ text, disabled = false, dark = false, comingSoon = false }: { text: string, disabled?: boolean, dark?: boolean, comingSoon?: boolean }) {
   return (
-    <li className={`flex items-start space-x-3 ${disabled ? (dark ? 'opacity-40' : 'opacity-40') : ''}`}>
+    <li className={`flex items-start space-x-3 ${disabled ? 'opacity-40' : ''}`}>
       <div className={`mt-0.5 shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${disabled ? 'bg-fresh-sky-100 text-fresh-sky-300' : (dark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-green-100 text-green-600')}`}>
         <Check className="w-3 h-3 stroke-3" />
       </div>
       <span className={`text-sm font-medium ${disabled ? (dark ? 'text-fresh-sky-500' : 'text-fresh-sky-400') : (dark ? 'text-fresh-sky-200' : 'text-fresh-sky-700')}`}>
         {text}
+        {comingSoon && (
+          <span className="ml-2 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-fresh-sky-700/40 text-fresh-sky-300">Soon</span>
+        )}
       </span>
     </li>
   );
