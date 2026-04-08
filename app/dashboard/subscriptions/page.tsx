@@ -247,9 +247,11 @@ export default function SubscriptionsPage() {
                disabled={loading || profile.membership_plan === 'starter' || profile.membership_plan === 'pro'}
                className="w-full py-3 bg-slate-900 dark:bg-foreground hover:bg-slate-800 dark:hover:bg-foreground/90 disabled:opacity-50 text-white dark:text-background font-bold rounded-xl transition-colors"
              >
-               {profile.membership_plan === 'starter' ? 'Current Plan' : profile.membership_plan === 'pro' ? 'Downgrade' : 'Subscribe – ₹99/mo'}
+               {profile.membership_plan === 'starter' ? 'Current Plan' : profile.membership_plan === 'pro' ? 'Downgrade' : 'Start 7-Day Free Trial'}
              </button>
-             <p className="text-center text-xs text-slate-500 font-medium mt-2">Cancel anytime</p>
+             {profile.membership_plan === 'free' && (
+               <p className="text-center text-xs text-slate-500 font-medium mt-2">Free for 7 days · then ₹99/mo · Cancel anytime</p>
+             )}
            </div>
 
            <ul className="space-y-3">
