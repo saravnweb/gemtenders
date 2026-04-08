@@ -75,12 +75,391 @@ export function normalizeState(state: string | null | undefined): string | null 
   return state.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ').trim();
 }
 
+// Canonical city name aliases — maps any variant (lowercased) → canonical form.
+// ONLY confirmed duplicates from the live DB are listed here.
+// Empty string = junk value → returned as null.
+//
+// PROOF: Duplicates identified by querying all active tenders grouped by lowercase city name.
+// Each group below shows: DB variants → canonical
+const CITY_ALIASES: Record<string, string> = {
+
+  // ── Junk / non-city values ────────────────────────────────────────────────
+  'null': '',
+  'n/a': '',
+  'na': '',
+  'not specified in the document': '',
+  'not specified': '',
+  'not available': '',
+  'not explicitly mentioned': '',
+  'court complex': '',
+  'block development office tejwapur': '',
+  'bihar state office': '',
+  'manendragarh-chirmiri-bharatpur': '',
+  'west': '',        // raw "West" stored as city in some tenders
+  'gujarat': '',     // state stored as city
+  'assam': '',       // state stored as city
+  'ladakh': '',      // UT stored as city
+  'lakshadweep': '', // UT stored as city
+
+  // ── CONFIRMED DUPLICATES FROM DB ─────────────────────────────────────────
+
+  // Bengaluru | "Bangalore"(495) + "BANGALORE" + "Bengaluru" + "Bangalore City"(38)
+  'bangalore': 'Bengaluru',
+  'bengaluru': 'Bengaluru',
+  'bangalore city': 'Bengaluru',
+
+  // Dehradun
+  'dehradun': 'Dehradun',
+
+  // Narmadapuram | "Hoshangabad" + "HOSHANGABAD" + "Narmadapuram"
+  'hoshangabad': 'Narmadapuram',
+  'narmadapuram': 'Narmadapuram',
+
+  // Jamnagar
+  'jamnagar': 'Jamnagar',
+
+  // Lucknow
+  'lucknow': 'Lucknow',
+
+  // Mumbai
+  'mumbai': 'Mumbai',
+
+  // Pune | "Pune" + "PUNE" + "Pune City"(1)
+  'pune': 'Pune',
+  'pune city': 'Pune',
+
+  // Rajouri | "Rajouri"(16) + "Rajauri"(29) + "RAJAURI" — official spelling is Rajouri (J&K govt)
+  'rajauri': 'Rajouri',
+  'rajouri': 'Rajouri',
+
+  // Tiruchirappalli | "Tiruchirappalli" + "TIRUCHIRAPPALLI" + "Trichy"(11) + "Tiruchirapalli"(4) + "Thiruchirapalli"(1)
+  'tiruchirappalli': 'Tiruchirappalli',
+  'tiruchirapalli': 'Tiruchirappalli',
+  'thiruchirapalli': 'Tiruchirappalli',
+  'trichy': 'Tiruchirappalli',
+
+  // Tiruvallur | "Tiruvallur" + "Thiruvallur"
+  'thiruvallur': 'Tiruvallur',
+  'tiruvallur': 'Tiruvallur',
+
+  // Visakhapatnam | "Visakhapatnam" + "Vishakhapatnam"
+  'vishakhapatnam': 'Visakhapatnam',
+  'visakhapatnam': 'Visakhapatnam',
+
+  // Ernakulam | "Ernakulam" + "Eranakulam" + "Ernakulam City"(7) + "Cochin"(10)
+  'eranakulam': 'Ernakulam',
+  'ernakulam': 'Ernakulam',
+  'ernakulam city': 'Ernakulam',
+  'cochin': 'Ernakulam',  // Cochin = Ernakulam city area
+
+  // Kochi | Kochi is the preferred modern name for the Cochin metro
+  'kochi': 'Kochi',
+
+  // Khurda | "Khurda" + "Khordha" + "Khurda (khordha)"
+  'khordha': 'Khurda',
+  'khurda': 'Khurda',
+  'khurda (khordha)': 'Khurda',
+
+  // Sundargarh
+  'sundargarh': 'Sundargarh',
+  'sundergarh': 'Sundargarh',
+
+  // Bokaro | "Bokaro" + "Bokaro Steel City"
+  'bokaro steel city': 'Bokaro',
+  'bokaro': 'Bokaro',
+
+  // Bardhaman | "Bardhaman" + "Burdwan"
+  'burdwan': 'Bardhaman',
+  'bardhaman': 'Bardhaman',
+
+  // Paschim Bardhaman | "Paschim Burdwan"(7) + "Paschim Bardhaman"(1)
+  'paschim burdwan': 'Paschim Bardhaman',
+  'paschim bardhaman': 'Paschim Bardhaman',
+
+  // Ferozepur | "Ferozepur" + "Firozpur"
+  'ferozepur': 'Ferozepur',
+  'firozpur': 'Ferozepur',
+
+  // Bulandshahr | "Bulandshahr" + "Bulandshahar"
+  'bulandshahar': 'Bulandshahr',
+  'bulandshahr': 'Bulandshahr',
+
+  // Chittorgarh | "Chittorgarh" + "Chittaurgarh"
+  'chittaurgarh': 'Chittorgarh',
+  'chittorgarh': 'Chittorgarh',
+
+  // Thiruvananthapuram | + "Trivandrum"(12) + typo variants
+  'thiruvananthapuram city': 'Thiruvananthapuram',
+  'thiruvananthapuram': 'Thiruvananthapuram',
+  'thiruvanathapuram': 'Thiruvananthapuram',
+  'thiruvananthapura m': 'Thiruvananthapuram',
+  'trivandrum': 'Thiruvananthapuram',
+
+  // Vadodara | "Vadodara" + "Vadodara Rural" + "Baroda"(1) + "Vadodra"(1)
+  'vadodara rural': 'Vadodara',
+  'vadodara': 'Vadodara',
+  'baroda': 'Vadodara',
+  'vadodra': 'Vadodara',
+
+  // Nagpur | "Nagpur" + "Nagpur City" + "Nagpur Rural"
+  'nagpur city': 'Nagpur',
+  'nagpur rural': 'Nagpur',
+
+  // Ahmedabad | "Ahmedabad" + "Ahmedabad City" + "Ahmadabad"(1)
+  'ahmedabad city': 'Ahmedabad',
+  'ahmedabad': 'Ahmedabad',
+  'ahmadabad': 'Ahmedabad',
+
+  // Aurangabad | "Aurangabad" + "Aurangabad Rural"
+  'aurangabad rural': 'Aurangabad',
+  'aurangabad': 'Aurangabad',
+
+  // Jodhpur | "Jodhpur" + "Jodhpur City"
+  'jodhpur city': 'Jodhpur',
+  'jodhpur': 'Jodhpur',
+
+  // Jalandhar | "Jalandhar" + "Jalandhar City" + "Jallandhar"(1)
+  'jalandhar city': 'Jalandhar',
+  'jalandhar': 'Jalandhar',
+  'jallandhar': 'Jalandhar',
+
+  // Prayagraj | "Prayagraj" + "Allahabad" + compound forms
+  'allahabad': 'Prayagraj',
+  'prayagraj': 'Prayagraj',
+  'allahabad (prayagraj)': 'Prayagraj',
+  'prayagraj (allahabad)': 'Prayagraj',
+
+  // Mysuru | "Mysuru" + "Mysore"
+  'mysore': 'Mysuru',
+  'mysuru': 'Mysuru',
+
+  // Gurugram | "Gurgaon"
+  'gurgaon': 'Gurugram',
+  'gurugram': 'Gurugram',
+
+  // Khargone | "Khargone (west Nimar)"
+  'khargone (west nimar)': 'Khargone',
+
+  // Delhi | "New Delhi" + "Central Delhi" + "South Delhi" + "South West Delhi"(13) + "North Delhi"(1) + "Delhi Cantt"(3)
+  'new delhi': 'Delhi',
+  'central delhi': 'Delhi',
+  'south delhi': 'Delhi',
+  'south west delhi': 'Delhi',
+  'north delhi': 'Delhi',
+  'delhi cantt': 'Delhi',
+
+  // Rajamahendravaram | "Rajahmundry" — old name
+  'rajahmundry': 'Rajamahendravaram',
+  'rajamahendravaram': 'Rajamahendravaram',
+
+  // Kadapa | "Ysr Kadapa"
+  'ysr kadapa': 'Kadapa',
+  'kadapa': 'Kadapa',
+
+  // Rangareddy | "Rangareddi"
+  'rangareddi': 'Rangareddy',
+  'rangareddy': 'Rangareddy',
+
+  // Mangaluru | "Mangalore"
+  'mangalore': 'Mangaluru',
+  'mangaluru': 'Mangaluru',
+
+  // Belagavi | "Belgaum"
+  'belgaum': 'Belagavi',
+  'belagavi': 'Belagavi',
+
+  // ── NEW FIXES FROM FULL DB SCAN ───────────────────────────────────────────
+
+  // Kolkata | "Calcutta"(6)
+  'calcutta': 'Kolkata',
+
+  // Puducherry | "Pondicherry"(6)
+  'pondicherry': 'Puducherry',
+  'puducherry': 'Puducherry',
+
+  // Kozhikode | "Calicut"(5)
+  'calicut': 'Kozhikode',
+  'kozhikode': 'Kozhikode',
+
+  // Nashik | "Nasik"(3)
+  'nasik': 'Nashik',
+
+  // Kalaburagi | "Gulbarga"(2) + "Kalaburgi"(1)
+  'gulbarga': 'Kalaburagi',
+  'kalaburgi': 'Kalaburagi',
+  'kalaburagi': 'Kalaburagi',
+
+  // Sonipat | "Sonepat"(3)
+  'sonepat': 'Sonipat',
+
+  // Ballari | "Bellary"(8) — official Kannada name
+  'bellary': 'Ballari',
+  'ballari': 'Ballari',
+
+  // Ayodhya | "Faizabad"(12) — renamed Faizabad district → Ayodhya in 2018
+  'faizabad': 'Ayodhya',
+
+  // Thoothukudi | "Tuticorin"(17) — official Tamil name
+  'tuticorin': 'Thoothukudi',
+  'thoothukudi': 'Thoothukudi',
+
+  // Tiruppur | "Tirupur"(1)
+  'tirupur': 'Tiruppur',
+  'tiruppur': 'Tiruppur',
+
+  // Tirupati | "Tirupathi"(1)
+  'tirupathi': 'Tirupati',
+  'tirupati': 'Tirupati',
+
+  // Anantnag | "Ananthnag"(9)
+  'ananthnag': 'Anantnag',
+  'anantnag': 'Anantnag',
+
+  // Hazaribagh | "Hazaribag"(11)
+  'hazaribag': 'Hazaribagh',
+  'hazaribagh': 'Hazaribagh',
+
+  // Hubballi | "Hubli"(9) + "Hubbali"(2)
+  'hubli': 'Hubballi',
+  'hubbali': 'Hubballi',
+  'hubballi': 'Hubballi',
+
+  // Bathinda | "Bhatinda"(11)
+  'bhatinda': 'Bathinda',
+  'bathinda': 'Bathinda',
+
+  // Vasco Da Gama | "Vasco-da-gama"(4)
+  'vasco-da-gama': 'Vasco Da Gama',
+  'vasco da gama': 'Vasco Da Gama',
+
+  // Mughalsarai | "Mugalsarai"(1)
+  'mugalsarai': 'Mughalsarai',
+  'mughalsarai': 'Mughalsarai',
+
+  // Baramulla | "Baramula"(1)
+  'baramula': 'Baramulla',
+
+  // Sri Vijayapuram | "Sri Vijaya Puram"(4) + "Vijayapuram"(1) (Andaman)
+  'sri vijaya puram': 'Sri Vijayapuram',
+  'vijayapuram': 'Sri Vijayapuram',
+  'sri vijayapuram': 'Sri Vijayapuram',
+
+  // Vijayawada | "Vijyawada"(1)
+  'vijyawada': 'Vijayawada',
+
+  // Mohali | "Sas Nagar"(2) + "Sas Nagar Mohali"(1) + "Sahibzada Ajit Singh Nagar"(1)
+  'sas nagar': 'Mohali',
+  'sas nagar mohali': 'Mohali',
+  'sahibzada ajit singh nagar': 'Mohali',
+
+  // Kanpur | "Kanpur Nagar"(3) + "Kanpur City"(1)
+  'kanpur nagar': 'Kanpur',
+  'kanpur city': 'Kanpur',
+
+  // Gandhinagar | "Gandhi Nagar"(12) + "Ganadhinagar"(1) + "Gandhinagar/ahmedabad"(1)
+  'gandhi nagar': 'Gandhinagar',
+  'ganadhinagar': 'Gandhinagar',
+  'gandhinagar/ahmedabad': 'Gandhinagar',
+
+  // Sri Ganganagar | "Sriganganagar"(1) + "Shri Ganganagar"(1)
+  'sriganganagar': 'Sri Ganganagar',
+  'shri ganganagar': 'Sri Ganganagar',
+  'sri ganganagar': 'Sri Ganganagar',
+
+  // Kanchipuram | "Kancheepuram"(1)
+  'kancheepuram': 'Kanchipuram',
+
+  // Sahibganj | "Sahebganj"(1)
+  'sahebganj': 'Sahibganj',
+  'sahibganj': 'Sahibganj',
+
+  // Jorhat | "Jorahat"(2)
+  'jorahat': 'Jorhat',
+
+  // Himatnagar | "Himmatnagar"(2)
+  'himmatnagar': 'Himatnagar',
+  'himatnagar': 'Himatnagar',
+
+  // Muzaffarnagar | "Muzaffanagar"(1) — typo
+  'muzaffanagar': 'Muzaffarnagar',
+
+  // Gautam Buddha Nagar | "Gautam Budh Nagar"(6) + "Gautam Buddh Nagar"(1) + "Gautam Budh"(1)
+  'gautam budh nagar': 'Gautam Buddha Nagar',
+  'gautam buddh nagar': 'Gautam Buddha Nagar',
+  'gautam budh': 'Gautam Buddha Nagar',
+  'gautam buddha nagar': 'Gautam Buddha Nagar',
+
+  // Chikkamagaluru | "Chickmagalur"(2) — official Kannada name
+  'chickmagalur': 'Chikkamagaluru',
+  'chikkamagaluru': 'Chikkamagaluru',
+
+  // Kota | "Kota City"(1)
+  'kota city': 'Kota',
+
+  // Naya Raipur | "Nava Raipur"(3)
+  'nava raipur': 'Naya Raipur',
+  'naya raipur': 'Naya Raipur',
+
+  // East Singhbhum | "East-singhbhum"(5)
+  'east-singhbhum': 'East Singhbhum',
+
+  // Paradip | "Paradeep"(1)
+  'paradeep': 'Paradip',
+
+  // Silvassa | "Silvass"(1)
+  'silvass': 'Silvassa',
+
+  // Panaji | "Panjim"(2)
+  'panjim': 'Panaji',
+  'panaji': 'Panaji',
+
+  // Dakshina Kannada | "Dakshin Kannada"(1)
+  'dakshin kannada': 'Dakshina Kannada',
+  'dakshina kannada': 'Dakshina Kannada',
+
+  // North 24 Parganas | "North 24 Paraganas"(26)
+  'north 24 paraganas': 'North 24 Parganas',
+  'north 24 parganas': 'North 24 Parganas',
+
+  // Rae Bareli | "Rae Bareli"(2) + "Raibareli"(1)
+  'rae bareli': 'Raebareli',
+  'raibareli': 'Raebareli',
+  'raebareli': 'Raebareli',
+
+  // Ludhiana | "Ludhiana City"(1)
+  'ludhiana city': 'Ludhiana',
+
+  // Amritsar | "Amritsar City"(1)
+  'amritsar city': 'Amritsar',
+
+  // Etawah | "Etawa"(1) — typo
+  'etawa': 'Etawah',
+
+  // Davanagere | "Davangere"(1)
+  'davangere': 'Davanagere',
+  'davanagere': 'Davanagere',
+
+  // Jagatsinghpur | "Jagatsinghapur"(5)
+  'jagatsinghapur': 'Jagatsinghpur',
+  'jagatsinghpur': 'Jagatsinghpur',
+};
+
 export function normalizeCity(city: string | null | undefined): string | null {
-   if (!city || city.trim() === "N/A" || city.trim() === "") return null;
-   // Strip leading/trailing asterisks (e.g. "***Hoshangabad" → "Hoshangabad")
-   const c = city.trim().replace(/^\*+/, '').replace(/\*+$/, '').trim();
-   if (!c || c === "N/A") return null;
-   return c.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ').trim();
+  if (!city || city.trim() === '') return null;
+  // Strip leading/trailing asterisks, ALLCAPS, junk
+  const raw = city.trim().replace(/^\*+/, '').replace(/\*+$/, '').trim();
+  if (!raw) return null;
+
+  const key = raw.toLowerCase().replace(/\s+/g, ' ');
+
+  // Check alias map first
+  if (key in CITY_ALIASES) {
+    const canonical = CITY_ALIASES[key];
+    return canonical || null; // empty string in map = junk, return null
+  }
+
+  // Title-case fallback
+  return raw.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ').trim();
 }
 
 export function pinToState(pin: string): string | null {

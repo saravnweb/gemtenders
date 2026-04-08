@@ -567,8 +567,16 @@ function TendersClient({
     if (statesLoaded) return;
     const { data } = await requirePublicListingReady(
       supabase.from("tenders").select("state").gte("end_date", new Date().toISOString())
-    ).limit(10000);
-    if (data) { setStates(toCounted(data, "state", "Unknown State")); setStatesLoaded(true); }
+    ).limit(100000);
+    if (data) {
+      const filtered = data.filter((r: any) => {
+        if (!r.state) return false;
+        const low = r.state.trim().toLowerCase();
+        return low !== 'null' && low !== 'not specified in the document' && low !== 'n/a';
+      });
+      setStates(toCounted(filtered, "state", "Unknown State"));
+      setStatesLoaded(true);
+    }
   }
 
   // ── Lazy-load ministries ──
@@ -604,7 +612,8 @@ function TendersClient({
     requirePublicListingReady(
       supabase.from("tenders").select("city").gte("end_date", new Date().toISOString())
     )
-      .in("state", selectedStates).limit(10000)
+      .or(selectedStates.map((s: string) => `state.ilike."${s}"`).join(','))
+      .limit(100000)
       .then((res: { data: { city: string | null }[] | null }) => {
         if (res.data) setCities(toCounted(res.data, "city", "Other Cities"));
       });
@@ -1096,8 +1105,8 @@ function TendersClient({
             </div>
           )}
 
-          {/* Save search — shown when query or filters are active */}
-          {(searchQuery.trim() || hasActiveFilters) && (
+          {/* Save search — shown only when a text query is present (not just filters) */}
+          {(searchQuery.trim().length > 0 || descriptionQuery.trim().length > 0) && (
             <div className="mt-3 flex items-center gap-3 animate-in fade-in duration-200">
               <button
                 onClick={handleSaveSearch}
