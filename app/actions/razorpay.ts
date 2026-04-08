@@ -30,11 +30,14 @@ export async function createRazorpaySubscription(plan: "starter" | "pro") {
       plan_id: PLAN_IDS[plan],
       total_count: 120, // Up to 120 months (10 years)
       customer_notify: 1,
+      quantity: 1,
+      addons: [],
+      offer_id: process.env[`RAZORPAY_TRIAL_OFFER_${plan.toUpperCase()}`] || undefined,
       notes: {
         userId: user.id,
         plan,
       },
-    });
+    } as any);
 
     return JSON.parse(JSON.stringify(subscription));
   } catch (error) {

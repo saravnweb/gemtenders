@@ -85,15 +85,15 @@ export default function PricingPage() {
             <span className="text-sm text-fresh-sky-600 ml-2 font-bold uppercase tracking-wider">/month</span>
           </div>
           <div className="flex flex-col mb-8">
-            <Link 
+            <Link
               href={`/signup?plan=starter&billing=${isAnnual ? 'annual' : 'monthly'}`}
               className="w-full flex items-center justify-center py-4 bg-linear-to-r from-atomic-tangerine-600 to-atomic-tangerine-700 hover:from-atomic-tangerine-700 hover:to-atomic-tangerine-800 text-white font-bold rounded-2xl shadow-xl shadow-atomic-tangerine-200 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-white"
             >
-              Start Free Trial
+              Start 7-Day Free Trial
             </Link>
-            {isAnnual && (
-              <span className="text-center text-xs text-fresh-sky-700 mt-2 font-medium">Billed ₹948 once per year</span>
-            )}
+            <span className="text-center text-xs text-fresh-sky-500 mt-2 font-medium">
+              Free for 7 days · then {isAnnual ? '₹79/mo (₹948/yr)' : '₹99/mo'} · Cancel anytime
+            </span>
           </div>
           <ul className="space-y-4">
             <FeatureItem text="Everything in the Basic plan" />
