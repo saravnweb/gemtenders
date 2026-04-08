@@ -136,17 +136,24 @@ export default async function AdminPage() {
     profilePage++;
   }
 
-  // Fetch auth users to get emails
+  // Fetch auth users to get emails + detect users with no profile row
   let emailMap: Record<string, string> = {};
+  let nameMap: Record<string, string> = {};
   let totalAuthUsers = 0;
+  let profileIds = new Set(profiles.map((p) => p.id));
+  let noProfileUsers: { id: string; email: string | null; name: string | null }[] = [];
   try {
     const { data: { users: authUsers }, error: authError } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000, page: 1 });
     if (!authError && authUsers) {
-      authUsers.forEach((u) => { if (u.email) emailMap[u.id] = u.email; });
-      const { count: authCount } = await supabaseAdmin
-        .from("profiles")
-        .select("*", { count: "exact", head: true });
-      totalAuthUsers = Math.max(authUsers.length, authCount ?? 0);
+      authUsers.forEach((u) => {
+        if (u.email) emailMap[u.id] = u.email;
+        const name = u.user_metadata?.full_name || u.user_metadata?.name || null;
+        if (name) nameMap[u.id] = name;
+        if (!profileIds.has(u.id)) {
+          noProfileUsers.push({ id: u.id, email: u.email ?? null, name });
+        }
+      });
+      totalAuthUsers = authUsers.length;
     }
   } catch {
     totalAuthUsers = profiles.length;
@@ -163,13 +170,23 @@ export default async function AdminPage() {
     updatedAt: p.updated_at,
   }));
 
-  const freeSubscribers = subscribers.filter((s) => s.plan === "free");
+  // Auth users with no profile row are implicitly free tier
+  const ghostFreeSubscribers: Subscriber[] = noProfileUsers.map((u) => ({
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    plan: "free",
+    status: "active",
+    updatedAt: null,
+  }));
+
+  const freeSubscribers = [...subscribers.filter((s) => s.plan === "free"), ...ghostFreeSubscribers];
   const starterSubscribers = subscribers.filter((s) => s.plan === "starter");
   const proSubscribers = subscribers.filter((s) => s.plan === "pro");
 
-  let starterCount = starterSubscribers.length;
-  let proCount = proSubscribers.length;
-  let freeCount = freeSubscribers.length;
+  const starterCount = starterSubscribers.length;
+  const proCount = proSubscribers.length;
+  const freeCount = freeSubscribers.length;
 
   return (
     <div className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6">
