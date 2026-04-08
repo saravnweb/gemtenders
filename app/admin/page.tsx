@@ -121,22 +121,55 @@ export default async function AdminPage() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  const { data: profiles } = await supabaseAdmin
-    .from("profiles")
-    .select("membership_plan, subscription_status");
-
-  let starterCount = 0;
-  let proCount = 0;
-  let freeCount = 0;
-
-  if (profiles) {
-    profiles.forEach((p) => {
-      const plan = (p.membership_plan || "free").toLowerCase();
-      if (plan === "pro") proCount++;
-      else if (plan === "starter") starterCount++;
-      else freeCount++;
-    });
+  // Fetch ALL profiles with pagination (PostgREST default limit is 1000)
+  let profiles: { id: string; full_name: string | null; membership_plan: string | null; subscription_status: string | null; updated_at: string | null }[] = [];
+  let profilePage = 0;
+  const PAGE_SIZE = 1000;
+  while (true) {
+    const { data, error } = await supabaseAdmin
+      .from("profiles")
+      .select("id, full_name, membership_plan, subscription_status, updated_at")
+      .range(profilePage * PAGE_SIZE, (profilePage + 1) * PAGE_SIZE - 1);
+    if (error || !data || data.length === 0) break;
+    profiles = profiles.concat(data);
+    if (data.length < PAGE_SIZE) break;
+    profilePage++;
   }
+
+  // Fetch auth users to get emails
+  let emailMap: Record<string, string> = {};
+  let totalAuthUsers = 0;
+  try {
+    const { data: { users: authUsers }, error: authError } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000, page: 1 });
+    if (!authError && authUsers) {
+      authUsers.forEach((u) => { if (u.email) emailMap[u.id] = u.email; });
+      const { count: authCount } = await supabaseAdmin
+        .from("profiles")
+        .select("*", { count: "exact", head: true });
+      totalAuthUsers = Math.max(authUsers.length, authCount ?? 0);
+    }
+  } catch {
+    totalAuthUsers = profiles.length;
+  }
+
+  // Build enriched subscriber list
+  type Subscriber = { id: string; name: string | null; email: string | null; plan: string; status: string | null; updatedAt: string | null };
+  const subscribers: Subscriber[] = profiles.map((p) => ({
+    id: p.id,
+    name: p.full_name,
+    email: emailMap[p.id] ?? null,
+    plan: (p.membership_plan || "free").toLowerCase(),
+    status: p.subscription_status,
+    updatedAt: p.updated_at,
+  }));
+
+  const freeSubscribers = subscribers.filter((s) => s.plan === "free");
+  const starterSubscribers = subscribers.filter((s) => s.plan === "starter");
+  const proSubscribers = subscribers.filter((s) => s.plan === "pro");
+
+  let starterCount = starterSubscribers.length;
+  let proCount = proSubscribers.length;
+  let freeCount = freeSubscribers.length;
 
   return (
     <div className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6">
@@ -157,29 +190,50 @@ export default async function AdminPage() {
         </div>
 
         {/* Subscriptions Section */}
-        <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center">
+        <h2 id="all-users" className="text-xl font-bold text-slate-800 mb-6 flex items-center">
           <Users className="w-6 h-6 mr-2 text-slate-400" />
           Users & Subscriptions
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+          <a href="#all-users" className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:border-slate-400 hover:shadow-md transition-all cursor-pointer block">
             <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Total Users</p>
-            <p className="text-3xl font-black text-slate-800">{freeCount + starterCount + proCount}</p>
-          </div>
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+            <p className="text-3xl font-black text-slate-800">{totalAuthUsers}</p>
+            <p className="text-xs text-slate-400 mt-2">Click to view all ↓</p>
+          </a>
+          <a href="#free-subscribers" className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:border-slate-400 hover:shadow-md transition-all cursor-pointer block">
             <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Free Tier</p>
             <p className="text-3xl font-black text-slate-800">{freeCount}</p>
-          </div>
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm border-t-4 border-t-orange-500">
+            <p className="text-xs text-slate-400 mt-2">Click to view ↓</p>
+          </a>
+          <a href="#starter-subscribers" className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm border-t-4 border-t-orange-500 hover:shadow-md transition-all cursor-pointer block">
             <p className="text-xs font-bold text-orange-600 uppercase tracking-widest mb-1">Starter Plans</p>
             <p className="text-3xl font-black text-slate-800">{starterCount}</p>
             <p className="text-sm text-slate-500 mt-2">Active Subscribers</p>
-          </div>
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm border-t-4 border-t-amber-500">
+            <p className="text-xs text-orange-400 mt-1">Click to view ↓</p>
+          </a>
+          <a href="#pro-subscribers" className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm border-t-4 border-t-amber-500 hover:shadow-md transition-all cursor-pointer block">
             <p className="text-xs font-bold text-amber-600 uppercase tracking-widest mb-1">Pro Plans</p>
             <p className="text-3xl font-black text-slate-800">{proCount}</p>
             <p className="text-sm text-slate-500 mt-2">Active Subscribers</p>
-          </div>
+            <p className="text-xs text-amber-400 mt-1">Click to view ↓</p>
+          </a>
+        </div>
+        {/* Auto-open the targeted <details> section on hash navigation */}
+        <script dangerouslySetInnerHTML={{ __html: `
+          function openTargetDetails() {
+            if (!location.hash) return;
+            var el = document.querySelector(location.hash);
+            if (el && el.tagName === 'DETAILS') { el.open = true; el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+          }
+          openTargetDetails();
+          window.addEventListener('hashchange', openTargetDetails);
+        ` }} />
+
+        {/* ── Subscriber List ── */}
+        <div className="mt-2 mb-14 space-y-4">
+          <SubscriberTable id="pro-subscribers" title="Pro Subscribers" color="amber" subscribers={proSubscribers} />
+          <SubscriberTable id="starter-subscribers" title="Starter Subscribers" color="orange" subscribers={starterSubscribers} />
+          <SubscriberTable id="free-subscribers" title="Free Tier Users" color="slate" subscribers={freeSubscribers} />
         </div>
 
         {/* ── Data Quality Section ── */}
@@ -337,6 +391,73 @@ export default async function AdminPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// ── Subscriber table ──────────────────────────────────────────────────────
+function SubscriberTable({
+  id,
+  title,
+  color,
+  subscribers,
+}: {
+  id?: string;
+  title: string;
+  color: "amber" | "orange" | "slate";
+  subscribers: { id: string; name: string | null; email: string | null; plan: string; status: string | null; updatedAt: string | null }[];
+}) {
+  const colorMap = {
+    amber: { badge: "bg-amber-100 text-amber-700", border: "border-t-amber-500", label: "text-amber-600" },
+    orange: { badge: "bg-orange-100 text-orange-700", border: "border-t-orange-500", label: "text-orange-600" },
+    slate: { badge: "bg-slate-100 text-slate-600", border: "", label: "text-slate-500" },
+  };
+  const c = colorMap[color];
+
+  return (
+    <details id={id} className={`group bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden ${c.border ? `border-t-4 ${c.border}` : ""}`}>
+      <summary className="flex items-center justify-between px-5 py-4 cursor-pointer select-none list-none">
+        <div className="flex items-center space-x-3">
+          <span className={`font-bold text-slate-800`}>{title}</span>
+          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${c.badge}`}>{subscribers.length}</span>
+        </div>
+        <span className="text-xs text-slate-400 font-medium group-open:hidden">Show</span>
+        <span className="text-xs text-slate-400 font-medium hidden group-open:inline">Hide</span>
+      </summary>
+      {subscribers.length === 0 ? (
+        <div className="border-t border-slate-100 px-5 py-4 text-sm text-slate-400 italic">No users in this tier.</div>
+      ) : (
+        <div className="border-t border-slate-100 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50">
+              <tr>
+                <th className="text-left px-4 py-2 text-xs font-bold text-slate-500 uppercase tracking-wider">#</th>
+                <th className="text-left px-4 py-2 text-xs font-bold text-slate-500 uppercase tracking-wider">Name</th>
+                <th className="text-left px-4 py-2 text-xs font-bold text-slate-500 uppercase tracking-wider">Email</th>
+                <th className="text-left px-4 py-2 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                <th className="text-left px-4 py-2 text-xs font-bold text-slate-500 uppercase tracking-wider">Updated</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {subscribers.map((s, i) => (
+                <tr key={s.id} className="hover:bg-slate-50">
+                  <td className="px-4 py-3 text-xs text-slate-400 font-mono">{i + 1}</td>
+                  <td className="px-4 py-3 text-sm font-semibold text-slate-800">{s.name || <span className="text-slate-400 italic">—</span>}</td>
+                  <td className="px-4 py-3 text-xs text-slate-600 font-mono">{s.email || <span className="text-slate-400 italic">—</span>}</td>
+                  <td className="px-4 py-3">
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${s.status === "active" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-600"}`}>
+                      {s.status || "unknown"}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-xs text-slate-400">
+                    {s.updatedAt ? new Date(s.updatedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </details>
   );
 }
 

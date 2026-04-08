@@ -11,9 +11,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error("SUPABASE_SERVICE_ROLE_KEY is not configured");
+      return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
+    }
+
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY! // Bypass RLS to update user profile
+      process.env.SUPABASE_SERVICE_ROLE_KEY // Bypass RLS to update user profile
     );
 
     const secret = process.env.RAZORPAY_KEY_SECRET;
@@ -45,40 +50,22 @@ export async function POST(req: Request) {
     }
 
     if (userId && plan) {
-      // First try to check if the profile exists
-      const { data: profileCheck } = await supabaseAdmin
+      const { error } = await supabaseAdmin
         .from("profiles")
-        .select("id")
-        .eq("id", userId)
-        .single();
-
-      let error;
-      if (profileCheck) {
-        ({ error } = await supabaseAdmin
-          .from("profiles")
-          .update({
-            membership_plan: plan,
-            subscription_status: "active",
-            subscription_id: razorpay_subscription_id,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", userId));
-      } else {
-        // Create profile if missing
-        ({ error } = await supabaseAdmin
-          .from("profiles")
-          .insert({
-            id: userId,
-            membership_plan: plan,
-            subscription_status: "active",
-            subscription_id: razorpay_subscription_id,
-            updated_at: new Date().toISOString(),
-          }));
-      }
+        .upsert({
+          id: userId,
+          membership_plan: plan,
+          subscription_status: "active",
+          subscription_id: razorpay_subscription_id,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "id" });
 
       if (error) {
-         console.error("Supabase Admin Error:", error);
-         return NextResponse.json({ error: "Database update failed" }, { status: 500 });
+        console.error("Supabase Admin Error:", error);
+        return NextResponse.json(
+          { error: "Database update failed", details: error.message, code: error.code },
+          { status: 500 }
+        );
       }
     }
 
