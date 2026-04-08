@@ -79,10 +79,21 @@ export async function GET(request: Request, context: { params: Promise<{ slug: s
       .single();
 
     if (!profile || profile.membership_plan === "free") {
-      return NextResponse.json(
-        { error: "PDF downloads require a Starter or Pro plan.", requiresUpgrade: true },
-        { status: 402 }
-      );
+      // Free users get 3 PDF downloads per calendar day
+      const FREE_DAILY_LIMIT = 3;
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const { count } = await admin
+        .from("pdf_downloads")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .gte("created_at", todayStart.toISOString());
+      if ((count ?? 0) >= FREE_DAILY_LIMIT) {
+        return NextResponse.json(
+          { error: `Free plan includes ${FREE_DAILY_LIMIT} PDF downloads per day. Upgrade to Starter for unlimited downloads.`, requiresUpgrade: true, dailyLimit: FREE_DAILY_LIMIT, used: count },
+          { status: 402 }
+        );
+      }
     }
 
     const fileName = pdfFileName(tender.bid_number);

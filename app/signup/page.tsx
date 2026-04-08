@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from "@/lib/supabase";
 import { UserPlus } from "lucide-react";
@@ -9,15 +10,25 @@ import Image from "next/image";
 export default function SignupPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const searchParams = useSearchParams();
 
   const signInWithGoogle = async () => {
     setLoading(true);
     setError(null);
     try {
+      // Pass plan/billing params through OAuth so user lands on checkout after signup
+      const plan = searchParams.get('plan');
+      const billing = searchParams.get('billing');
+      let next = '/';
+      if (plan === 'starter' || plan === 'pro') {
+        const params = new URLSearchParams({ autoplan: plan });
+        if (billing) params.set('billing', billing);
+        next = `/dashboard/subscriptions?${params.toString()}`;
+      }
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`
+          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`
         }
       });
       if (error) throw error;

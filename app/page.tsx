@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { fetchTendersByRelevance } from '@/lib/tenders-relevance-query';
 import { requirePublicListingReady } from '@/lib/tender-public-listing';
 import { Suspense } from 'react';
+import OnboardingModal from '@/components/OnboardingModal';
 
 export const revalidate = 3600;
 
@@ -163,12 +164,16 @@ async function TendersResult({ searchParams }: { searchParams: Promise<any> }) {
     }))
   };
 
+  // Show onboarding for logged-in users who haven't seen it yet
+  const { data: { user } } = await supabase.auth.getUser();
+
   return (
     <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      {user && <OnboardingModal />}
       <TendersClient
         initialTenders={initialTenders}
         initialTotalCount={initialTotalCount || undefined}

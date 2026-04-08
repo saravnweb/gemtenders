@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { createRazorpaySubscription, cancelRazorpaySubscription } from "@/app/actions/razorpay";
 import { Zap, Shield, Check, RefreshCw } from "lucide-react";
@@ -11,33 +12,44 @@ export default function SubscriptionsPage() {
   const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState<any>(null);
   const [razorpayReady, setRazorpayReady] = useState(false);
+  const searchParams = useSearchParams();
+  const autoCheckoutDone = useRef(false);
 
   useEffect(() => {
     async function loadProfile() {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
-          if (data) {
-             setProfile({ ...data, email: user.email });
-          } else {
-             setProfile({
-                id: user.id,
-                full_name: user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User',
-                membership_plan: 'free',
-                phone_number: '',
-                email: user.email
-             });
-          }
-        } else {
+        const res = await fetch("/api/profile");
+        if (res.ok) {
+          const data = await res.json();
+          setProfile(data);
+        } else if (res.status === 401) {
           setProfile({ membership_plan: 'free' });
+        } else {
+          // Fallback: read from auth session metadata only
+          const { data: { user } } = await supabase.auth.getUser();
+          setProfile({
+            id: user?.id,
+            full_name: user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User',
+            membership_plan: 'free',
+            phone_number: '',
+            email: user?.email,
+          });
         }
       } catch {
-         setProfile({ membership_plan: 'free' });
+        setProfile({ membership_plan: 'free' });
       }
     }
     loadProfile();
   }, []);
+
+  // Auto-trigger checkout when user arrives from pricing page with ?autoplan=
+  useEffect(() => {
+    const autoplan = searchParams.get('autoplan') as "starter" | "pro" | null;
+    if (!autoplan || autoCheckoutDone.current) return;
+    if (!profile || profile.membership_plan !== 'free') return;
+    autoCheckoutDone.current = true;
+    handleCheckout(autoplan);
+  }, [profile, searchParams]);
 
   const handleCheckout = async (plan: "starter" | "pro") => {
     if (!profile?.id) {
@@ -52,7 +64,7 @@ export default function SubscriptionsPage() {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_dummy_key",
         subscription_id: subscription.id,
         name: "GeMTenders.org",
-        description: `${plan === 'starter' ? 'Starter – ₹99/mo' : 'Pro – ₹199/mo'} · Auto-renews monthly`,
+        description: `${plan === 'starter' ? 'Starter – ₹99/mo' : 'Pro – ₹299/mo'} · Auto-renews monthly`,
         handler: async function (response: any) {
           try {
             const res = await fetch("/api/billing/verify", {
@@ -72,10 +84,10 @@ export default function SubscriptionsPage() {
                throw new Error(result.error || "Payment verification failed on server.");
             }
 
-            const { data, error } = await supabase.from("profiles").select("*").eq("id", profile?.id).single();
-            if (error) throw error;
-            
-            setProfile({ ...data, email: profile?.email });
+            const refreshRes = await fetch("/api/profile");
+            if (!refreshRes.ok) throw new Error("Failed to refresh profile");
+            const data = await refreshRes.json();
+            setProfile(data);
             alert(`You're now on the ${plan} plan! 🎉`);
           } catch (err: any) {
             console.error("Verification error:", err);
@@ -117,8 +129,8 @@ export default function SubscriptionsPage() {
     try {
       await cancelRazorpaySubscription();
       alert("Subscription cancelled. Access continues until month end.");
-      const { data } = await supabase.from("profiles").select("*").eq("id", profile?.id).single();
-      setProfile({ ...data, email: profile?.email });
+      const cancelRes = await fetch("/api/profile");
+      if (cancelRes.ok) setProfile(await cancelRes.json());
     } catch (e: any) {
       alert(e.message || "Failed to cancel subscription");
     } finally {
@@ -211,7 +223,7 @@ export default function SubscriptionsPage() {
            <ul className="space-y-3">
              <FeatureItem text="Search & browse all active tenders" />
              <FeatureItem text="Bookmark unlimited tenders" />
-             <FeatureItem text="Track up to 3 keywords" />
+             <FeatureItem text="Track up to 5 keywords" />
              <FeatureItem text="AI smart-summaries of tenders" />
              <FeatureMissing text="No email or mobile alerts" />
            </ul>
@@ -262,7 +274,7 @@ export default function SubscriptionsPage() {
            </h3>
            <p className="text-sm text-slate-500 dark:text-muted-foreground h-10">Everything in Starter, plus WhatsApp and AI analysis.</p>
            <div className="my-6">
-             <span className="text-4xl font-black text-slate-900 dark:text-foreground">₹199</span>
+             <span className="text-4xl font-black text-slate-900 dark:text-foreground">₹299</span>
              <span className="text-sm text-slate-500 dark:text-muted-foreground font-bold"> / month</span>
            </div>
 
@@ -272,7 +284,7 @@ export default function SubscriptionsPage() {
                disabled={loading || profile.membership_plan === 'pro'}
                className="w-full py-3 bg-linear-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 disabled:opacity-50 text-white font-bold rounded-xl transition-all"
              >
-               {profile.membership_plan === 'pro' ? 'Current Plan' : 'Subscribe – ₹199/mo'}
+               {profile.membership_plan === 'pro' ? 'Current Plan' : 'Subscribe – ₹299/mo'}
              </button>
              <p className="text-center text-xs text-amber-600/70 font-medium mt-2">Cancel anytime</p>
            </div>

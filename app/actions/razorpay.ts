@@ -10,7 +10,7 @@ const instance = new Razorpay({
   key_secret: process.env.RAZORPAY_KEY_SECRET || "dummy_secret",
 });
 
-// Prices: Starter = ₹99/mo, Pro = ₹199/mo (monthly recurring only)
+// Prices: Starter = ₹99/mo, Pro = ₹299/mo (monthly recurring only)
 // Create these plans in Razorpay Dashboard → Subscriptions → Plans
 const PLAN_IDS = {
   starter: process.env.RAZORPAY_PLAN_STARTER_MONTHLY || "plan_dummy_starter_m",
