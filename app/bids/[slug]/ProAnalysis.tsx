@@ -45,11 +45,12 @@ export default function ProAnalysis({ tender, isPro }: ProAnalysisProps) {
     }
   };
 
-  const worthinessColor = {
+  const worthinessMap: Record<string, string> = {
     'High': 'text-emerald-600 bg-emerald-50 border-emerald-200',
     'Medium': 'text-amber-600 bg-amber-50 border-amber-200',
     'Low': 'text-red-600 bg-red-50 border-red-200',
-  }[analysis?.bid_worthiness] || 'text-slate-600 bg-slate-50 border-slate-200';
+  };
+  const worthinessColor = worthinessMap[analysis?.bid_worthiness] || 'text-slate-600 bg-slate-50 border-slate-200';
 
   if (!isPro) {
     return (
