@@ -1,8 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { User, Mail, Shield, Zap, Bookmark, ChevronRight, Bell, CreditCard } from 'lucide-react';
+import { Bell, Bookmark, CreditCard, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
-import MyLocations from './MyLocations';
 
 export default async function ProfilePage() {
   const supabase = await createClient();
@@ -12,145 +11,103 @@ export default async function ProfilePage() {
     redirect('/login?callback=/dashboard');
   }
 
-  // Fetch some stats for the overview
   const { data: savedSearches } = await supabase.from("saved_searches").select("id").eq("user_id", user!.id);
   const { data: savedTenders } = await supabase.from("saved_tenders").select("id").eq("user_id", user!.id);
-  // Fetch profile to get membership plan
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", user!.id).single();
   const membershipPlan = profile?.membership_plan || 'free';
   const isPremium = membershipPlan !== 'free';
+
   return (
-      <div className="space-y-8">
-        {/* Upgrade banner for free users */}
-        {membershipPlan === 'free' && (
-          <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <p className="font-bold text-amber-800 dark:text-amber-300 text-sm">Unlock all features with Starter</p>
-              <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">PDF downloads, keyword alerts, save tenders, and more — from ₹99/month.</p>
-            </div>
-            <Link href="/dashboard/subscriptions" className="shrink-0 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-lg transition-colors text-center">
-              Upgrade Now
-            </Link>
-          </div>
-        )}
-
-        {/* Welcome Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-8">
+      {/* Upgrade banner for free users */}
+      {membershipPlan === 'free' && (
+        <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-fresh-sky-950 dark:text-foreground tracking-tight">Account Overview</h1>
-            <p className="text-sm text-slate-500 dark:text-muted-foreground font-medium">Manage your search monitors and saved opportunities.</p>
+            <p className="font-bold text-amber-800 dark:text-amber-300 text-sm">Unlock all features with Starter</p>
+            <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">PDF downloads, keyword alerts, save tenders, and more — from ₹99/month.</p>
           </div>
-          <div className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg border shadow-sm ${isPremium ? 'bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-700' : 'bg-slate-100 border-slate-300 dark:bg-slate-800 dark:border-slate-600'}`}>
-             <div className={`w-2 h-2 rounded-full ${isPremium ? 'bg-amber-500 animate-pulse' : 'bg-slate-400'}`}></div>
-             <span className={`text-xs font-bold uppercase tracking-wider ${isPremium ? 'text-amber-700 dark:text-amber-400' : 'text-slate-500 dark:text-slate-400'}`}>Plan:</span>
-             <span className={`text-xs font-black uppercase tracking-widest ${isPremium ? 'text-amber-700 dark:text-amber-400' : 'text-slate-700 dark:text-slate-300'}`}>{membershipPlan}</span>
-          </div>
+          <Link href="/dashboard/subscriptions" className="shrink-0 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-lg transition-colors text-center">
+            Upgrade Now
+          </Link>
         </div>
+      )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* User Identity Card */}
-          <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white dark:bg-card rounded-xl p-6 border border-slate-200 dark:border-border shadow-sm">
-               <div className="flex flex-col sm:flex-row items-center gap-6">
-                  <div className="w-16 h-16 bg-linear-to-br from-atomic-tangerine-600 to-atomic-tangerine-700 rounded-xl flex items-center justify-center shadow-lg shrink-0">
-                     <User className="w-8 h-8 text-white" />
-                  </div>
-                  <div className="flex-1 text-center sm:text-left">
-                     <h2 className="text-xl font-bold text-fresh-sky-950 dark:text-foreground truncate mb-1">{user?.email?.split('@')[0]}</h2>
-                     <div className="flex flex-wrap justify-center sm:justify-start gap-x-4 gap-y-1 text-slate-600 dark:text-muted-foreground font-medium text-xs">
-                        <div className="flex items-center gap-1">
-                           <Mail className="w-3.5 h-3.5" />
-                           <span>{user?.email}</span>
-                        </div>
-                        <div className="flex items-center gap-1 text-emerald-600 dark:text-green-400">
-                           <Shield className="w-3.5 h-3.5" />
-                           <span>Verified</span>
-                        </div>
-                     </div>
-                  </div>
-                  <button className="w-full sm:w-auto px-5 py-2 bg-slate-50 dark:bg-background text-slate-700 dark:text-muted-foreground font-bold text-xs uppercase tracking-widest rounded-lg border border-slate-200 dark:border-border hover:bg-slate-100 dark:hover:bg-muted transition-all">
-                     Edit Profile
-                  </button>
-               </div>
-            </div>
-
-          {/* Account Metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-             <MetricCard
-                icon={<Bookmark className="w-5 h-5 text-fresh-sky-600 dark:text-fresh-sky-400" />}
-                label="Saved Bids"
-                value={savedTenders?.length || 0}
-                href="/dashboard/saved"
-                color="blue"
-             />
-             <MetricCard
-                icon={<Zap className="w-5 h-5 text-atomic-tangerine-600" />}
-                label="Active Keywords"
-                value={savedSearches?.length || 0}
-                href="/dashboard/keywords"
-                color="orange"
-             />
-          </div>
+      {/* Page header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-fresh-sky-950 dark:text-foreground tracking-tight">My Dashboard</h1>
+          <p className="text-sm text-slate-500 dark:text-muted-foreground font-medium">Track government tenders that matter to your business.</p>
         </div>
+        <div className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg border shadow-sm ${isPremium ? 'bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-700' : 'bg-slate-100 border-slate-300 dark:bg-slate-800 dark:border-slate-600'}`}>
+          <div className={`w-2 h-2 rounded-full ${isPremium ? 'bg-amber-500 animate-pulse' : 'bg-slate-400'}`}></div>
+          <span className={`text-xs font-bold uppercase tracking-wider ${isPremium ? 'text-amber-700 dark:text-amber-400' : 'text-slate-500 dark:text-slate-400'}`}>Plan:</span>
+          <span className={`text-xs font-black uppercase tracking-widest ${isPremium ? 'text-amber-700 dark:text-amber-400' : 'text-slate-700 dark:text-slate-300'}`}>{membershipPlan}</span>
+        </div>
+      </div>
 
-        {/* Sidebar Mini-info */}
-          <div className="lg:col-span-1 space-y-6">
-             <div className="bg-slate-900 rounded-xl p-6 text-white shadow-lg relative overflow-hidden">
-                <div className="relative z-10">
-                  <div className="flex items-center gap-2 mb-3">
-                     <CreditCard className="w-4 h-4 text-atomic-tangerine-400" />
-                     <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Subscription</span>
-                  </div>
-                  <h3 className="text-lg font-bold mb-4 capitalize">{membershipPlan} Plan</h3>
-                  <p className="text-slate-400 text-xs font-medium mb-6 leading-relaxed">
-                     Tracking {savedSearches?.length || 0} smart monitors. Get Platinum for instant WhatsApp alerts.
-                  </p>
-                  <Link href="/dashboard/subscriptions" className="flex items-center justify-between bg-white dark:bg-card text-slate-900 dark:text-foreground px-4 py-3 rounded-lg transition-all hover:bg-slate-100 dark:hover:bg-muted group">
-                     <span className="text-xs font-bold uppercase tracking-wider">Upgrade Account</span>
-                     <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                  </Link>
-                </div>
-             </div>
-
-              <div className="bg-white dark:bg-card rounded-xl p-6 border border-slate-200 dark:border-border shadow-sm">
-                 <h4 className="text-xs font-bold text-slate-600 dark:text-muted-foreground uppercase tracking-wider mb-4">Safety Info</h4>
-                 <div className="space-y-3">
-                    <div className="flex items-center justify-between text-xs">
-                       <span className="font-medium text-slate-500 dark:text-muted-foreground">Last Active</span>
-                       <span className="font-bold text-slate-700 dark:text-muted-foreground">Just Now</span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs">
-                       <span className="font-medium text-slate-500 dark:text-muted-foreground">Security</span>
-                       <span className="text-emerald-600 dark:text-green-400 font-bold">Encrypted</span>
-                    </div>
-                 </div>
-              </div>
-           </div>
-
-           {/* Full Width Bottom Section */}
-           <div className="lg:col-span-3">
-              <MyLocations user={user} />
-           </div>
+      {/* 3 action cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+        <ActionCard
+          icon={<Bell className="w-6 h-6 text-atomic-tangerine-600" />}
+          iconBg="bg-atomic-tangerine-50 dark:bg-atomic-tangerine-900/20"
+          title="Set Up My Alerts"
+          description="Tell us what products or services you sell. We'll email you every morning when matching tenders are published."
+          badge={`${savedSearches?.length || 0} active`}
+          cta="Manage Alerts"
+          href="/dashboard/keywords"
+        />
+        <ActionCard
+          icon={<Bookmark className="w-6 h-6 text-fresh-sky-600 dark:text-fresh-sky-400" />}
+          iconBg="bg-fresh-sky-50 dark:bg-fresh-sky-900/20"
+          title="Saved Tenders"
+          description="Tenders you've bookmarked to review, download, or bid on."
+          badge={`${savedTenders?.length || 0} saved`}
+          cta="View Saved"
+          href="/dashboard/saved"
+        />
+        <ActionCard
+          icon={<CreditCard className="w-6 h-6 text-slate-600 dark:text-slate-400" />}
+          iconBg="bg-slate-100 dark:bg-slate-800"
+          title="My Subscription Plan"
+          description={isPremium
+            ? `You are on the ${membershipPlan} plan. Manage or cancel anytime.`
+            : "You're on the free plan. Upgrade to get daily email alerts on tenders matching your business."}
+          badge={membershipPlan}
+          cta={isPremium ? "Manage Plan" : "Upgrade Now"}
+          href="/dashboard/subscriptions"
+        />
       </div>
     </div>
   );
 }
 
-function MetricCard({ icon, label, value, href, color }: { icon: any, label: string, value: number, href: string, color: 'blue' | 'orange' }) {
-    return (
-        <Link href={href} className="bg-white dark:bg-card rounded-xl p-6 border border-slate-200 dark:border-border shadow-sm flex items-center justify-between hover:border-slate-300 dark:hover:border-border hover:shadow-md transition-all group">
-            <div className="flex items-center gap-4">
-               <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${color === 'blue' ? 'bg-fresh-sky-50 dark:bg-fresh-sky-900/20' : 'bg-atomic-tangerine-50 dark:bg-atomic-tangerine-900/20'}`}>
-                  {icon}
-               </div>
-               <div>
-                  <p className="text-xs font-bold text-slate-600 dark:text-muted-foreground uppercase tracking-wider">{label}</p>
-                  <p className="text-2xl font-bold text-slate-900 dark:text-foreground">{value}</p>
-               </div>
-            </div>
-            <div className="p-2 bg-slate-50 dark:bg-background rounded-lg group-hover:bg-slate-900 group-hover:text-white transition-all border border-slate-100 dark:border-border">
-               <ChevronRight className="w-4 h-4" />
-            </div>
-        </Link>
-    );
+function ActionCard({
+  icon, iconBg, title, description, badge, cta, href
+}: {
+  icon: React.ReactNode;
+  iconBg: string;
+  title: string;
+  description: string;
+  badge: string;
+  cta: string;
+  href: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex flex-col bg-white dark:bg-card rounded-xl p-6 border border-slate-200 dark:border-border shadow-sm hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-md transition-all group"
+    >
+      <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${iconBg}`}>
+        {icon}
+      </div>
+      <h2 className="text-sm font-bold text-slate-900 dark:text-foreground mb-2">{title}</h2>
+      <p className="text-xs text-slate-500 dark:text-muted-foreground leading-relaxed flex-1 mb-4">{description}</p>
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-bold text-slate-400 dark:text-muted-foreground uppercase tracking-wider">{badge}</span>
+        <span className="flex items-center gap-1 text-xs font-bold text-fresh-sky-700 dark:text-fresh-sky-400 group-hover:gap-2 transition-all">
+          {cta} <ChevronRight className="w-3.5 h-3.5" />
+        </span>
+      </div>
+    </Link>
+  );
 }

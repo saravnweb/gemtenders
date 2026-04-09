@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { Settings } from 'lucide-react';
+import { Bell } from 'lucide-react';
 import AlertSetupCard from './AlertSetupCard';
 
 export default async function KeywordsPage() {
@@ -85,8 +85,8 @@ export default async function KeywordsPage() {
     <div className="space-y-6 max-w-lg">
       <div className="border-b border-slate-100 dark:border-border pb-6">
         <h1 className="text-2xl font-bold text-slate-900 dark:text-foreground tracking-tight flex items-center gap-2">
-          <Settings className="w-5 h-5 text-link dark:text-link" />
-          Alert Preferences
+          <Bell className="w-5 h-5 text-link dark:text-link" />
+          My Alerts
         </h1>
         <p className="text-sm text-slate-500 dark:text-muted-foreground font-medium">Configure keywords and location for automatic tracking and daily emails.</p>
       </div>

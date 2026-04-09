@@ -27,7 +27,7 @@ export default async function SavedBidsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-fresh-sky-950 tracking-tight">Saved Bids</h1>
+        <h1 className="text-2xl font-bold text-fresh-sky-950 tracking-tight">Saved Tenders</h1>
         <p className="text-sm text-slate-500 dark:text-muted-foreground font-medium">Opportunities you've bookmarked for review.</p>
       </div>
 
@@ -44,7 +44,7 @@ export default async function SavedBidsPage() {
           </Link>
         </div>
       ) : (
-        <table role="table" className="w-full block" aria-label="Saved Bids List">
+        <table role="table" className="w-full block" aria-label="Saved Tenders List">
           <thead className="sr-only block">
             <tr className="block">
               <th scope="col" className="block">Closing Date</th>

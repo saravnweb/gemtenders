@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Zap, LogOut, Menu, X, LayoutDashboard, Bookmark, CreditCard, ChevronRight, Bell, Sun, Moon, Inbox, CheckCircle2, Info, Trash2, Settings } from "lucide-react";
+import { Zap, LogOut, Menu, X, LayoutDashboard, Bookmark, CreditCard, ChevronRight, Bell, Sun, Moon, Inbox, CheckCircle2, Info, Trash2, Settings, User } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useTheme } from "next-themes";
 import { supabase } from "@/lib/supabase";
@@ -259,15 +259,15 @@ export default function Navbar() {
                   <>
                     <Link href="/dashboard/saved" className="flex items-center space-x-1.5 text-xs font-black uppercase tracking-widest text-fresh-sky-700 dark:text-fresh-sky-300 hover:text-atomic-tangerine-600 transition-colors">
                       <Bookmark className="w-4 h-4" />
-                      <span>Saved Bids</span>
+                      <span>Saved Tenders</span>
                     </Link>
                     <Link href="/dashboard/keywords" className="flex items-center space-x-1.5 text-xs font-black uppercase tracking-widest text-fresh-sky-700 dark:text-fresh-sky-300 hover:text-atomic-tangerine-600 transition-colors">
                       <Zap className="w-4 h-4" />
-                      <span>Saved Keywords</span>
+                      <span>My Alerts</span>
                     </Link>
                     <Link href="/dashboard/subscriptions" className="flex items-center space-x-1.5 text-xs font-black uppercase tracking-widest text-fresh-sky-700 dark:text-fresh-sky-300 hover:text-atomic-tangerine-600 transition-colors">
                       <CreditCard className="w-4 h-4" />
-                      <span>Plans</span>
+                      <span>My Plan</span>
                     </Link>
                   </>
                 ) : (
@@ -419,19 +419,19 @@ export default function Navbar() {
                       <MenuListItem 
                         href="/dashboard/saved" 
                         icon={<Bookmark className="w-4 h-4 text-slate-600 dark:text-muted-foreground" />} 
-                        label="Saved Bids" 
+                        label="Saved Tenders"
                         onClick={() => setIsMenuOpen(false)} 
                       />
                       <MenuListItem 
                         href="/dashboard/keywords" 
                         icon={<Zap className="w-4 h-4 text-slate-600 dark:text-muted-foreground" />} 
-                        label="Saved Keywords" 
+                        label="My Alerts"
                         onClick={() => setIsMenuOpen(false)} 
                       />
                       <MenuListItem
                         href="/dashboard/subscriptions"
                         icon={<CreditCard className="w-4 h-4 text-slate-600 dark:text-muted-foreground" />}
-                        label="Plans"
+                        label="My Plan"
                         onClick={() => setIsMenuOpen(false)}
                       />
                       <MenuListItem

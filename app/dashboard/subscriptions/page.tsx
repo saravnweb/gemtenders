@@ -72,10 +72,9 @@ export default function SubscriptionsPage() {
                headers: { "Content-Type": "application/json" },
                body: JSON.stringify({
                    razorpay_subscription_id: response.razorpay_subscription_id || subscription.id,
-                   razorpay_payment_id: response.razorpay_payment_id || "dummy_payment",
-                   razorpay_signature: response.razorpay_signature || "dummy",
+                   razorpay_payment_id: response.razorpay_payment_id || "",
+                   razorpay_signature: response.razorpay_signature || "",
                    plan,
-                   userId: profile?.id
                })
             });
             const result = await res.json();

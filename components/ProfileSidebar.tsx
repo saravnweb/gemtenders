@@ -6,10 +6,10 @@ import { User, Bookmark, Zap, CreditCard, LogOut, ChevronRight, X } from "lucide
 import { supabase } from "@/lib/supabase";
 
 const MENU_ITEMS = [
-  { label: "Profile", icon: User, href: "/dashboard" },
-  { label: "Saved Bids", icon: Bookmark, href: "/dashboard/saved" },
-  { label: "Keywords", icon: Zap, href: "/dashboard/keywords" },
-  { label: "Subscriptions", icon: CreditCard, href: "/dashboard/subscriptions" },
+  { label: "My Account", icon: User, href: "/dashboard" },
+  { label: "Saved Tenders", icon: Bookmark, href: "/dashboard/saved" },
+  { label: "My Alerts", icon: Zap, href: "/dashboard/keywords" },
+  { label: "My Plan", icon: CreditCard, href: "/dashboard/subscriptions" },
 ];
 
 export default function ProfileSidebar({ user, onClose }: { user: any, onClose?: () => void }) {
@@ -38,7 +38,7 @@ export default function ProfileSidebar({ user, onClose }: { user: any, onClose?:
           </div>
           <div className="flex flex-col min-w-0">
             <span className="text-xs font-bold text-slate-800 dark:text-foreground truncate">{user?.email?.split('@')[0] || "Guest User"}</span>
-            <span className="text-xs font-medium text-slate-600 dark:text-muted-foreground uppercase tracking-wide">{user ? "Member Account" : "Free Plan"}</span>
+            <span className="text-xs font-medium text-slate-600 dark:text-muted-foreground uppercase tracking-wide">{user ? "Active Member" : "Free Plan"}</span>
           </div>
         </div>
       </div>

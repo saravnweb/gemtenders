@@ -4,7 +4,7 @@ import ProfileSidebar from '@/components/ProfileSidebar';
 
 export const metadata: Metadata = {
   title: "Dashboard",
-  description: "Manage your GeM tender keywords, bookmarks, and subscription.",
+  description: "Track government tenders, manage your saved bids, and set up email alerts.",
   robots: { index: false, follow: false },
 };
 
