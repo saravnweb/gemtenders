@@ -36,47 +36,32 @@ async function ExploreDataFetcher() {
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
   const supabase = createClient(supabaseUrl, supabaseKey);
 
-  console.time('explore-fetch');
   const now = new Date().toISOString();
+  console.time('explore-fetch');
 
-  // Get real total count (separate from row fetch, bypasses Supabase 1000-row default cap)
-  const { count: totalCount } = await requirePublicListingReady(
-    supabase
-      .from("tenders")
-      .select("id", { count: "exact", head: true })
-      .gte("end_date", now)
-  );
-
-  // Optimized fetch: Get only what we need in parallel
-  // 1. Latest 800 tenders (trending/recent)
-  // 2. 800 with organisation (enriched data)
-  // Reduced from 1000+2000 to 800+800 for better performance
-  const [latestRes, enrichedRes] = await Promise.all([
-    requirePublicListingReady(
+  // 1. Fetch ALL tender metadata for counts using pagination 
+  // (We need: state, ministry_name, organisation_name, eligibility_msme, eligibility_mii, startup_relaxation, emd_amount, created_at, end_date, title)
+  let allTenders: any[] = [];
+  let page = 0;
+  const PAGE_SIZE = 1000;
+  
+  while (true) {
+    const { data: pageData, error: pageError } = await requirePublicListingReady(
       supabase
         .from("tenders")
         .select("id, title, state, ministry_name, organisation_name, emd_amount, eligibility_msme, eligibility_mii, startup_relaxation, created_at, end_date")
         .gte("end_date", now)
-      .order("created_at", { ascending: false })
-      .limit(800)
-    ),
-    requirePublicListingReady(
-      supabase
-        .from("tenders")
-        .select("id, title, state, ministry_name, organisation_name, emd_amount, eligibility_msme, eligibility_mii, startup_relaxation, created_at, end_date")
-        .gte("end_date", now)
-        .not("organisation_name", "is", null)
-      .order("created_at", { ascending: false })
-      .limit(800)
-    )
-  ]);
+        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
+    );
+    
+    if (pageError || !pageData || pageData.length === 0) break;
+    allTenders = allTenders.concat(pageData);
+    if (pageData.length < PAGE_SIZE) break;
+    page++;
+    if (page > 30) break; // Safety cap at 30k rows
+  }
 
-  // Combine unique tenders
-  const tenderMap = new Map();
-  latestRes.data?.forEach((t: { id: string }) => tenderMap.set(t.id, t));
-  enrichedRes.data?.forEach((t: { id: string }) => tenderMap.set(t.id, t));
-  const tenders = Array.from(tenderMap.values());
-
+  const tenders = allTenders;
   console.timeEnd('explore-fetch');
 
   if (tenders.length === 0) {
@@ -91,7 +76,7 @@ async function ExploreDataFetcher() {
   const todayEnd = new Date(todayStart);
   todayEnd.setDate(todayEnd.getDate() + 1);
 
-  let activeCount = totalCount ?? tenders.length;
+  let activeCount = tenders.length;
   let msePreferredCount = 0;
   let startupRelaxationCount = 0;
   let miiPreferenceCount = 0;

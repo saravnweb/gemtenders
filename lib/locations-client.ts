@@ -15,6 +15,8 @@ export function normalizeState(state: string | null | undefined): string | null 
   if (!state || state.trim() === "") return null;
   const s = state.trim().toLowerCase()
     .replace(/[\.\,]/g, '')
+    .replace(/&/g, 'and')
+    .replace(/\s+and\s+/g, ' and ')
     .replace(/\s+islands?$/i, '')
     .replace(/\s+state$/i, '')
     .trim();

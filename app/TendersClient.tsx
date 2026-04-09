@@ -558,40 +558,53 @@ function TendersClient({
       });
   }
 
-  // ── Lazy-load states for filter panel ──
-  async function loadStates() {
-    if (statesLoaded) return;
-    const { data } = await requirePublicListingReady(
-      supabase.from("tenders").select("state").gte("end_date", new Date().toISOString())
-    ).limit(100000);
-    if (data) {
-      const filtered = data.filter((r: any) => {
-        if (!r.state) return false;
-        const low = r.state.trim().toLowerCase();
-        return low !== 'null' && low !== 'not specified in the document' && low !== 'n/a';
-      });
-      setStates(toCounted(filtered, "state", "Unknown State"));
-      setStatesLoaded(true);
+  // ── Unified lazy-load for metadata (States, Ministries, Orgs) ──
+  const [metadataLoading, setMetadataLoading] = useState(false);
+
+  async function loadMetadata() {
+    if ((statesLoaded && ministriesLoaded && orgsLoaded) || metadataLoading) return;
+    setMetadataLoading(true);
+
+    let all: any[] = [];
+    let page = 0;
+    const PAGE_SIZE = 1000;
+    const now = new Date().toISOString();
+
+    try {
+      while (true) {
+        const { data, error } = await requirePublicListingReady(
+          supabase
+            .from("tenders")
+            .select("state, ministry_name, organisation_name")
+            .gte("end_date", now)
+        ).range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+
+        if (error || !data || data.length === 0) break;
+        all = all.concat(data);
+        if (data.length < PAGE_SIZE) break;
+        page++;
+        if (page > 30) break; // Safety cap
+      }
+
+      if (all.length > 0) {
+        setStates(toCounted(all.filter(r => r.state), "state", "Unknown State"));
+        setStatesLoaded(true);
+        setMinistries(toCounted(all.filter(r => r.ministry_name), "ministry_name", "Not Specified"));
+        setMinistriesLoaded(true);
+        setOrgs(toCounted(all.filter(r => r.organisation_name), "organisation_name", "Not Specified"));
+        setOrgsLoaded(true);
+      }
+    } catch (err) {
+      console.error("[loadMetadata] Error:", err);
+    } finally {
+      setMetadataLoading(false);
     }
   }
 
-  // ── Lazy-load ministries ──
-  async function loadMinistries() {
-    if (ministriesLoaded) return;
-    const { data } = await requirePublicListingReady(
-      supabase.from("tenders").select("ministry_name").gte("end_date", new Date().toISOString())
-    ).not("ministry_name", "is", null).limit(10000);
-    if (data) { setMinistries(toCounted(data, "ministry_name", "Not Specified")); setMinistriesLoaded(true); }
-  }
-
-  // ── Lazy-load organisations ──
-  async function loadOrgs() {
-    if (orgsLoaded) return;
-    const { data } = await requirePublicListingReady(
-      supabase.from("tenders").select("organisation_name").gte("end_date", new Date().toISOString())
-    ).not("organisation_name", "is", null).limit(10000);
-    if (data) { setOrgs(toCounted(data, "organisation_name", "Not Specified")); setOrgsLoaded(true); }
-  }
+  // Backwards compatibility for the dropdown components
+  const loadStates = loadMetadata;
+  const loadMinistries = loadMetadata;
+  const loadOrgs = loadMetadata;
 
   // ── Contextual filter options cache ──
   const contextualQueryCache = useRef("");
