@@ -164,8 +164,13 @@ async function TendersResult({ searchParams }: { searchParams: Promise<any> }) {
     }))
   };
 
-  // Show onboarding for logged-in users who haven't seen it yet
+  // Show onboarding only for free (non-paying) logged-in users
   const { data: { user } } = await supabase.auth.getUser();
+  let userPlan = 'free';
+  if (user) {
+    const { data: profile } = await supabase.from('profiles').select('membership_plan').eq('id', user.id).maybeSingle();
+    userPlan = profile?.membership_plan ?? 'free';
+  }
 
   return (
     <>
@@ -173,7 +178,7 @@ async function TendersResult({ searchParams }: { searchParams: Promise<any> }) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      {user && <OnboardingModal />}
+      {user && userPlan === 'free' && <OnboardingModal />}
       <TendersClient
         initialTenders={initialTenders}
         initialTotalCount={initialTotalCount || undefined}

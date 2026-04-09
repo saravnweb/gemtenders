@@ -1,9 +1,9 @@
 "use client";
 
-import { X, Zap, Check, ArrowRight, Lock } from 'lucide-react';
+import { X, Sparkles, Check, ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-export type UpgradeReason = 'keywords' | 'state' | 'city' | 'pdf' | 'save';
+export type UpgradeReason = 'keywords' | 'state' | 'city' | 'pdf';
 
 interface UpgradeModalProps {
     isOpen: boolean;
@@ -17,44 +17,27 @@ interface UpgradeModalProps {
 const REASON_CONFIG: Record<UpgradeReason, {
     title: string;
     subtitle: (current: number, limit: number) => string;
-    lockedFeature: string;
     starterBenefit: string;
-    proBenefit: string;
 }> = {
     keywords: {
-        title: "Keyword Limit Reached",
-        subtitle: (current, limit) => `You're using ${current} of ${limit} keywords on the Free plan.`,
-        lockedFeature: "More keyword monitors",
+        title: "Unlock Unlimited Keywords",
+        subtitle: (current, limit) => `You've hit the ${limit}-keyword limit on the Free plan. Starter lets you track every category, ministry, and location you sell into.`,
         starterBenefit: "Track unlimited keywords",
-        proBenefit: "Unlimited keywords + multi-state coverage",
     },
     state: {
-        title: "State Filter Limit Reached",
-        subtitle: (current, limit) => `Your plan allows only ${limit} state filter per monitor.`,
-        lockedFeature: "Multiple state filters",
-        starterBenefit: "Filter by up to 3 states per monitor",
-        proBenefit: "Unlimited states across all monitors",
+        title: "Unlock More State Filters",
+        subtitle: (_current, limit) => `Your Free plan allows ${limit} state filter per monitor. Upgrade to track tenders across multiple states.`,
+        starterBenefit: "Filter across multiple states",
     },
     city: {
-        title: "City Filter Limit Reached",
-        subtitle: (current, limit) => `Your plan allows only ${limit} city filter per monitor.`,
-        lockedFeature: "Multiple city filters",
-        starterBenefit: "Filter by up to 5 cities per monitor",
-        proBenefit: "Unlimited cities across all monitors",
+        title: "Unlock City Filters",
+        subtitle: (_current, limit) => `Your Free plan allows ${limit} city filter. Upgrade to target tenders in specific cities.`,
+        starterBenefit: "Unlimited city filters",
     },
     pdf: {
-        title: "PDF Downloads Require Starter",
-        subtitle: () => "PDF downloads are available on Starter and Pro plans.",
-        lockedFeature: "Download tender PDFs",
+        title: "Download This Tender's Documents",
+        subtitle: () => "You've used your free PDF downloads for today. Starter subscribers download unlimited bid documents, BOQs, and evaluation criteria.",
         starterBenefit: "Unlimited PDF downloads",
-        proBenefit: "Unlimited PDFs + instant WhatsApp alerts",
-    },
-    save: {
-        title: "Saving Tenders Requires Starter",
-        subtitle: () => "Bookmark and track tenders with a Starter subscription.",
-        lockedFeature: "Save & bookmark tenders",
-        starterBenefit: "Save unlimited tenders",
-        proBenefit: "Save tenders + team sharing",
     },
 };
 
@@ -62,7 +45,6 @@ export default function UpgradeModal({
     isOpen,
     onClose,
     reason,
-    currentPlan = 'free',
     currentCount = 0,
     limitCount = 1,
 }: UpgradeModalProps) {
@@ -92,8 +74,8 @@ export default function UpgradeModal({
             {/* Modal */}
             <div className="relative bg-white dark:bg-card rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
 
-                {/* Header gradient */}
-                <div className="relative bg-linear-to-br from-blue-600 via-blue-700 to-indigo-800 px-6 pt-6 pb-10">
+                {/* Header */}
+                <div className="relative bg-linear-to-br from-atomic-tangerine-500 via-atomic-tangerine-600 to-atomic-tangerine-700 px-6 pt-6 pb-10">
                     <button
                         onClick={onClose}
                         className="absolute top-4 right-4 p-1.5 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors"
@@ -102,15 +84,14 @@ export default function UpgradeModal({
                         <X className="w-4 h-4" />
                     </button>
 
-                    {/* Lock icon with glow */}
                     <div className="w-12 h-12 bg-white/15 rounded-xl flex items-center justify-center mb-4 ring-4 ring-white/10">
-                        <Lock className="w-6 h-6 text-white" />
+                        <Sparkles className="w-6 h-6 text-white" />
                     </div>
 
                     <h2 id="upgrade-modal-title" className="text-xl font-black text-white tracking-tight">
                         {config.title}
                     </h2>
-                    <p className="text-sm text-blue-100 mt-1 font-medium">
+                    <p className="text-sm text-orange-100 mt-1 font-medium">
                         {config.subtitle(currentCount, limitCount)}
                     </p>
                 </div>
@@ -119,7 +100,7 @@ export default function UpgradeModal({
                 <div className="relative -mt-5 mx-4">
                     <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3 flex items-center gap-3">
                         <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center shrink-0">
-                            <Zap className="w-4 h-4 text-amber-600 dark:text-amber-400 fill-current" />
+                            <Sparkles className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                         </div>
                         <div>
                             <p className="text-xs font-black text-amber-800 dark:text-amber-300 uppercase tracking-widest">Starter — ₹99/mo</p>
@@ -148,13 +129,18 @@ export default function UpgradeModal({
                     </ul>
                 </div>
 
+                {/* Value anchor */}
+                <p className="px-6 pt-3 text-xs text-slate-400 dark:text-muted-foreground text-center italic">
+                    One won GeM tender can be worth ₹50,000–₹5 Crore. ₹99/month is the smallest investment you'll make this year.
+                </p>
+
                 {/* CTAs */}
                 <div className="px-6 pt-4 pb-6 flex flex-col gap-2.5">
                     <button
                         onClick={handleUpgrade}
-                        className="w-full py-3.5 bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black text-sm uppercase tracking-widest rounded-xl shadow-lg shadow-blue-500/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                        className="w-full py-3.5 bg-linear-to-r from-atomic-tangerine-500 to-atomic-tangerine-600 hover:from-atomic-tangerine-600 hover:to-atomic-tangerine-700 text-white font-black text-sm uppercase tracking-widest rounded-xl shadow-lg shadow-atomic-tangerine-200 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                     >
-                        <Zap className="w-4 h-4 fill-current" />
+                        <Sparkles className="w-4 h-4" />
                         Upgrade to Starter
                         <ArrowRight className="w-4 h-4" />
                     </button>
@@ -162,7 +148,7 @@ export default function UpgradeModal({
                         onClick={onClose}
                         className="w-full py-2.5 text-sm font-bold text-slate-500 dark:text-muted-foreground hover:text-slate-700 dark:hover:text-foreground transition-colors"
                     >
-                        Not now
+                        I'll stay on Free
                     </button>
                 </div>
             </div>

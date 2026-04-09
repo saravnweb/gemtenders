@@ -26,8 +26,8 @@ export async function createRazorpaySubscription(plan: "starter" | "pro") {
   }
 
   try {
-    // Delay first charge by 7 days (free trial)
-    const trialEndAt = Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60;
+    // Delay first charge by 14 days (free trial)
+    const trialEndAt = Math.floor(Date.now() / 1000) + 14 * 24 * 60 * 60;
 
     const subscription = await instance.subscriptions.create({
       plan_id: PLAN_IDS[plan],

@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 
 export default function Navbar() {
   const [user, setUser] = useState<any>(null);
+  const [userPlan, setUserPlan] = useState<string>('free');
   const [loading, setLoading] = useState(true);
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -61,9 +62,11 @@ export default function Navbar() {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
       setLoading(false);
-      
+
       if (user) {
-         fetch('/api/notifications', { cache: 'no-store' })
+        const { data: profile } = await supabase.from("profiles").select("membership_plan").eq("id", user.id).maybeSingle();
+        setUserPlan(profile?.membership_plan ?? 'free');
+        fetch('/api/notifications', { cache: 'no-store' })
            .then(res => res.json())
            .then(data => {
              if (data.notifications) setNotifications(data.notifications);
@@ -302,7 +305,11 @@ export default function Navbar() {
                           </div>
                           <div className="flex flex-col min-w-0">
                             <span className="text-xs font-black text-fresh-sky-900 dark:text-fresh-sky-100 truncate leading-tight">{user.email?.split('@')[0]}</span>
-                            <span className="text-[8px] font-bold text-atomic-tangerine-600 uppercase tracking-tighter">Enterprise</span>
+                            {userPlan !== 'free' && (
+                              <span className={`text-[8px] font-bold uppercase tracking-tighter ${userPlan === 'pro' ? 'text-atomic-tangerine-600' : 'text-fresh-sky-500'}`}>
+                                {userPlan === 'pro' ? 'Pro' : 'Starter'}
+                              </span>
+                            )}
                           </div>
                           <button
                             onClick={handleSignOut}

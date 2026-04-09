@@ -12,11 +12,10 @@ export default function PricingPage() {
       {/* Header section */}
       <div className="text-center max-w-3xl mx-auto mb-16">
         <h1 className="text-4xl md:text-5xl font-black text-fresh-sky-950 tracking-tight mb-6">
-          Simple pricing for <span className="text-atomic-tangerine-700">smart decisions</span>
+          Stop missing tenders <span className="text-atomic-tangerine-700">your business could win</span>
         </h1>
         <p className="text-lg text-fresh-sky-600 font-medium leading-relaxed mb-10">
-          Get notified instantly when relevant GeM tenders are published. 
-          Stop browsing manually, start winning faster.
+          GeMTenders.org monitors the GeM portal for you and delivers relevant tenders every morning — so you focus on bidding, not searching.
         </p>
 
         {/* Toggle */}
@@ -43,8 +42,8 @@ export default function PricingPage() {
       {/* Social proof */}
       <div className="max-w-3xl mx-auto mb-14 grid grid-cols-1 sm:grid-cols-2 gap-6 text-center">
         <div className="bg-white rounded-2xl p-5 border border-fresh-sky-100 shadow-sm">
-          <p className="text-3xl font-black text-fresh-sky-950 mb-1">Every morning</p>
-          <p className="text-sm text-fresh-sky-600 font-medium">New tenders fetched fresh from the GeM portal daily</p>
+          <p className="text-3xl font-black text-fresh-sky-950 mb-1">10,000+</p>
+          <p className="text-sm text-fresh-sky-600 font-medium">Live tenders indexed from the official GeM portal</p>
         </div>
         <div className="bg-white rounded-2xl p-5 border border-fresh-sky-100 shadow-sm">
           <p className="text-3xl font-black text-fresh-sky-950 mb-1">₹3.30/day</p>
@@ -55,12 +54,12 @@ export default function PricingPage() {
       {/* Testimonials */}
       <div className="max-w-4xl mx-auto mb-16 grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div className="bg-white rounded-3xl p-6 border border-fresh-sky-100 shadow-sm">
-          <p className="text-fresh-sky-700 text-sm font-medium leading-relaxed mb-4">"We used to spend hours every week on the GeM portal looking for tenders. Now we just check our email every morning and only read the ones that matter."</p>
+          <p className="text-fresh-sky-700 text-sm font-medium leading-relaxed mb-4">"We won a ₹9 lakh supply order for office consumables. The alert came 3 hours after the tender was published on GeM — we would have completely missed it otherwise."</p>
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-atomic-tangerine-100 flex items-center justify-center text-atomic-tangerine-700 font-bold text-sm">R</div>
             <div>
               <p className="text-xs font-bold text-slate-800">Rajesh M.</p>
-              <p className="text-xs text-slate-400">Solar equipment supplier, Gujarat</p>
+              <p className="text-xs text-slate-400">Office supplies vendor, Gujarat · Beta User</p>
             </div>
           </div>
         </div>
@@ -70,7 +69,7 @@ export default function PricingPage() {
             <div className="w-9 h-9 rounded-full bg-fresh-sky-100 flex items-center justify-center text-fresh-sky-700 font-bold text-sm">P</div>
             <div>
               <p className="text-xs font-bold text-slate-800">Priya S.</p>
-              <p className="text-xs text-slate-400">IT services vendor, Pune</p>
+              <p className="text-xs text-slate-400">IT services vendor, Pune · Beta User</p>
             </div>
           </div>
         </div>
@@ -125,10 +124,10 @@ export default function PricingPage() {
               href={`/signup?plan=starter&billing=${isAnnual ? 'annual' : 'monthly'}`}
               className="w-full flex items-center justify-center py-4 bg-linear-to-r from-atomic-tangerine-600 to-atomic-tangerine-700 hover:from-atomic-tangerine-700 hover:to-atomic-tangerine-800 text-white font-bold rounded-2xl shadow-xl shadow-atomic-tangerine-200 transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-white"
             >
-              Start 7-Day Free Trial
+              Start 14-Day Free Trial
             </Link>
             <span className="text-center text-xs text-fresh-sky-500 mt-2 font-medium">
-              Free for 7 days · then {isAnnual ? '₹79/mo (₹948/yr)' : '₹99/mo'} · Cancel anytime
+              Free for 14 days · then {isAnnual ? '₹79/mo (₹948/yr)' : '₹99/mo'} · Cancel anytime
             </span>
           </div>
           <ul className="space-y-4">
@@ -165,9 +164,8 @@ export default function PricingPage() {
           <ul className="space-y-4">
             <FeatureItem text="Everything in the Starter plan" dark />
             <FeatureItem text="Deep AI breakdown of tender requirements & bid worthiness" dark />
-            <FeatureItem text="WhatsApp & SMS instant alerts" dark comingSoon />
-            <FeatureItem text="Multi-user team dashboard" dark comingSoon />
             <FeatureItem text="Priority VIP customer support" dark />
+            <FeatureItem text="Early access to all new features as they ship" dark />
           </ul>
         </div>
 

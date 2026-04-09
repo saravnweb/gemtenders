@@ -12,6 +12,12 @@ function SubscriptionsContent() {
   const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState<any>(null);
   const [razorpayReady, setRazorpayReady] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 5000);
+  };
   const searchParams = useSearchParams();
   const autoCheckoutDone = useRef(false);
 
@@ -90,10 +96,10 @@ function SubscriptionsContent() {
               });
               if (refreshRes.ok) setProfile(await refreshRes.json());
             }
-            alert(`You're now on the ${plan} plan! 🎉`);
+            showToast(`You're now on the ${plan.charAt(0).toUpperCase() + plan.slice(1)} plan! Set up your alerts to start receiving daily tender digests.`, 'success');
           } catch (err: any) {
             console.error("Verification error:", err);
-            alert(`Payment succeeded but verification failed: ${err.message}`);
+            showToast(`Payment succeeded but verification failed: ${err.message}`, 'error');
           }
         },
         prefill: {
@@ -119,7 +125,7 @@ function SubscriptionsContent() {
 
     } catch (e: any) {
       console.error(e);
-      alert(`Checkout failed: ${e.message || 'Unknown error.'}`);
+      showToast(`Checkout failed: ${e.message || 'Unknown error.'}`, 'error');
     } finally {
       setLoading(false);
     }
@@ -130,7 +136,7 @@ function SubscriptionsContent() {
     setLoading(true);
     try {
       await cancelRazorpaySubscription();
-      alert("Subscription cancelled. Access continues until month end.");
+      showToast("Subscription cancelled. You'll keep access until the end of this billing month.", 'success');
       const { data: { session: cancelSession } } = await supabase.auth.getSession();
       if (cancelSession) {
         const cancelRes = await fetch("/api/profile", {
@@ -140,7 +146,7 @@ function SubscriptionsContent() {
         if (cancelRes.ok) setProfile(await cancelRes.json());
       }
     } catch (e: any) {
-      alert(e.message || "Failed to cancel subscription");
+      showToast(e.message || "Failed to cancel subscription", 'error');
     } finally {
       setLoading(false);
     }
@@ -164,6 +170,13 @@ function SubscriptionsContent() {
         onLoad={() => setRazorpayReady(true)}
         onError={() => console.warn("Razorpay script failed to load — will retry on checkout.")}
       />
+
+      {/* Toast notification */}
+      {toast && (
+        <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3.5 rounded-2xl shadow-xl text-sm font-semibold text-white flex items-center gap-3 animate-in slide-in-from-bottom-4 duration-300 max-w-sm text-center ${toast.type === 'success' ? 'bg-emerald-600' : 'bg-red-500'}`}>
+          {toast.message}
+        </div>
+      )}
 
       {/* Header */}
       <div>
@@ -282,7 +295,7 @@ function SubscriptionsContent() {
               Pro
               {profile.membership_plan === 'pro' && <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full uppercase tracking-wider">Active</span>}
            </h3>
-           <p className="text-sm text-slate-500 dark:text-muted-foreground h-10">Everything in Starter, plus WhatsApp and AI analysis.</p>
+           <p className="text-sm text-slate-500 dark:text-muted-foreground h-10">Everything in Starter, plus deep AI analysis and priority support.</p>
            <div className="my-6">
              <span className="text-4xl font-black text-slate-900 dark:text-foreground">₹299</span>
              <span className="text-sm text-slate-500 dark:text-muted-foreground font-bold"> / month</span>
@@ -302,9 +315,8 @@ function SubscriptionsContent() {
            <ul className="space-y-3">
              <FeatureItem text="Everything in Starter" />
              <FeatureItem text="Deep AI analysis — bid worthiness, checklist & tips" />
-             <FeatureItem text="WhatsApp & SMS alerts (coming soon)" />
-             <FeatureItem text="Team dashboard (coming soon)" />
              <FeatureItem text="Priority VIP support" />
+             <FeatureItem text="Early access to all new features as they ship" />
            </ul>
         </div>
       </div>

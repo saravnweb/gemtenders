@@ -79,8 +79,8 @@ export async function GET(request: Request, context: { params: Promise<{ slug: s
       .single();
 
     if (!profile || profile.membership_plan === "free") {
-      // Free users get 3 PDF downloads per calendar day
-      const FREE_DAILY_LIMIT = 3;
+      // Free users get 5 PDF downloads per calendar day
+      const FREE_DAILY_LIMIT = 5;
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
       const { count } = await admin

@@ -24,7 +24,6 @@ import { FilterTag } from "@/components/tenders/FilterTag";
 import { TogglePill } from "@/components/tenders/TogglePill";
 import { Sidebar } from "@/components/tenders/Sidebar";
 import { toTitleCase, getCategory } from "@/components/tenders/utils";
-import UpgradeModal from "@/components/UpgradeModal";
 
 
 // ─── Word-boundary OR clause builder ─────────────────────────────────────────
@@ -147,12 +146,10 @@ async function queryForYouTenders(searches: any[]): Promise<any[]> {
 
   if (!uniqueKeywords.length) return [];
 
-  // Use word-boundary imatch so "cab" doesn't match "cable" in the DB fetch either.
-  const orString = uniqueKeywords.map(kw => {
-    const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const p = `\\y${escaped}\\y`;
-    return `title.imatch.${p},ai_summary.imatch.${p}`;
-  }).join(",");
+  // Use the same multi-field word-boundary search as the main query so For You
+  // finds tenders where keywords appear in department/ministry/organisation names,
+  // not just title and ai_summary.
+  const orString = uniqueKeywords.map(kw => buildTextSearchOrClause(kw)).join(",");
 
   const { data, error } = await requirePublicListingReady(
     supabase
@@ -349,7 +346,6 @@ function TendersClient({
   const [savedSearches, setSavedSearches]   = useState<any[]>([]);
   const [isSavingSearch, setIsSavingSearch] = useState(false);
   const [saveSuccess, setSaveSuccess]       = useState(false);
-  const [showSaveUpgrade, setShowSaveUpgrade] = useState(false);
 
   // ── Filter panel state ──
   const [states, setStates]             = useState<Array<{label:string;value:string;count:number}>>([]);
@@ -848,10 +844,6 @@ function TendersClient({
       window.location.href = "/login?callback=" + encodeURIComponent(window.location.pathname + window.location.search);
       return;
     }
-    if (!isPremium) {
-      setShowSaveUpgrade(true);
-      return;
-    }
     const isSaved = savedTenderIds.has(tenderId);
     if (isSaved) {
       const { error } = await supabase.from("saved_tenders").delete().eq("user_id", user.id).eq("tender_id", tenderId);
@@ -879,7 +871,6 @@ function TendersClient({
   // ─────────────────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-fresh-sky-50 dark:bg-background text-slate-800 dark:text-foreground font-sans">
-      <UpgradeModal isOpen={showSaveUpgrade} onClose={() => setShowSaveUpgrade(false)} reason="save" />
       <main id="main-content" className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
 
         {/* ── Hero ── */}
