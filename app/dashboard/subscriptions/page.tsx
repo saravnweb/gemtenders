@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { createRazorpaySubscription, cancelRazorpaySubscription } from "@/app/actions/razorpay";
 import { Zap, Shield, Check, RefreshCw } from "lucide-react";
 import Script from "next/script";
 
-export default function SubscriptionsPage() {
+function SubscriptionsContent() {
 
   const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState<any>(null);
@@ -312,6 +312,19 @@ export default function SubscriptionsPage() {
       </div>
     </div>
   );
+}
+
+export default function SubscriptionsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-[60vh] flex flex-col items-center justify-center p-8 space-y-4">
+        <div className="w-10 h-10 border-4 border-slate-200 dark:border-border border-t-atomic-tangerine-600 rounded-full animate-spin"></div>
+        <p className="text-sm font-bold text-slate-500 dark:text-muted-foreground uppercase tracking-widest animate-pulse">Loading...</p>
+      </div>
+    }>
+      <SubscriptionsContent />
+    </Suspense>
+  )
 }
 
 function FeatureItem({ text }: { text: string }) {
