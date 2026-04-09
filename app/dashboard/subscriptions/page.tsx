@@ -18,22 +18,29 @@ export default function SubscriptionsPage() {
   useEffect(() => {
     async function loadProfile() {
       try {
-        const res = await fetch("/api/profile", { cache: 'no-store' });
-        if (res.ok) {
-          const data = await res.json();
-          setProfile(data);
-        } else if (res.status === 401) {
+        // Use client-side Supabase directly — always has a valid session (localStorage-based)
+        // This avoids server-side cookie auth issues that cause /api/profile to return 401
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
           setProfile({ membership_plan: 'free' });
+          return;
+        }
+
+        const { data: profileData, error } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        if (profileData) {
+          setProfile({ ...profileData, email: user.email });
+        } else if (error) {
+          console.error("[subscriptions] profile fetch error:", error.message);
+          setProfile({ id: user.id, membership_plan: 'free', email: user.email });
         } else {
-          // Fallback: read from auth session metadata only
-          const { data: { user } } = await supabase.auth.getUser();
-          setProfile({
-            id: user?.id,
-            full_name: user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User',
-            membership_plan: 'free',
-            phone_number: '',
-            email: user?.email,
-          });
+          // No profile row yet
+          setProfile({ id: user.id, membership_plan: 'free', email: user.email,
+            full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User' });
         }
       } catch {
         setProfile({ membership_plan: 'free' });
@@ -83,10 +90,10 @@ export default function SubscriptionsPage() {
                throw new Error(result.error || "Payment verification failed on server.");
             }
 
-            const refreshRes = await fetch("/api/profile", { cache: 'no-store' });
-            if (!refreshRes.ok) throw new Error("Failed to refresh profile");
-            const data = await refreshRes.json();
-            setProfile(data);
+            const { data: { user: refreshedUser } } = await supabase.auth.getUser();
+            const { data: refreshedProfile } = await supabase
+              .from("profiles").select("*").eq("id", refreshedUser!.id).maybeSingle();
+            if (refreshedProfile) setProfile({ ...refreshedProfile, email: refreshedUser!.email });
             alert(`You're now on the ${plan} plan! 🎉`);
           } catch (err: any) {
             console.error("Verification error:", err);
@@ -128,8 +135,12 @@ export default function SubscriptionsPage() {
     try {
       await cancelRazorpaySubscription();
       alert("Subscription cancelled. Access continues until month end.");
-      const cancelRes = await fetch("/api/profile", { cache: 'no-store' });
-      if (cancelRes.ok) setProfile(await cancelRes.json());
+      const { data: { user: cancelUser } } = await supabase.auth.getUser();
+      if (cancelUser) {
+        const { data: cancelProfile } = await supabase
+          .from("profiles").select("*").eq("id", cancelUser.id).maybeSingle();
+        if (cancelProfile) setProfile({ ...cancelProfile, email: cancelUser.email });
+      }
     } catch (e: any) {
       alert(e.message || "Failed to cancel subscription");
     } finally {
