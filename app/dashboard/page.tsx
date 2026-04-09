@@ -11,8 +11,12 @@ export default async function ProfilePage() {
     redirect('/login?callback=/dashboard');
   }
 
-  const { data: savedSearches } = await supabase.from("saved_searches").select("id").eq("user_id", user!.id);
+  const { data: savedSearches } = await supabase.from("saved_searches").select("id, query_params").eq("user_id", user!.id);
   const { data: savedTenders } = await supabase.from("saved_tenders").select("id").eq("user_id", user!.id);
+  const keywordCount = savedSearches?.reduce((total: number, s: any) => {
+    const q = s.query_params?.q || '';
+    return total + q.split(',').map((k: string) => k.trim()).filter(Boolean).length;
+  }, 0) || 0;
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", user!.id).single();
   const membershipPlan = profile?.membership_plan || 'free';
   const isPremium = membershipPlan !== 'free';
@@ -52,7 +56,7 @@ export default async function ProfilePage() {
           iconBg="bg-atomic-tangerine-50 dark:bg-atomic-tangerine-900/20"
           title="Set Up My Alerts"
           description="Tell us what products or services you sell. We'll email you every morning when matching tenders are published."
-          badge={`${savedSearches?.length || 0} active`}
+          badge={keywordCount > 0 ? `${keywordCount} keywords` : 'No keywords set'}
           cta="Manage Alerts"
           href="/dashboard/keywords"
         />

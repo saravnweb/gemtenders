@@ -6,7 +6,7 @@ import { User, Bookmark, Zap, CreditCard, LogOut, ChevronRight, X } from "lucide
 import { supabase } from "@/lib/supabase";
 
 const MENU_ITEMS = [
-  { label: "My Account", icon: User, href: "/dashboard" },
+  { label: "Overview", icon: User, href: "/dashboard" },
   { label: "Saved Tenders", icon: Bookmark, href: "/dashboard/saved" },
   { label: "My Alerts", icon: Zap, href: "/dashboard/keywords" },
   { label: "My Plan", icon: CreditCard, href: "/dashboard/subscriptions" },

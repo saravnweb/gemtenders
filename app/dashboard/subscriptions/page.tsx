@@ -18,29 +18,21 @@ function SubscriptionsContent() {
   useEffect(() => {
     async function loadProfile() {
       try {
-        // Use client-side Supabase directly — always has a valid session (localStorage-based)
-        // This avoids server-side cookie auth issues that cause /api/profile to return 401
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
+        // Get the client-side session token (works even when server cookies are stale)
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
           setProfile({ membership_plan: 'free' });
           return;
         }
-
-        const { data: profileData, error } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", user.id)
-          .maybeSingle();
-
-        if (profileData) {
-          setProfile({ ...profileData, email: user.email });
-        } else if (error) {
-          console.error("[subscriptions] profile fetch error:", error.message);
-          setProfile({ id: user.id, membership_plan: 'free', email: user.email });
+        // Send Bearer token so /api/profile can verify via service role key, bypassing RLS
+        const res = await fetch("/api/profile", {
+          cache: 'no-store',
+          headers: { 'Authorization': `Bearer ${session.access_token}` },
+        });
+        if (res.ok) {
+          setProfile(await res.json());
         } else {
-          // No profile row yet
-          setProfile({ id: user.id, membership_plan: 'free', email: user.email,
-            full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User' });
+          setProfile({ id: session.user.id, membership_plan: 'free', email: session.user.email });
         }
       } catch {
         setProfile({ membership_plan: 'free' });
@@ -90,10 +82,14 @@ function SubscriptionsContent() {
                throw new Error(result.error || "Payment verification failed on server.");
             }
 
-            const { data: { user: refreshedUser } } = await supabase.auth.getUser();
-            const { data: refreshedProfile } = await supabase
-              .from("profiles").select("*").eq("id", refreshedUser!.id).maybeSingle();
-            if (refreshedProfile) setProfile({ ...refreshedProfile, email: refreshedUser!.email });
+            const { data: { session: refreshedSession } } = await supabase.auth.getSession();
+            if (refreshedSession) {
+              const refreshRes = await fetch("/api/profile", {
+                cache: 'no-store',
+                headers: { 'Authorization': `Bearer ${refreshedSession.access_token}` },
+              });
+              if (refreshRes.ok) setProfile(await refreshRes.json());
+            }
             alert(`You're now on the ${plan} plan! 🎉`);
           } catch (err: any) {
             console.error("Verification error:", err);
@@ -135,11 +131,13 @@ function SubscriptionsContent() {
     try {
       await cancelRazorpaySubscription();
       alert("Subscription cancelled. Access continues until month end.");
-      const { data: { user: cancelUser } } = await supabase.auth.getUser();
-      if (cancelUser) {
-        const { data: cancelProfile } = await supabase
-          .from("profiles").select("*").eq("id", cancelUser.id).maybeSingle();
-        if (cancelProfile) setProfile({ ...cancelProfile, email: cancelUser.email });
+      const { data: { session: cancelSession } } = await supabase.auth.getSession();
+      if (cancelSession) {
+        const cancelRes = await fetch("/api/profile", {
+          cache: 'no-store',
+          headers: { 'Authorization': `Bearer ${cancelSession.access_token}` },
+        });
+        if (cancelRes.ok) setProfile(await cancelRes.json());
       }
     } catch (e: any) {
       alert(e.message || "Failed to cancel subscription");
