@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
 import { Bell, Bookmark, CreditCard, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
@@ -11,13 +12,25 @@ export default async function ProfilePage() {
     redirect('/login?callback=/dashboard');
   }
 
-  const { data: savedSearches } = await supabase.from("saved_searches").select("id, query_params").eq("user_id", user!.id);
-  const { data: savedTenders } = await supabase.from("saved_tenders").select("id").eq("user_id", user!.id);
+  const supabaseAdmin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  const [
+    { data: savedSearches },
+    { data: savedTenders },
+    { data: profile },
+  ] = await Promise.all([
+    supabaseAdmin.from("saved_searches").select("id, query_params").eq("user_id", user!.id),
+    supabaseAdmin.from("saved_tenders").select("id").eq("user_id", user!.id),
+    supabaseAdmin.from("profiles").select("*").eq("id", user!.id).maybeSingle(),
+  ]);
+
   const keywordCount = savedSearches?.reduce((total: number, s: any) => {
     const q = s.query_params?.q || '';
     return total + q.split(',').map((k: string) => k.trim()).filter(Boolean).length;
   }, 0) || 0;
-  const { data: profile } = await supabase.from("profiles").select("*").eq("id", user!.id).single();
   const membershipPlan = profile?.membership_plan || 'free';
   const isPremium = membershipPlan !== 'free';
 
