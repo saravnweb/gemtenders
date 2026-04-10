@@ -1,4 +1,4 @@
-import { INDIAN_STATES, normalizeState } from "@/lib/locations";
+import { INDIAN_STATES, normalizeState, isIndianState } from "@/lib/locations";
 import { requirePublicListingReady } from "@/lib/tender-public-listing";
 import ExploreClient from "./ExploreClient";
 import { Suspense } from "react";
@@ -100,24 +100,38 @@ async function ExploreDataFetcher() {
       stateFieldMinistries[t.state] = (stateFieldMinistries[t.state] || 0) + 1;
     }
   });
-  const stateList = Object.entries(stateCounts)
-    .sort((a, b) => b[1] - a[1])
-    .map(([state, count]) => ({ state, count }));
 
   // 2. Calculate By Ministry Counts (ministry_name field + overflow from state field)
   const isInvalid = (v?: string | null) => !v || /^n\/?a$/i.test(v.trim()) || v === 'null';
   const ministryCounts: Record<string, number> = {};
   tenders.forEach(t => {
     if (!isInvalid(t.ministry_name)) {
-      ministryCounts[t.ministry_name!] = (ministryCounts[t.ministry_name!] || 0) + 1;
+      if (isIndianState(t.ministry_name)) {
+        const canonical = normalizeState(t.ministry_name)!;
+        stateCounts[canonical] = (stateCounts[canonical] || 0) + 1;
+      } else {
+        ministryCounts[t.ministry_name!] = (ministryCounts[t.ministry_name!] || 0) + 1;
+      }
     }
   });
   // Merge ministry names that were stored in the state field
   for (const [name, count] of Object.entries(stateFieldMinistries)) {
     if (!isInvalid(name)) {
-      ministryCounts[name] = (ministryCounts[name] || 0) + count;
+      if (isIndianState(name)) {
+        const canonical = normalizeState(name)!;
+        stateCounts[canonical] = (stateCounts[canonical] || 0) + count;
+      } else {
+        ministryCounts[name] = (ministryCounts[name] || 0) + count;
+      }
     }
   }
+
+  // Ensure stateCounts contains only entries in INDIAN_STATES and sort/map
+  const stateList = Array.from(INDIAN_STATES)
+    .map(state => ({ state, count: stateCounts[state] || 0 }))
+    .filter(s => s.count > 0)
+    .sort((a, b) => b.count - a.count);
+
   const sumOfMinistries = Object.values(ministryCounts).reduce((a, b) => a + b, 0);
   const othersCount = activeCount - sumOfMinistries;
   if (othersCount > 0) {
@@ -133,7 +147,13 @@ async function ExploreDataFetcher() {
   const orgCounts: Record<string, number> = {};
   tenders.forEach(t => {
     if (!isInvalid(t.organisation_name)) {
-      orgCounts[t.organisation_name!] = (orgCounts[t.organisation_name!] || 0) + 1;
+      if (isIndianState(t.organisation_name)) {
+        const canonical = normalizeState(t.organisation_name)!;
+        // Don't count again if we already counted it from state/ministry, 
+        // but here we are just building the org list, so we just skip it.
+      } else {
+        orgCounts[t.organisation_name!] = (orgCounts[t.organisation_name!] || 0) + 1;
+      }
     }
   });
   const sumOfOrgs = Object.values(orgCounts).reduce((a, b) => a + b, 0);

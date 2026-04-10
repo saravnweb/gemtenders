@@ -44,6 +44,12 @@ export function calculateValueBand(value: number | null | undefined): string | n
   return '>1Cr';
 }
 
+const GEM_TITLE_PREFIX = /^Custom Bid for \w+ -\s*/i;
+
+export function normalizeTitle(title: string): string {
+  return title.replace(GEM_TITLE_PREFIX, '').trim();
+}
+
 /**
  * Returns a payload of all computed fields for a given tender.
  */

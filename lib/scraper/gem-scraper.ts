@@ -1,3 +1,4 @@
+import { normalizeTitle } from '../computed-fields';
 import { chromium } from "playwright-extra";
 import stealthPlugin from 'puppeteer-extra-plugin-stealth';
 chromium.use(stealthPlugin());
@@ -485,6 +486,8 @@ export async function scrapeGeMBids(options?: { lightMode?: boolean; maxPages?: 
     if (aiData?.tender_title && (!aiData.tender_title.trim().endsWith("...") || !bid.description || bid.description.length <= aiData.tender_title.length)) {
        finalTitle = aiData.tender_title;
     }
+
+    finalTitle = normalizeTitle(finalTitle);
 
     if (aiData?.gemarp?.searched_strings && !finalTitle.includes(aiData.gemarp.searched_strings)) {
        // Only append if it's not repetitive

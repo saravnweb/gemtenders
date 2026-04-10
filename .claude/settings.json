@@ -77,7 +77,16 @@
       "Bash(echo \"Done - $\\(node -e \"const m=require\\('./lib/city-state-map.json'\\); console.log\\(Object.keys\\(m\\).length\\)\"\\) cities\")",
       "Bash(grep -E \"\\\\.\\(sql|ts\\)$\")",
       "Bash(iconv -f UTF-16LE -t UTF-8 d:/websites/Tenders/schema.sql)",
-      "Bash(iconv -f UTF-16LE -t UTF-8 d:/websites/Tenders/lib/schema.sql)"
+      "Bash(iconv -f UTF-16LE -t UTF-8 d:/websites/Tenders/lib/schema.sql)",
+      "WebFetch(domain:etenders.gov.in)",
+      "WebFetch(domain:tenderkart.in)",
+      "WebFetch(domain:sam.gov)",
+      "WebFetch(domain:ted.europa.eu)",
+      "WebFetch(domain:www.tendersinfo.com)",
+      "WebFetch(domain:www.merx.com)",
+      "Bash(./node_modules/.bin/tsc --noEmit --pretty false)",
+      "Bash(node -e \"const {execSync}=require\\('child_process'\\);try{const r=execSync\\('./node_modules/.bin/tsc --noEmit --pretty false',{timeout:60000,cwd:'d:/websites/Tenders'}\\);console.log\\('OK'\\)}catch\\(e\\){console.log\\(e.stdout?.toString\\(\\)?.split\\('\\\\\\\\n'\\).filter\\(l=>l.includes\\('error TS'\\)\\).join\\('\\\\\\\\n'\\)\\)}\")",
+      "Bash(node node_modules/typescript/bin/tsc --noEmit)"
     ],
     "additionalDirectories": [
       "d:\\websites\\Tenders\\scripts"

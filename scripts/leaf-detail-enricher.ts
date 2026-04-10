@@ -43,7 +43,7 @@ import * as cheerio from 'cheerio';
 import fs from 'fs';
 import path from 'path';
 import { getComputedFields } from '../lib/computed-fields.js';
-import { normalizeState, normalizeCity, pinToState, cityToState } from '../lib/locations.js';
+import { normalizeState, normalizeCity, pinToState, cityToState, isIndianState } from '../lib/locations.js';
 
 // ─── CONFIG ──────────────────────────────────────────────────────────────────
 const argv        = process.argv.slice(2);
@@ -238,6 +238,15 @@ function parseLeafHtml(html: string): LeafData {
     else if (label === 'department')                           data.department_name  = val;
     else if (label === 'organisation' || label === 'organization') data.organisation_name = val;
     else if (label === 'office')                               data.office_name      = val;
+
+    // Redirection logic: if ministry/org is actually a state name, move it to state
+    if (label === 'ministry' || label === 'organisation' || label === 'organization') {
+      if (isIndianState(val)) {
+        if (!data.state) data.state = normalizeState(val);
+        if (label === 'ministry') data.ministry_name = null;
+        else data.organisation_name = null;
+      }
+    }
     else if (label === 'address') {
       // Format: "...,CityName,STATE NAME,PINCODE,India,..."
       const parts = val.split(',').map(p => p.trim()).filter(Boolean);

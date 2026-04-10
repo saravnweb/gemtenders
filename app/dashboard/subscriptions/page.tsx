@@ -11,7 +11,6 @@ function SubscriptionsContent() {
 
   const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState<any>(null);
-  const [razorpayReady, setRazorpayReady] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
@@ -114,7 +113,7 @@ function SubscriptionsContent() {
         await new Promise<void>((resolve, reject) => {
           const script = document.createElement("script");
           script.src = "https://checkout.razorpay.com/v1/checkout.js";
-          script.onload = () => { setRazorpayReady(true); resolve(); };
+          script.onload = () => { resolve(); };
           script.onerror = () => reject(new Error("Razorpay SDK failed to load."));
           document.body.appendChild(script);
         });
@@ -167,7 +166,7 @@ function SubscriptionsContent() {
       <Script
         src="https://checkout.razorpay.com/v1/checkout.js"
         strategy="afterInteractive"
-        onLoad={() => setRazorpayReady(true)}
+        onLoad={() => {}}
         onError={() => console.warn("Razorpay script failed to load — will retry on checkout.")}
       />
 
@@ -268,10 +267,10 @@ function SubscriptionsContent() {
                disabled={loading || profile.membership_plan === 'starter' || profile.membership_plan === 'pro'}
                className="w-full py-3 bg-slate-900 dark:bg-foreground hover:bg-slate-800 dark:hover:bg-foreground/90 disabled:opacity-50 text-white dark:text-background font-bold rounded-xl transition-colors"
              >
-               {profile.membership_plan === 'starter' ? 'Current Plan' : profile.membership_plan === 'pro' ? 'Downgrade' : 'Start 7-Day Free Trial'}
+               {profile.membership_plan === 'starter' ? 'Current Plan' : profile.membership_plan === 'pro' ? 'Downgrade' : 'Start 14-Day Free Trial'}
              </button>
              {profile.membership_plan === 'free' && (
-               <p className="text-center text-xs text-slate-500 font-medium mt-2">Free for 7 days · then ₹99/mo · Cancel anytime</p>
+               <p className="text-center text-xs text-slate-500 font-medium mt-2">Free for 14 days · then ₹99/mo · Cancel anytime</p>
              )}
            </div>
 

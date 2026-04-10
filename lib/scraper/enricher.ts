@@ -3,8 +3,9 @@ import https from 'https';
 import axios from 'axios';
 import { createRequire } from 'module';
 import { extractTenderDataGroq } from '../groq-ai';
-import { normalizeState, normalizeCity, cityToState } from '../locations';
+import { normalizeState, normalizeCity, cityToState, isIndianState } from '../locations';
 import { detectCategory } from '../categories';
+import { normalizeTitle } from '../computed-fields';
 import { parseGeMDate } from './gem-scraper';
 
 const require = createRequire(import.meta.url);
@@ -189,7 +190,15 @@ export async function runEnrichment(limit: number = 20, reprocess: boolean = fal
         if (pdfPublicUrl) updatePayload.pdf_url = pdfPublicUrl;
 
         // HTML-derived fields (fast, no AI needed)
-        if (htmlFields['ministry']) updatePayload.ministry_name = htmlFields['ministry'];
+        if (htmlFields['ministry']) {
+          const val = htmlFields['ministry'];
+          if (isIndianState(val)) {
+            if (!cityState.state) cityState.state = normalizeState(val);
+            updatePayload.ministry_name = null;
+          } else {
+            updatePayload.ministry_name = val;
+          }
+        }
         if (htmlFields['department']) updatePayload.department_name = htmlFields['department'];
 
         if (cityState.city) updatePayload.city = cityState.city;
@@ -198,9 +207,23 @@ export async function runEnrichment(limit: number = 20, reprocess: boolean = fal
         // AI-derived fields (summary, keywords, category — things not in the HTML)
         if (aiData) {
           const auth = aiData.authority;
-          if (!updatePayload.ministry_name && auth?.ministry) updatePayload.ministry_name = auth.ministry;
+          if (!updatePayload.ministry_name && auth?.ministry) {
+            if (isIndianState(auth.ministry)) {
+              if (!updatePayload.state) updatePayload.state = normalizeState(auth.ministry);
+              updatePayload.ministry_name = null;
+            } else {
+              updatePayload.ministry_name = auth.ministry;
+            }
+          }
           if (!updatePayload.department_name && auth?.department) updatePayload.department_name = auth.department;
-          if (auth?.organisation) updatePayload.organisation_name = auth.organisation;
+          if (auth?.organisation) {
+            if (isIndianState(auth.organisation)) {
+              if (!updatePayload.state) updatePayload.state = normalizeState(auth.organisation);
+              updatePayload.organisation_name = null;
+            } else {
+              updatePayload.organisation_name = auth.organisation;
+            }
+          }
           if (auth?.office) updatePayload.office_name = auth.office;
 
           if (!updatePayload.city && (auth?.consignee_city || auth?.city))
@@ -212,7 +235,7 @@ export async function runEnrichment(limit: number = 20, reprocess: boolean = fal
           if (updatePayload.city && !updatePayload.state)
             updatePayload.state = cityToState(updatePayload.city);
 
-          if (aiData.tender_title) updatePayload.title = aiData.tender_title;
+          if (aiData.tender_title) updatePayload.title = normalizeTitle(aiData.tender_title);
           if (aiData.emd_amount != null) updatePayload.emd_amount = aiData.emd_amount;
           if (aiData.quantity != null) updatePayload.quantity = aiData.quantity;
           if (aiData.technical_summary) updatePayload.ai_summary = aiData.technical_summary;

@@ -11,6 +11,12 @@ export const INDIAN_STATES = new Set([
   'Delhi', 'Jammu And Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry',
 ]);
 
+export function isIndianState(name: string | null | undefined): boolean {
+  if (!name) return false;
+  const normalized = normalizeState(name);
+  return !!normalized && INDIAN_STATES.has(normalized);
+}
+
 export function normalizeState(state: string | null | undefined): string | null {
   if (!state || state.trim() === "") return null;
   const s = state.trim().toLowerCase()

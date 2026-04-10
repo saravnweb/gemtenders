@@ -72,7 +72,8 @@ async function TendersResult({ searchParams }: { searchParams: Promise<any> }) {
   const qStr = (params.q as string) || "";
   const stateStr = params.state;
   const initialStates = Array.isArray(stateStr) ? stateStr : stateStr ? [stateStr] : [];
-  const categoryStr = params.category as string | undefined;
+  const catParam = params.category;
+  const initialCategories = Array.isArray(catParam) ? catParam : catParam ? [catParam] : [];
   const sortParam = (params.sort as string) || 'newest';
   const initialSortOrderRaw =
     sortParam === 'newest' || sortParam === 'ending_soon' || sortParam === 'relevance'
@@ -100,7 +101,8 @@ async function TendersResult({ searchParams }: { searchParams: Promise<any> }) {
       dateFilter: 'all',
       msmeOnly: false,
       miiOnly: false,
-      category: categoryStr || null,
+      category: initialCategories[0] || null, // fallback for singular legacy support
+      categories: initialCategories,
       descriptionQuery: '',
     }, 0, 21).then(({ data, error }) => (error || !Array.isArray(data)) ? [] : data);
     countPromise = Promise.resolve(0); // relevance search count handled client-side
@@ -135,9 +137,9 @@ async function TendersResult({ searchParams }: { searchParams: Promise<any> }) {
       countQuery = countQuery.or(initialStates.map(s => `state.ilike."${s}"`).join(','));
     }
 
-    if (categoryStr) {
-      query = query.eq('category', categoryStr);
-      countQuery = countQuery.eq('category', categoryStr);
+    if (initialCategories.length > 0) {
+      query = query.in('category', initialCategories);
+      countQuery = countQuery.in('category', initialCategories);
     }
 
     tendersPromise = query
@@ -184,7 +186,7 @@ async function TendersResult({ searchParams }: { searchParams: Promise<any> }) {
         initialTotalCount={initialTotalCount || undefined}
         initialQ={qStr}
         initialStates={initialStates}
-        initialCategory={categoryStr}
+        initialCategories={initialCategories}
         initialSortOrder={initialSortOrder}
       />
     </>

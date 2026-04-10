@@ -11,7 +11,8 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-import { normalizeState, normalizeCity } from '../lib/locations';
+import { normalizeState, normalizeCity, isIndianState } from '../lib/locations';
+import { normalizeTitle } from '../lib/computed-fields';
 const { parseGeMDate } = await import('../lib/scraper/gem-scraper');
 
 // ─── CONFIG ────────────────────────────────────────────────────────────────
@@ -186,11 +187,11 @@ async function enrichTenders() {
       const auth = aiData?.authority;
       const update: Record<string, any> = {
         pdf_url:                     pdfUrl,
-        ministry_name:               auth?.ministry             || null,
+        ministry_name:               (auth?.ministry && !isIndianState(auth?.ministry)) ? auth.ministry : null,
         department_name:             auth?.department           || null,
-        organisation_name:           auth?.organisation         || null,
+        organisation_name:           (auth?.organisation && !isIndianState(auth?.organisation)) ? auth.organisation : null,
         office_name:                 auth?.office               || null,
-        state:                       normalizeState(auth?.consignee_state || auth?.state),
+        state:                       normalizeState(auth?.consignee_state || auth?.state || (isIndianState(auth?.ministry) ? auth.ministry : null) || (isIndianState(auth?.organisation) ? auth.organisation : null)),
         city:                        normalizeCity(auth?.consignee_city || auth?.city),
         emd_amount:                  aiData?.emd_amount         ?? null,
         quantity:                    aiData?.quantity           || null,
@@ -213,9 +214,9 @@ async function enrichTenders() {
       }
 
       if (aiData?.tender_title && !aiData.tender_title.trim().endsWith("...")) {
-        update.title = aiData.tender_title;
+        update.title = normalizeTitle(aiData.tender_title);
       } else if (aiData?.tender_title && tender.title === "N/A") {
-        update.title = aiData.tender_title;
+        update.title = normalizeTitle(aiData.tender_title);
       }
       let parsedEndDate: string | null = null;
       if (aiData?.dates?.bid_opening_date)  { const d = parseGeMDate(aiData.dates.bid_opening_date); if (d) update.opening_date = d; }

@@ -121,12 +121,20 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: `SMTP error: ${err.message}` }, { status: 500 });
   }
 
-  // 1. Fetch paid users with active keyword alerts
+  // 1. Determine if today is Monday (for weekly digests)
+  // IST is UTC+5:30. We can either use UTC or detect day in IST.
+  // Standard Vercel crons run in UTC. Monday is 1.
+  const now = new Date();
+  const isMonday = now.getUTCDay() === 1;
+
+  // 2. Fetch paid users with active keyword alerts
   const { data: paidSearches } = await admin
     .from('saved_searches')
     .select(`
+      id,
       user_id,
       query_params,
+      notification_frequency,
       profiles!inner(full_name, email, membership_plan)
     `)
     .eq('is_alert_enabled', true)
@@ -136,22 +144,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: true, sent: 0, message: 'No paid users with active alerts.' });
   }
 
-  // 2. Fetch new tenders from last 24h
-  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-  const { data: newTenders } = await admin
-    .from('tenders')
-    .select('id, bid_number, slug, title, department, ministry_name, organisation_name, state, city, ai_summary, emd_amount, end_date, relevant_categories')
-    .gte('created_at', since)
-    .gte('end_date', new Date().toISOString())
-    .not('ai_summary', 'is', null)
-    .order('created_at', { ascending: false })
-    .limit(1000);
-
-  if (!newTenders?.length) {
-    return NextResponse.json({ ok: true, sent: 0, message: 'No new tenders in last 24h.' });
-  }
-
-  // 3. Match tenders to each user's keywords
+  // 3. Process each search
   let sent = 0;
   const errors: string[] = [];
 
@@ -159,12 +152,30 @@ export async function GET(req: Request) {
     const profile = Array.isArray((search as any).profiles) ? (search as any).profiles[0] : (search as any).profiles;
     if (!profile?.email) continue;
 
+    const freq = search.notification_frequency || 'daily';
+    if (freq === 'off') continue;
+    if (freq === 'weekly' && !isMonday) continue;
+
+    // 4. Fetch tenders for this user's lookback
+    // Daily = 24h, Weekly = 7 days
+    const lookbackHours = freq === 'weekly' ? 7 * 24 : 24;
+    const since = new Date(Date.now() - lookbackHours * 60 * 60 * 1000).toISOString();
+
+    const { data: newTenders } = await admin
+      .from('tenders')
+      .select('id, bid_number, slug, title, department, ministry_name, organisation_name, state, city, ai_summary, emd_amount, end_date, relevant_categories')
+      .gte('created_at', since)
+      .gte('end_date', new Date().toISOString())
+      .not('ai_summary', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(100); // per-user limit for digest
+
+    if (!newTenders?.length) continue;
+
     const params = search.query_params || {};
     const keywords: string[] = params.q
       ? params.q.split(',').map((k: string) => k.trim().toLowerCase()).filter(Boolean)
       : [];
-
-    if (keywords.length === 0) continue;
 
     const matchedTenders = newTenders.filter(tender => {
       const text = [
@@ -192,10 +203,12 @@ export async function GET(req: Request) {
 
     try {
       const userName = profile.full_name?.split(' ')[0] || 'there';
+      const digestType = freq === 'weekly' ? 'Weekly' : 'Daily';
+      
       await transporter.sendMail({
         from: fromAddress,
         to: profile.email,
-        subject: `${matchedTenders.length} new GeM tender${matchedTenders.length !== 1 ? 's' : ''} match your keywords`,
+        subject: `${matchedTenders.length} match${matchedTenders.length !== 1 ? 'es' : ''} for your GeM keyword alerts (${digestType})`,
         html: buildEmailHtml(userName, matchedTenders, siteUrl),
       });
       sent++;

@@ -12,8 +12,10 @@ export type TendersRelevanceFilters = {
   dateFilter: string;
   msmeOnly: boolean;
   miiOnly: boolean;
-  category: string | null;
+  category?: string | null;
+  categories: string[];
   descriptionQuery: string;
+  sortOrder?: "newest" | "ending_soon" | "relevance";
 };
 
 export async function fetchTendersByRelevance(

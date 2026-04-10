@@ -46,8 +46,15 @@ export async function GET(req: Request) {
 
     const allTenders = tenders ?? [];
 
-    // 4. Count matches per user
-    const userMatchCount = new Map<string, number>(); // user_id → count
+    // 4. Aggregate matches by category
+    // user_id → count of keyword-matched tenders
+    const userKeywordCount = new Map<string, number>();
+    // user_id → ministry_name → count
+    const userMinistryCount = new Map<string, Map<string, number>>();
+    // user_id → org_name → count
+    const userOrgCount = new Map<string, Map<string, number>>();
+    // user_id → state → count
+    const userStateCount = new Map<string, Map<string, number>>();
 
     for (const tender of allTenders) {
       const textToSearch = [
@@ -61,9 +68,7 @@ export async function GET(req: Request) {
         tender.department_name,
       ].filter(Boolean).join(' ').toLowerCase();
 
-      const matchedUsers = new Set<string>();
-
-      // Check saved searches
+      // Keyword alert matches
       for (const search of searches ?? []) {
         const params = search.query_params || {};
         let matches = false;
@@ -79,50 +84,109 @@ export async function GET(req: Request) {
           if (!tender.city || !params.cities.some((ct: string) => tender.city?.toLowerCase().includes(ct.toLowerCase()))) matches = false;
         }
 
-        if (matches) matchedUsers.add(search.user_id);
+        if (matches) {
+          userKeywordCount.set(search.user_id, (userKeywordCount.get(search.user_id) ?? 0) + 1);
+        }
       }
 
-      // Check topic follows
+      // Topic follow matches — grouped by follow_value per user
       for (const follow of topicFollows ?? []) {
-        let isMatch = false;
-        if (follow.follow_type === 'ministry' && tender.ministry_name)
-          isMatch = tender.ministry_name.toLowerCase().includes(follow.follow_value.toLowerCase());
-        else if (follow.follow_type === 'state' && tender.state)
-          isMatch = tender.state.toLowerCase() === follow.follow_value.toLowerCase();
-        else if (follow.follow_type === 'org' && tender.organisation_name)
-          isMatch = tender.organisation_name.toLowerCase().includes(follow.follow_value.toLowerCase());
-
-        if (isMatch) matchedUsers.add(follow.user_id);
-      }
-
-      for (const userId of matchedUsers) {
-        userMatchCount.set(userId, (userMatchCount.get(userId) ?? 0) + 1);
+        if (follow.follow_type === 'ministry' && tender.ministry_name) {
+          if (tender.ministry_name.toLowerCase().includes(follow.follow_value.toLowerCase())) {
+            if (!userMinistryCount.has(follow.user_id)) userMinistryCount.set(follow.user_id, new Map());
+            const m = userMinistryCount.get(follow.user_id)!;
+            m.set(follow.follow_value, (m.get(follow.follow_value) ?? 0) + 1);
+          }
+        } else if (follow.follow_type === 'org' && tender.organisation_name) {
+          if (tender.organisation_name.toLowerCase().includes(follow.follow_value.toLowerCase())) {
+            if (!userOrgCount.has(follow.user_id)) userOrgCount.set(follow.user_id, new Map());
+            const m = userOrgCount.get(follow.user_id)!;
+            m.set(follow.follow_value, (m.get(follow.follow_value) ?? 0) + 1);
+          }
+        } else if (follow.follow_type === 'state' && tender.state) {
+          if (tender.state.toLowerCase() === follow.follow_value.toLowerCase()) {
+            if (!userStateCount.has(follow.user_id)) userStateCount.set(follow.user_id, new Map());
+            const m = userStateCount.get(follow.user_id)!;
+            m.set(follow.follow_value, (m.get(follow.follow_value) ?? 0) + 1);
+          }
+        }
       }
     }
 
-    // 5. Send ONE digest notification per user
+    // 5. Build grouped notifications
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://gemtenders.org';
-    let notifiedUsers = 0;
+    const today = new Date().toLocaleDateString('en-IN', {
+      day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata',
+    });
+    const notifications: object[] = [];
 
-    for (const [userId, count] of userMatchCount.entries()) {
-      if (count === 0) continue;
-      await supabase.from('in_app_notifications').insert({
+    // One notification for all keyword alert matches
+    for (const [userId, count] of userKeywordCount.entries()) {
+      notifications.push({
         user_id: userId,
-        title: `${count} new tender${count > 1 ? 's' : ''} added today`,
-        message: `${count} tender${count > 1 ? 's' : ''} matched your saved alerts. Tap to explore.`,
+        title: `${count} tender${count > 1 ? 's' : ''} matched your alerts`,
+        message: `${count} new tender${count > 1 ? 's' : ''} matched your keyword alerts on ${today}. Tap to explore.`,
         link: `${siteUrl}/?tab=foryou&sort=newest`,
       });
-      notifiedUsers++;
     }
 
-    // 6. Mark all processed tenders as notified
+    // One notification per ministry the user follows
+    for (const [userId, ministries] of userMinistryCount.entries()) {
+      for (const [ministry, count] of ministries.entries()) {
+        notifications.push({
+          user_id: userId,
+          title: `${count} new tender${count > 1 ? 's' : ''} in ${ministry}`,
+          message: `${count} tender${count > 1 ? 's' : ''} added to ${ministry} on ${today}.`,
+          link: `${siteUrl}/?q=${encodeURIComponent(ministry)}`,
+        });
+      }
+    }
+
+    // One notification per organisation the user follows
+    for (const [userId, orgs] of userOrgCount.entries()) {
+      for (const [org, count] of orgs.entries()) {
+        notifications.push({
+          user_id: userId,
+          title: `${count} new tender${count > 1 ? 's' : ''} from ${org}`,
+          message: `${count} tender${count > 1 ? 's' : ''} published by ${org} on ${today}.`,
+          link: `${siteUrl}/?q=${encodeURIComponent(org)}`,
+        });
+      }
+    }
+
+    // One notification per state the user follows
+    for (const [userId, states] of userStateCount.entries()) {
+      for (const [state, count] of states.entries()) {
+        notifications.push({
+          user_id: userId,
+          title: `${count} new tender${count > 1 ? 's' : ''} in ${state}`,
+          message: `${count} tender${count > 1 ? 's' : ''} added in ${state} on ${today}.`,
+          link: `${siteUrl}/?q=${encodeURIComponent(state)}`,
+        });
+      }
+    }
+
+    // 6. Bulk insert
+    if (notifications.length > 0) {
+      const { error: insertError } = await supabase.from('in_app_notifications').insert(notifications);
+      if (insertError) throw new Error(insertError.message);
+    }
+
+    // 7. Mark all processed tenders as notified
     if (allTenders.length > 0) {
-      const ids = allTenders.map(t => t.id);
-      await supabase.from('tenders').update({ notification_sent: true }).in('id', ids);
+      await supabase.from('tenders').update({ notification_sent: true }).in('id', allTenders.map(t => t.id));
     }
 
-    console.log(`[CRON] Done. Tenders: ${allTenders.length} | Users notified: ${notifiedUsers}`);
-    return NextResponse.json({ ok: true, tenders: allTenders.length, notifiedUsers });
+    const summary = {
+      tenders: allTenders.length,
+      notificationsInserted: notifications.length,
+      keywordUsers: userKeywordCount.size,
+      ministryNotifications: [...userMinistryCount.values()].reduce((a, m) => a + m.size, 0),
+      orgNotifications: [...userOrgCount.values()].reduce((a, m) => a + m.size, 0),
+      stateNotifications: [...userStateCount.values()].reduce((a, m) => a + m.size, 0),
+    };
+    console.log('[CRON] Done.', summary);
+    return NextResponse.json({ ok: true, ...summary });
 
   } catch (err: any) {
     console.error('[CRON] Fatal:', err.message);

@@ -21,6 +21,8 @@ export function FilterDropdown({
   disabled = false,
   searchable = true,
   searchPlaceholder = "Search…",
+  fullWidth = false,
+  indented = false,
 }: {
   label: string;
   items: FDItem[];
@@ -34,6 +36,10 @@ export function FilterDropdown({
   disabled?: boolean;
   searchable?: boolean;
   searchPlaceholder?: string;
+  /** Renders as a full-width sidebar row instead of a small pill */
+  fullWidth?: boolean;
+  /** Adds a tree-connector indent (use for child filters like City under State) */
+  indented?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -230,6 +236,36 @@ export function FilterDropdown({
 
     </div>
   );
+
+  if (fullWidth) {
+    return (
+      <div className={`relative w-full ${indented ? "pl-3 border-l-2 border-slate-100 dark:border-border ml-2" : ""}`}>
+        <button
+          ref={btnRef}
+          onClick={handleToggle}
+          disabled={disabled}
+          className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-xs font-semibold border transition-all ${
+            disabled
+              ? "opacity-40 cursor-not-allowed bg-slate-50 dark:bg-muted border-slate-100 dark:border-border text-slate-400"
+              : isActive
+              ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/30"
+              : "bg-white dark:bg-card border-slate-200 dark:border-border text-slate-600 dark:text-muted-foreground hover:border-slate-300 dark:hover:border-muted-foreground/35 hover:bg-slate-50 dark:hover:bg-muted/50"
+          }`}
+        >
+          <span className="truncate">{label}</span>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {selected.length > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-600 text-white">
+                {selected.length}
+              </span>
+            )}
+            <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`} />
+          </div>
+        </button>
+        {open && mounted && createPortal(panel, document.body)}
+      </div>
+    );
+  }
 
   return (
     <div className="relative shrink-0">

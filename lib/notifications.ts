@@ -21,8 +21,9 @@ const transporter = nodemailer.createTransport({
  * 
  * @param tenderData The enriched tender data object
  */
-export async function triggerKeywordNotifications(tenderData: any, options?: { urgent?: boolean }) {
+export async function triggerKeywordNotifications(tenderData: any, options?: { urgent?: boolean; skipInApp?: boolean }) {
   const urgent = options?.urgent ?? false;
+  const skipInApp = options?.skipInApp ?? false;
   try {
     console.log(`[NOTIFICATIONS] Checking keywords for tender ${tenderData.bid_number}${urgent ? ' [RA URGENT]' : ''}`);
     
@@ -153,13 +154,15 @@ export async function triggerKeywordNotifications(tenderData: any, options?: { u
           ? `Reverse auction is now active. Bid closes: ${raEndFormatted}`
           : `Matches: ${matchedQueries.join(', ')} - ${tenderData.department || 'Unknown Dept'}`;
 
-        // --- IN-APP NOTIFICATION ---
-        await supabase.from('in_app_notifications').insert({
-           user_id: userId,
-           title: notificationTitle,
-           message: inAppMessage,
-           link: tenderLink,
-        });
+        // --- IN-APP NOTIFICATION (skipped when cron handles grouped digests) ---
+        if (!skipInApp) {
+          await supabase.from('in_app_notifications').insert({
+            user_id: userId,
+            title: notificationTitle,
+            message: inAppMessage,
+            link: tenderLink,
+          });
+        }
 
         // --- EMAIL ---
         if (email && process.env.SMTP_HOST) {

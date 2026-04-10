@@ -4,13 +4,13 @@ import { useState, useEffect, useRef, useCallback, useMemo, Suspense } from "rea
 import { supabase } from "@/lib/supabase";
 import {
   Search, Clock, Zap, RefreshCw,
-  X, ChevronDown, Bell, CheckCircle, Loader2
+  X, ChevronDown, Bell, CheckCircle, Loader2, SlidersHorizontal
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-import { normalizeState, normalizeCity } from "@/lib/locations-client";
+import { normalizeState, normalizeCity, isIndianState } from "@/lib/locations-client";
 import { fetchTendersByRelevance } from "@/lib/tenders-relevance-query";
 import { requirePublicListingReady } from "@/lib/tender-public-listing";
 const PAGE_SIZE = 21;
@@ -19,10 +19,8 @@ const COLUMNS =
 
 import { CATEGORIES } from "@/lib/categories";
 import TenderCard from "@/components/tenders/TenderCard";
-import { FilterDropdown } from "@/components/tenders/FilterDropdown";
 import { FilterTag } from "@/components/tenders/FilterTag";
-import { TogglePill } from "@/components/tenders/TogglePill";
-import { Sidebar } from "@/components/tenders/Sidebar";
+import { FilterSidebar } from "@/components/tenders/FilterSidebar";
 import { toTitleCase, getCategory } from "@/components/tenders/utils";
 
 
@@ -56,7 +54,7 @@ interface Filters {
   dateFilter: string;
   msmeOnly: boolean;
   miiOnly: boolean;
-  category: string | null;
+  categories: string[];
   descriptionQuery: string;
   tab: "all" | "foryou" | "archived";
   sortOrder: "newest" | "ending_soon" | "relevance";
@@ -108,8 +106,8 @@ async function queryTendersCount(filters: Filters): Promise<number> {
   else if (filters.emdFilter === "1-5L") q = q.gte("emd_amount", 100000).lte("emd_amount", 500000);
   else if (filters.emdFilter === ">5L")  q = q.gt("emd_amount", 500000);
 
-  if (filters.category) {
-    q = q.eq("category", filters.category);
+  if (filters.categories.length > 0) {
+    q = q.in("category", filters.categories);
   }
 
   if (filters.descriptionQuery.trim()) {
@@ -234,9 +232,9 @@ async function queryTenders(filters: Filters, page: number): Promise<any[]> {
   else if (filters.emdFilter === "1-5L") q = q.gte("emd_amount", 100000).lte("emd_amount", 500000);
   else if (filters.emdFilter === ">5L")  q = q.gt("emd_amount", 500000);
 
-  // Category (exact match with the new DB column)
-  if (filters.category) {
-    q = q.eq("category", filters.category);
+  // Categories (using IN clause for multi-select)
+  if (filters.categories.length > 0) {
+    q = q.in("category", filters.categories);
   }
 
   // AI summary / description search
@@ -264,7 +262,7 @@ export default function TendersClientWrapper(props: {
   initialTenders: any[];
   initialQ: string;
   initialStates: string[];
-  initialCategory?: string;
+  initialCategories: string[];
   initialTotalCount?: number;
   initialSortOrder?: "newest" | "ending_soon" | "relevance";
 }) {
@@ -299,14 +297,14 @@ function TendersClient({
   initialTenders,
   initialQ,
   initialStates,
-  initialCategory,
+  initialCategories,
   initialTotalCount,
   initialSortOrder,
 }: {
   initialTenders: any[];
   initialQ: string;
   initialStates: string[];
-  initialCategory?: string;
+  initialCategories: string[];
   initialTotalCount?: number;
   initialSortOrder?: "newest" | "ending_soon" | "relevance";
 }) {
@@ -326,12 +324,12 @@ function TendersClient({
 
   // ── Filter state ──
   const [searchQuery, setSearchQuery]           = useState(initialQ);
-  const [selectedStates, setSelectedStates]     = useState<string[]>(initialStates);
-  const [selectedCities, setSelectedCities]     = useState<string[]>([]);
-  const [emdFilter, setEmdFilter]               = useState("all");
-  const [dateFilter, setDateFilter]             = useState("all");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(initialCategory || null);
-  const [descriptionQuery, setDescriptionQuery] = useState("");
+  const [selectedStates, setSelectedStates]         = useState<string[]>(initialStates);
+  const [selectedCities, setSelectedCities]         = useState<string[]>([]);
+  const [emdFilter, setEmdFilter]                   = useState("all");
+  const [dateFilter, setDateFilter]                 = useState("all");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(initialCategories);
+  const [descriptionQuery, setDescriptionQuery]     = useState("");
   const [msmeOnly, setMsmeOnly]                 = useState(false);
   const [miiOnly, setMiiOnly]                   = useState(false);
   const [activeTab, setActiveTab]               = useState<"all" | "foryou" | "archived">("all");
@@ -359,10 +357,27 @@ function TendersClient({
   const [orgs, setOrgs]                             = useState<Array<{label:string;value:string;count:number}>>([]);
   const [ministriesLoaded, setMinistriesLoaded]     = useState(false);
   const [orgsLoaded, setOrgsLoaded]                 = useState(false);
+  const [allOrgs, setAllOrgs]                       = useState<Array<{label:string;value:string;count:number}>>([]);
+
+  // ── Mobile filter drawer ──
+  const [mobileFiltersOpen, setMobileFiltersOpen]   = useState(false);
 
   // ── Contextual filter options (filtered by active search query) ──
   const [contextualTenders, setContextualTenders] = useState<any[]>([]);
   const [contextualLoading, setContextualLoading] = useState(false);
+
+  /** 
+   * Helper to check if a tender matches the current active filters, 
+   * optionally excluding one specific facet type to calculate cross-facet counts.
+   */
+  const matchesFilters = (t: any, excludeFacet?: string) => {
+    if (excludeFacet !== 'state' && selectedStates.length > 0 && !selectedStates.includes(t.state)) return false;
+    if (excludeFacet !== 'city' && selectedCities.length > 0 && !selectedCities.includes(t.city)) return false;
+    if (excludeFacet !== 'ministry' && selectedMinistries.length > 0 && !selectedMinistries.includes(t.ministry_name)) return false;
+    if (excludeFacet !== 'org' && selectedOrgs.length > 0 && !selectedOrgs.includes(t.organisation_name)) return false;
+    if (excludeFacet !== 'category' && selectedCategories.length > 0 && !selectedCategories.includes(t.category)) return false;
+    return true;
+  };
 
   const contextualStates = useMemo(() => 
     toCounted(contextualTenders, "state", "Unknown State"), 
@@ -379,15 +394,47 @@ function TendersClient({
     return toCounted(filtered, "city", "Other Cities");
   }, [contextualTenders, selectedStates]);
 
-  const contextualMinistries = useMemo(() => 
-    toCounted(contextualTenders, "ministry_name", "Not Specified"), 
-    [contextualTenders]
-  );
+  const contextualMinistries = useMemo(() => {
+    let base = contextualTenders;
+    if (selectedStates.length > 0) {
+      base = base.filter(t => t.state && selectedStates.includes(normalizeState(t.state) || ""));
+    }
+    if (selectedCities.length > 0) {
+      base = base.filter(t => t.city && selectedCities.includes(normalizeCity(t.city) || ""));
+    }
+    return toCounted(base, "ministry_name", "Not Specified");
+  }, [contextualTenders, selectedStates, selectedCities]);
 
-  const contextualOrgs = useMemo(() => 
-    toCounted(contextualTenders, "organisation_name", "Not Specified"), 
-    [contextualTenders]
-  );
+  const contextualOrgs = useMemo(() => {
+    let base = contextualTenders;
+    if (selectedStates.length > 0) {
+      base = base.filter(t => t.state && selectedStates.includes(normalizeState(t.state) || ""));
+    }
+    if (selectedCities.length > 0) {
+      base = base.filter(t => t.city && selectedCities.includes(normalizeCity(t.city) || ""));
+    }
+    if (selectedMinistries.length > 0) {
+      base = base.filter((t) => selectedMinistries.includes(t.ministry_name));
+    }
+    return toCounted(base, "organisation_name", "Not Specified");
+  }, [contextualTenders, selectedStates, selectedCities, selectedMinistries]);
+
+  const contextualCategories = useMemo(() => {
+    let base = contextualTenders;
+    if (selectedStates.length > 0) {
+      base = base.filter(t => t.state && selectedStates.includes(normalizeState(t.state) || ""));
+    }
+    if (selectedCities.length > 0) {
+      base = base.filter(t => t.city && selectedCities.includes(normalizeCity(t.city) || ""));
+    }
+    if (selectedMinistries.length > 0) {
+      base = base.filter((t) => selectedMinistries.includes(t.ministry_name));
+    }
+    if (selectedOrgs.length > 0) {
+      base = base.filter((t) => selectedOrgs.includes(t.organisation_name));
+    }
+    return toCounted(base, "category", "Uncategorized");
+  }, [contextualTenders, selectedStates, selectedCities, selectedMinistries, selectedOrgs]);
 
   // ── Refs ──
   const isFirstRender  = useRef(true);
@@ -399,8 +446,10 @@ function TendersClient({
     const q = searchParams.get("q");
     if (q !== null && q !== searchQuery) setSearchQuery(q);
 
-    const cat = searchParams.get("category");
-    if (cat !== null && cat !== selectedCategory) setSelectedCategory(cat);
+    const cats = searchParams.getAll("category");
+    if (cats.length > 0) {
+      if (JSON.stringify(cats) !== JSON.stringify(selectedCategories)) setSelectedCategories(cats);
+    }
 
     const s = searchParams.getAll("state");
     if (s.length > 0) {
@@ -538,6 +587,11 @@ function TendersClient({
           v = v.replace(/\s+/g, ' ');
           v = v.replace(/\.+$/, '');
           v = v.replace(/[\*\_\#]+$/, '');
+          
+          if (key === 'ministry_name' || key === 'organisation_name') {
+            if (isIndianState(v)) return; // Skip states appearing in organization fields
+          }
+          
           normalized = toTitleCase(v);
         }
       }
@@ -591,7 +645,9 @@ function TendersClient({
         setStatesLoaded(true);
         setMinistries(toCounted(all.filter(r => r.ministry_name), "ministry_name", "Not Specified"));
         setMinistriesLoaded(true);
-        setOrgs(toCounted(all.filter(r => r.organisation_name), "organisation_name", "Not Specified"));
+        const orgsList = toCounted(all.filter(r => r.organisation_name), "organisation_name", "Not Specified");
+        setOrgs(orgsList);
+        setAllOrgs(orgsList);
         setOrgsLoaded(true);
       }
     } catch (err) {
@@ -628,6 +684,23 @@ function TendersClient({
       });
   }, [selectedStates, statesLoaded]);
 
+  // ── Ministry → Organisation cascade ──
+  useEffect(() => {
+    if (selectedMinistries.length === 0) {
+      if (allOrgs.length > 0) setOrgs(allOrgs);
+      return;
+    }
+    requirePublicListingReady(
+      supabase.from("tenders").select("organisation_name").gte("end_date", new Date().toISOString())
+    )
+      .in("ministry_name", selectedMinistries)
+      .not("organisation_name", "is", null)
+      .limit(100000)
+      .then(({ data }: { data: { organisation_name: string | null }[] | null }) => {
+        if (data) setOrgs(toCounted(data, "organisation_name", "Not Specified"));
+      });
+  }, [selectedMinistries, allOrgs]);
+
   // ── Core: re-fetch when filters change (debounced, skip first render) ──
   const currentFilters = useCallback((): Filters => ({
     q: searchQuery,
@@ -639,11 +712,11 @@ function TendersClient({
     dateFilter,
     msmeOnly,
     miiOnly,
-    category: selectedCategory,
+    categories: selectedCategories,
     descriptionQuery,
     tab: activeTab,
     sortOrder,
-  }), [searchQuery, selectedStates, selectedCities, selectedMinistries, selectedOrgs, emdFilter, dateFilter, msmeOnly, miiOnly, selectedCategory, descriptionQuery, activeTab, sortOrder]);
+  }), [searchQuery, selectedStates, selectedCities, selectedMinistries, selectedOrgs, emdFilter, dateFilter, msmeOnly, miiOnly, selectedCategories, descriptionQuery, activeTab, sortOrder]);
 
   useEffect(() => {
     if (isFirstRender.current) {
@@ -663,8 +736,7 @@ function TendersClient({
         return;
       }
     }
-
-    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
     const delay = searchQuery ? 500 : 0; // Increased debounce for text search to 500ms
 
     // Clear contextual data immediately when search query changes
@@ -681,6 +753,7 @@ function TendersClient({
       setPage(0);
 
       const f = currentFilters();
+      const q = searchQuery.trim();
       
       // 1. Fetch main results first (FAST path)
       const resultsPromise = queryTenders(f, 0);
@@ -690,35 +763,29 @@ function TendersClient({
       
       setTenders(results);
       setHasMore(results.length === PAGE_SIZE);
-      setLoading(false); // STOP primary loading spinner here
+      setLoading(false);
 
       // 2. Fetch counts and contextual filters in background (SLOW path)
-      const needContextual = !!q && contextualQueryCache.current !== q;
+      // We want contextual data if searching OR if we have deep hierarchy filters active
+      const hasHierarchyFilters = !!(f.states.length || f.cities.length || f.ministries.length || f.orgs.length || f.categories.length);
+      const cacheKey = `${q}:${f.states.join(",")}`; // Simplified cache key
+      const needContextual = (q.length > 0 || hasHierarchyFilters) && contextualQueryCache.current !== cacheKey;
+      
       let ctxPromise: Promise<any> = Promise.resolve(null);
       if (needContextual) {
-        // Use same word-boundary search as the main query so dropdown options
-        // only show items that will actually survive the full filter.
-        const ctxOrClause = q.split(',').map((s: string) => s.trim()).filter(Boolean)
-          .map((t: string) => buildTextSearchOrClause(t)).join(',');
         let ctxQ = requirePublicListingReady(
           supabase.from("tenders")
-            .select("state, city, ministry_name, organisation_name")
+            .select("state, city, ministry_name, organisation_name, category")
             .gte("end_date", new Date().toISOString())
-        ).or(ctxOrClause);
-        // Scope contextual options to match active filters so no ghost options appear
-        if (f.states.length > 0) {
-          const sc = f.states.map((s: string) => s === "Unknown State" ? `state.is.null` : `state.ilike."${s}"`);
-          ctxQ = ctxQ.or(sc.join(','));
+        );
+
+        if (q) {
+          const ctxOrClause = q.split(',').map((s: string) => s.trim()).filter(Boolean)
+            .map((t: string) => buildTextSearchOrClause(t)).join(',');
+          ctxQ = ctxQ.or(ctxOrClause);
         }
-        if (f.ministries.length > 0) {
-          const mc = f.ministries.map((m: string) => m === "Not Specified" ? `ministry_name.is.null` : `ministry_name.ilike."${m}"`);
-          ctxQ = ctxQ.or(mc.join(','));
-        }
-        if (f.orgs.length > 0) {
-          const oc = f.orgs.map((o: string) => o === "Not Specified" ? `organisation_name.is.null` : `organisation_name.ilike."${o}"`);
-          ctxQ = ctxQ.or(oc.join(','));
-        }
-        ctxPromise = ctxQ.order("created_at", { ascending: false }).limit(1000);
+
+        ctxPromise = ctxQ.order("created_at", { ascending: false }).limit(2000);
       }
 
       Promise.all([
@@ -735,7 +802,7 @@ function TendersClient({
         if (needContextual && ctxResult) {
           const { data } = ctxResult as any;
           if (data) {
-            contextualQueryCache.current = q;
+            contextualQueryCache.current = cacheKey;
             setContextualTenders(data || []);
           }
           setContextualLoading(false);
@@ -747,7 +814,7 @@ function TendersClient({
     }, delay);
 
     return () => { if (debounceTimer.current) clearTimeout(debounceTimer.current); };
-  }, [searchQuery, selectedStates, selectedCities, selectedMinistries, selectedOrgs, emdFilter, dateFilter, msmeOnly, miiOnly, selectedCategory, descriptionQuery, activeTab, sortOrder]);
+  }, [searchQuery, selectedStates, selectedCities, selectedMinistries, selectedOrgs, emdFilter, dateFilter, msmeOnly, miiOnly, selectedCategories, descriptionQuery, activeTab, sortOrder]);
 
   // ── Load more ──
   async function handleLoadMore() {
@@ -802,8 +869,10 @@ function TendersClient({
           if (!alertCities.some((c: string) => c.toLowerCase() === tender.city.toLowerCase())) match = false;
         }
 
-        if (p.category) {
-          if (getCategory(tender.title, tender.ai_summary)?.id !== p.category) match = false;
+        const alertCategories = p.categories || (p.category ? [p.category] : []);
+        if (alertCategories.length) {
+          const tCat = getCategory(tender.title, tender.ai_summary)?.id;
+          if (!tCat || !alertCategories.includes(tCat)) match = false;
         }
 
         if (p.msme && !tender.eligibility_msme) match = false;
@@ -837,13 +906,23 @@ function TendersClient({
     }
     setIsSavingSearch(true);
     const searchName = searchQuery || descriptionQuery
-      || (selectedCategory ? CATEGORIES.find((c) => c.id === selectedCategory)?.label : "")
+      || (selectedCategories.length > 0 ? (CATEGORIES.find((c) => c.id === selectedCategories[0])?.label || "Category") : "")
       || "My Tender Alert";
 
     const { error } = await supabase.from("saved_searches").insert({
       user_id: user.id,
       name: `${searchName} Alert`,
-      query_params: { q: searchQuery, states: selectedStates, cities: selectedCities, emd: emdFilter, date: dateFilter, category: selectedCategory, description: descriptionQuery, msme: msmeOnly, mii: miiOnly },
+      query_params: { 
+        q: searchQuery, 
+        states: selectedStates, 
+        cities: selectedCities, 
+        emd: emdFilter, 
+        date: dateFilter, 
+        categories: selectedCategories, 
+        description: descriptionQuery, 
+        msme: msmeOnly, 
+        mii: miiOnly 
+      },
       is_alert_enabled: true,
     });
 
@@ -869,7 +948,7 @@ function TendersClient({
 
   const hasActiveFilters = selectedStates.length > 0 || selectedCities.length > 0 ||
     selectedMinistries.length > 0 || selectedOrgs.length > 0 ||
-    emdFilter !== "all" || dateFilter !== "all" || msmeOnly || miiOnly || selectedCategory || descriptionQuery;
+    emdFilter !== "all" || dateFilter !== "all" || msmeOnly || miiOnly || selectedCategories.length > 0 || descriptionQuery;
 
   const activeKeywords = useMemo(() => {
     const set = new Set<string>();
@@ -929,157 +1008,70 @@ function TendersClient({
             )}
           </div>
 
-          {/* Inline filter bar */}
-          <div className="mt-3 flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 max-w-3xl">
-            <FilterDropdown
-              label="State"
-              items={(() => {
-                if (!searchQuery.trim()) return states;
-                if (contextualLoading) return [];
-                // Use contextual results when available; fall back to global list
-                const base = contextualStates.length > 0 ? contextualStates : states;
-                const merged = [...base];
-                selectedStates.forEach((s) => { if (!merged.find((i) => i.value === s)) merged.push({ label: s, value: s, count: 0 }); });
-                return merged;
-              })()}
-              selected={selectedStates}
-              mode="multi"
-              onToggle={(v) => setSelectedStates((p) => p.includes(v) ? p.filter((x) => x !== v) : [...p, v])}
-              onClear={() => { setSelectedStates([]); setSelectedCities([]); }}
-              onOpen={() => { loadStates(); }}
-              loading={searchQuery.trim() ? contextualLoading : (!statesLoaded && states.length === 0)}
-              searchPlaceholder="Search states…"
-            />
-            <FilterDropdown
-              label="City"
-              items={(() => {
-                // Use contextual cities if available. 
-                // ContextualCities is already filtered by selectedStates in our useMemo.
-                const base = (searchQuery.trim() && contextualTenders.length > 0) ? contextualCities : cities;
-                const merged = [...base];
-                selectedCities.forEach((c) => { if (!merged.find((i) => i.value === c)) merged.push({ label: c, value: c, count: 0 }); });
-                return merged;
-              })()}
-              selected={selectedCities}
-              mode="multi"
-              onToggle={(v) => setSelectedCities((p) => p.includes(v) ? p.filter((x) => x !== v) : [...p, v])}
-              onClear={() => setSelectedCities([])}
-              disabled={selectedStates.length === 0}
-              loading={searchQuery.trim() ? contextualLoading : false}
-              searchPlaceholder="Search cities…"
-            />
-            <FilterDropdown
-              label="Ministry"
-              items={(() => {
-                if (!searchQuery.trim()) return ministries;
-                if (contextualLoading) return [];
-                const base = contextualMinistries.length > 0 ? contextualMinistries : ministries;
-                const merged = [...base];
-                selectedMinistries.forEach((s) => { if (!merged.find((i) => i.value === s)) merged.push({ label: s, value: s, count: 0 }); });
-                return merged;
-              })()}
-              selected={selectedMinistries}
-              mode="multi"
-              onToggle={(v) => setSelectedMinistries((p) => p.includes(v) ? p.filter((x) => x !== v) : [...p, v])}
-              onClear={() => setSelectedMinistries([])}
-              onOpen={() => { loadMinistries(); }}
-              loading={searchQuery.trim() ? contextualLoading : (!ministriesLoaded && ministries.length === 0)}
-              searchPlaceholder="Search ministries…"
-            />
-            <FilterDropdown
-              label="Organisation"
-              items={(() => {
-                if (!searchQuery.trim()) return orgs;
-                if (contextualLoading) return [];
-                const base = contextualOrgs.length > 0 ? contextualOrgs : orgs;
-                const merged = [...base];
-                selectedOrgs.forEach((s) => { if (!merged.find((i) => i.value === s)) merged.push({ label: s, value: s, count: 0 }); });
-                return merged;
-              })()}
-              selected={selectedOrgs}
-              mode="multi"
-              onToggle={(v) => setSelectedOrgs((p) => p.includes(v) ? p.filter((x) => x !== v) : [...p, v])}
-              onClear={() => setSelectedOrgs([])}
-              onOpen={() => { loadOrgs(); }}
-              loading={searchQuery.trim() ? contextualLoading : (!orgsLoaded && orgs.length === 0)}
-              searchPlaceholder="Search organisations…"
-            />
-            <FilterDropdown
-              label="Category"
-              items={CATEGORIES.map((c) => ({ label: `${c.icon} ${c.label}`, value: c.id }))}
-              selected={selectedCategory ? [selectedCategory] : []}
-              mode="single"
-              onSelect={(v) => setSelectedCategory(selectedCategory === v ? null : v)}
-              onClear={() => setSelectedCategory(null)}
-              searchable={false}
-            />
-            <FilterDropdown
-              label="EMD"
-              items={[
-                { label: "EMD Free",        value: "free" },
-                { label: "Below ₹1 Lakh",   value: "<1L"  },
-                { label: "₹1 Lakh – ₹5 Lakh", value: "1-5L" },
-                { label: "Above ₹5 Lakh",   value: ">5L"  },
-              ]}
-              selected={emdFilter !== "all" ? [emdFilter] : []}
-              mode="single"
-              onSelect={(v) => setEmdFilter(emdFilter === v ? "all" : v)}
-              onClear={() => setEmdFilter("all")}
-              searchable={false}
-            />
-            <FilterDropdown
-              label="Closing"
-              items={[
-                { label: "Ending Today", value: "today" },
-                { label: "This Week",    value: "week"  },
-              ]}
-              selected={dateFilter !== "all" ? [dateFilter] : []}
-              mode="single"
-              onSelect={(v) => setDateFilter(dateFilter === v ? "all" : v)}
-              onClear={() => setDateFilter("all")}
-              searchable={false}
-            />
-            {/* MSME / MII toggles */}
-            <TogglePill
-              label="MSME"
-              active={msmeOnly}
-              onClick={() => { if (isPremium) setMsmeOnly(!msmeOnly); else window.location.href = user ? "/dashboard/subscriptions" : "/login"; }}
-            />
-            <TogglePill
-              label="MII"
-              active={miiOnly}
-              onClick={() => { if (isPremium) setMiiOnly(!miiOnly); else window.location.href = user ? "/dashboard/subscriptions" : "/login"; }}
-            />
-          </div>
-
-          {/* ── Active filter tags ── */}
-          {hasActiveFilters && (
-            <div className="mt-1 mb-2 flex items-center space-x-2 overflow-x-auto pb-1 no-scrollbar min-h-[32px] max-w-4xl">
-              <div className="flex items-center space-x-2">
-                {selectedCategory && (
-                  <FilterTag label={`Category: ${CATEGORIES.find((c) => c.id === selectedCategory)?.label}`} onRemove={() => setSelectedCategory(null)} />
+          {/* Mobile filter button — sidebar handles filters on desktop */}
+          <div className="mt-3 lg:hidden">
+              <button
+                onClick={() => setMobileFiltersOpen(true)}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold border border-slate-200 dark:border-border bg-white dark:bg-card text-slate-600 dark:text-muted-foreground hover:border-slate-300 dark:hover:border-muted-foreground/35 transition-all shadow-sm"
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5" />
+                Filters
+                {(selectedStates.length + selectedCities.length + selectedMinistries.length + selectedOrgs.length +
+                  selectedCategories.length + (emdFilter !== "all" ? 1 : 0) + (dateFilter !== "all" ? 1 : 0) +
+                  (msmeOnly ? 1 : 0) + (miiOnly ? 1 : 0)) > 0 && (
+                  <span className="inline-flex items-center justify-center h-4 min-w-[16px] px-1 rounded-full text-[10px] font-bold bg-blue-600 text-white">
+                    {selectedStates.length + selectedCities.length + selectedMinistries.length + selectedOrgs.length +
+                      selectedCategories.length + (emdFilter !== "all" ? 1 : 0) + (dateFilter !== "all" ? 1 : 0) +
+                      (msmeOnly ? 1 : 0) + (miiOnly ? 1 : 0)}
+                  </span>
                 )}
-                {descriptionQuery && <FilterTag label={`Details: ${descriptionQuery}`} onRemove={() => setDescriptionQuery("")} />}
-                {selectedStates.map((st) => (
-                  <FilterTag key={st} label={st} onRemove={() => { setSelectedStates((p) => p.filter((s) => s !== st)); setSelectedCities([]); }} />
-                ))}
-                {selectedCities.map((ct) => (
-                  <FilterTag key={ct} label={ct} onRemove={() => setSelectedCities((p) => p.filter((c) => c !== ct))} />
-                ))}
-                {selectedMinistries.map((m) => (
-                  <FilterTag key={m} label={m} onRemove={() => setSelectedMinistries((p) => p.filter((x) => x !== m))} />
-                ))}
-                {selectedOrgs.map((o) => (
-                  <FilterTag key={o} label={o} onRemove={() => setSelectedOrgs((p) => p.filter((x) => x !== o))} />
-                ))}
-                {msmeOnly && <FilterTag label="MSE" onRemove={() => setMsmeOnly(false)} color="indigo" />}
-                {miiOnly  && <FilterTag label="MII" onRemove={() => setMiiOnly(false)}  color="indigo" />}
-                {emdFilter !== "all" && <FilterTag label={`EMD: ${emdFilter}`} onRemove={() => setEmdFilter("all")} />}
-                {dateFilter !== "all" && <FilterTag label={`Date: ${dateFilter}`} onRemove={() => setDateFilter("all")} />}
-                <button
-                  onClick={() => { setSelectedStates([]); setSelectedCities([]); setSelectedMinistries([]); setSelectedOrgs([]); setEmdFilter("all"); setDateFilter("all"); setMsmeOnly(false); setMiiOnly(false); setDescriptionQuery(""); setSelectedCategory(null); }}
-                  className="text-xs text-slate-500 dark:text-muted-foreground hover:text-slate-800 dark:hover:text-foreground transition-colors ml-1 px-2 py-1 whitespace-nowrap"
+              </button>
+            </div>
+
+            {/* ── Active filter tags ── */}
+            {hasActiveFilters && (
+              <div className="mt-2 mb-3 max-w-4xl">
+                <div className="flex flex-wrap items-center gap-2">
+                  {selectedCategories.map((catId) => (
+                    <FilterTag 
+                      key={catId} 
+                      label={`Category: ${CATEGORIES.find((c) => c.id === catId)?.label}`} 
+                      onRemove={() => setSelectedCategories((p) => p.filter((id) => id !== catId))} 
+                    />
+                  ))}
+                  {descriptionQuery && <FilterTag label={`Details: ${descriptionQuery}`} onRemove={() => setDescriptionQuery("")} />}
+                  {selectedStates.map((st) => (
+                    <FilterTag key={st} label={st} onRemove={() => { setSelectedStates((p) => p.filter((s) => s !== st)); setSelectedCities([]); }} />
+                  ))}
+                  {selectedCities.map((ct) => (
+                    <FilterTag key={ct} label={ct} onRemove={() => setSelectedCities((p) => p.filter((c) => c !== ct))} />
+                  ))}
+                  {selectedMinistries.map((m) => (
+                    <FilterTag key={m} label={m} onRemove={() => setSelectedMinistries((p) => p.filter((x) => x !== m))} />
+                  ))}
+                  {selectedOrgs.map((o) => (
+                    <FilterTag key={o} label={o} onRemove={() => setSelectedOrgs((p) => p.filter((x) => x !== o))} />
+                  ))}
+                  {msmeOnly && <FilterTag label="MSE" onRemove={() => setMsmeOnly(false)} color="indigo" />}
+                  {miiOnly  && <FilterTag label="MII" onRemove={() => setMiiOnly(false)}  color="indigo" />}
+                  {emdFilter !== "all" && <FilterTag label={`EMD: ${emdFilter}`} onRemove={() => setEmdFilter("all")} />}
+                  {dateFilter !== "all" && <FilterTag label={`Date: ${dateFilter}`} onRemove={() => setDateFilter("all")} />}
+                  <button
+                    onClick={() => { 
+                      setSelectedStates([]); 
+                      setSelectedCities([]); 
+                      setSelectedMinistries([]); 
+                      setSelectedOrgs([]); 
+                      setEmdFilter("all"); 
+                      setDateFilter("all"); 
+                      setMsmeOnly(false); 
+                      setMiiOnly(false); 
+                      setDescriptionQuery(""); 
+                      setSelectedCategories([]); 
+                    }}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100 dark:border-rose-800 dark:bg-rose-900/20 dark:text-rose-400 dark:hover:bg-rose-900/40 transition-colors whitespace-nowrap"
                 >
+                  <X className="w-3 h-3" />
                   Clear all
                 </button>
               </div>
@@ -1102,17 +1094,82 @@ function TendersClient({
           )}
         </div>
 
+        {/* ── Mobile filter drawer ── */}
+        {mobileFiltersOpen && (
+          <div className="lg:hidden fixed inset-0 z-50 flex">
+            <div
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+              onClick={() => setMobileFiltersOpen(false)}
+            />
+            <div className="relative z-10 flex flex-col w-80 max-w-full h-full bg-white dark:bg-card shadow-2xl overflow-y-auto">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-border shrink-0">
+                <span className="text-sm font-bold text-slate-800 dark:text-foreground">Filters</span>
+                <button
+                  onClick={() => setMobileFiltersOpen(false)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-muted transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <FilterSidebar
+                className="flex flex-col flex-1"
+                activeTab={activeTab} setActiveTab={(t) => { setActiveTab(t); setMobileFiltersOpen(false); }}
+                activeCount={activeCount} archivedCount={archivedCount}
+                forYouCount={savedSearches.length > 0 ? forYouTenders.length : 0}
+                forYouLoading={forYouLoading} user={user} savedSearches={savedSearches}
+                states={states} cities={cities}
+                selectedStates={selectedStates} selectedCities={selectedCities}
+                setSelectedStates={setSelectedStates} setSelectedCities={setSelectedCities}
+                statesLoaded={statesLoaded} loadStates={loadStates}
+                contextualStates={contextualStates} contextualCities={contextualCities}
+                contextualLoading={contextualLoading} searchQuery={searchQuery}
+                contextualTenders={contextualTenders}
+                ministries={ministries} orgs={orgs}
+                selectedMinistries={selectedMinistries} selectedOrgs={selectedOrgs}
+                setSelectedMinistries={setSelectedMinistries} setSelectedOrgs={setSelectedOrgs}
+                ministriesLoaded={ministriesLoaded} loadMinistries={loadMinistries}
+                contextualMinistries={contextualMinistries} contextualOrgs={contextualOrgs}
+                selectedCategories={selectedCategories} setSelectedCategories={setSelectedCategories}
+                contextualCategories={contextualCategories}
+                emdFilter={emdFilter} setEmdFilter={setEmdFilter}
+                msmeOnly={msmeOnly} setMsmeOnly={setMsmeOnly}
+                miiOnly={miiOnly} setMiiOnly={setMiiOnly} isPremium={isPremium}
+                dateFilter={dateFilter} setDateFilter={setDateFilter}
+              />
+            </div>
+          </div>
+        )}
+
         {/* ── Main layout: sidebar + content ── */}
         <div className="flex gap-6 items-start">
 
-          {/* ── Left sidebar ── */}
-          <Sidebar
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            activeCount={activeCount}
-            archivedCount={archivedCount}
-            tendersLength={tenders.length}
-          />
+          {/* ── Left filter sidebar (desktop only) ── */}
+          <div className="hidden lg:block">
+            <FilterSidebar
+              activeTab={activeTab} setActiveTab={setActiveTab}
+              activeCount={activeCount} archivedCount={archivedCount}
+              forYouCount={savedSearches.length > 0 ? forYouTenders.length : 0}
+              forYouLoading={forYouLoading} user={user} savedSearches={savedSearches}
+              states={states} cities={cities}
+              selectedStates={selectedStates} selectedCities={selectedCities}
+              setSelectedStates={setSelectedStates} setSelectedCities={setSelectedCities}
+              statesLoaded={statesLoaded} loadStates={loadStates}
+              contextualStates={contextualStates} contextualCities={contextualCities}
+              contextualLoading={contextualLoading} searchQuery={searchQuery}
+              contextualTenders={contextualTenders}
+              ministries={ministries} orgs={orgs}
+              selectedMinistries={selectedMinistries} selectedOrgs={selectedOrgs}
+              setSelectedMinistries={setSelectedMinistries} setSelectedOrgs={setSelectedOrgs}
+              ministriesLoaded={ministriesLoaded} loadMinistries={loadMinistries}
+              contextualMinistries={contextualMinistries} contextualOrgs={contextualOrgs}
+              selectedCategories={selectedCategories} setSelectedCategories={setSelectedCategories}
+              contextualCategories={contextualCategories}
+              emdFilter={emdFilter} setEmdFilter={setEmdFilter}
+              msmeOnly={msmeOnly} setMsmeOnly={setMsmeOnly}
+              miiOnly={miiOnly} setMiiOnly={setMiiOnly} isPremium={isPremium}
+              dateFilter={dateFilter} setDateFilter={setDateFilter}
+            />
+          </div>
 
           {/* ── Right: tabs + grid ── */}
           <div className="flex-1 min-w-0">

@@ -53,7 +53,7 @@ async function runNotifications() {
       }
 
       try {
-        await triggerKeywordNotifications(tender);
+        await triggerKeywordNotifications(tender, { skipInApp: true });
 
         const { error: upErr } = await supabase
           .from('tenders')
@@ -107,7 +107,7 @@ async function runNotifications() {
         continue;
       }
       try {
-        await triggerKeywordNotifications(tender, { urgent: true });
+        await triggerKeywordNotifications(tender, { urgent: true, skipInApp: true });
         const { error: upErr } = await supabase
           .from('tenders')
           .update({ ra_notified: true })

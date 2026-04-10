@@ -21,7 +21,6 @@ export default function GoogleOneTap() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     
-/*
     const originalConsoleError = console.error;
     const originalConsoleLog = console.log;
     const originalConsoleWarn = console.warn;
@@ -34,7 +33,8 @@ export default function GoogleOneTap() {
         msg.includes('stop functioning when FedCM becomes mandatory') ||
         msg.includes('The request has been aborted') ||
         msg.includes('FedCM was disabled') ||
-        msg.includes('gsi/status')
+        msg.includes('gsi/status') ||
+        msg.includes('Error retrieving a token')
       ) {
         return;
       }
@@ -54,7 +54,8 @@ export default function GoogleOneTap() {
         msg.includes('signal is aborted without reason') ||
         msg.includes('The request has been aborted') ||
         msg.includes('FedCM was disabled') ||
-        msg.includes('gsi/status')
+        msg.includes('gsi/status') ||
+        msg.includes('Error retrieving a token')
       ) {
         event.preventDefault();
       }
@@ -67,8 +68,6 @@ export default function GoogleOneTap() {
       console.warn = originalConsoleWarn;
       window.removeEventListener('unhandledrejection', handleUnhandledRejection);
     };
-    */
-   return;
   }, []);
 
   useEffect(() => {
