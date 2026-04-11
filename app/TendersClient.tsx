@@ -1047,9 +1047,9 @@ function TendersClient({
             </span>
             <span className="text-xs text-fresh-sky-600 dark:text-fresh-sky-400 font-bold tracking-wide uppercase">Live Updates</span>
           </div>
-          <h2 className="font-bricolage text-lg sm:text-xl lg:text-2xl font-bold text-slate-900 dark:text-foreground tracking-tight mb-2 sm:mb-3">
-            Find Your Next Tender
-          </h2>
+          <h1 className="font-bricolage text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 dark:text-foreground tracking-tight mb-2 sm:mb-4">
+            Searchable GeM Tenders with AI Summaries
+          </h1>
 
           {/* Search bar */}
           <div className="relative max-w-3xl">
@@ -1405,9 +1405,10 @@ function TendersClient({
                 </div>
               }>
                 <div role="rowgroup" className="grid gap-4 w-full" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
-                  {displayTenders.map((tender) => (
+                  {displayTenders.map((tender, index) => (
                     <TenderCard
                       key={tender.id}
+                      index={index}
                       tender={tender}
                       setSearchQuery={setSearchQuery}
                       setSelectedStates={setSelectedStates}

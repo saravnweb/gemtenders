@@ -167,6 +167,16 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
     notFound();
   }
 
+  // Fetch related tenders by category — helps Google find more content and improves "dwell time"
+  const { data: relatedTenders } = await supabase
+    .from('tenders')
+    .select('id,title,bid_number,slug,end_date,category,ministry_name,state,city')
+    .eq('category', tender.category)
+    .neq('id', tender.id)
+    .gte('end_date', new Date().toISOString())
+    .order('created_at', { ascending: false })
+    .limit(3);
+
   let parsedAiSummary: any = null;
   let aiInsight: string | null = null;
 
@@ -251,6 +261,13 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
     "provider": {
       "@type": "GovernmentOrganization",
       "name": tender.organisation_name || tender.department_name || tender.ministry_name,
+      "url": "https://gem.gov.in",
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "GeMTenders.org",
+      "url": "https://gemtenders.org",
+      "logo": "https://gemtenders.org/logo.png"
     },
     "areaServed": {
       "@type": "State",
@@ -431,7 +448,7 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
                <div className="bg-slate-50/80 dark:bg-card border-b border-slate-100 dark:border-border px-6 py-4 flex items-center justify-between">
                   <div className="flex items-center space-x-2.5">
                     <Zap className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
-                    <h3 className="text-base font-bold text-slate-800 dark:text-foreground tracking-tight">AI Executive Summary</h3>
+                    <h2 className="text-base font-bold text-slate-800 dark:text-foreground tracking-tight">AI Executive Summary</h2>
                   </div>
                 </div>
                 <div className="p-6 sm:p-8">
@@ -446,7 +463,7 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
             <div className="bg-white dark:bg-card border border-slate-200/80 dark:border-border rounded-3xl overflow-hidden shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)]">
               <div className="bg-slate-50/80 dark:bg-card border-b border-slate-100 dark:border-border px-6 py-4 flex items-center">
                 <Clock className="w-5 h-5 text-indigo-500 mr-2.5" />
-                <h3 className="text-base font-bold text-slate-800 dark:text-foreground tracking-tight">Key Dates & Quantities</h3>
+                <h2 className="text-base font-bold text-slate-800 dark:text-foreground tracking-tight">Key Dates & Quantities</h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 divide-slate-100 dark:divide-border">
                 {[
@@ -474,7 +491,7 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
             <div className="bg-white dark:bg-card border border-slate-200/80 dark:border-border rounded-3xl overflow-hidden shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)]">
               <div className="bg-slate-50/80 dark:bg-card border-b border-slate-100 dark:border-border px-6 py-4 flex items-center">
                 <FileText className="w-5 h-5 text-indigo-500 mr-2.5" />
-                <h3 className="text-base font-bold text-slate-800 dark:text-foreground tracking-tight">Tender Details</h3>
+                <h2 className="text-base font-bold text-slate-800 dark:text-foreground tracking-tight">Tender Details</h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 divide-slate-100 dark:divide-border">
                 {[
@@ -501,7 +518,7 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
             <div className="bg-white dark:bg-card border border-slate-200/80 dark:border-border rounded-3xl overflow-hidden shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)]">
               <div className="bg-slate-50/80 dark:bg-card border-b border-slate-100 dark:border-border px-6 py-4 flex items-center">
                 <Briefcase className="w-5 h-5 text-indigo-500 mr-2.5" />
-                <h3 className="text-base font-bold text-slate-800 dark:text-foreground tracking-tight">Qualifications & Experience</h3>
+                <h2 className="text-base font-bold text-slate-800 dark:text-foreground tracking-tight">Qualifications & Experience</h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 divide-slate-100 dark:divide-border">
                 {[
@@ -527,7 +544,7 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
             <div className="bg-white dark:bg-card border border-slate-200/80 dark:border-border rounded-3xl overflow-hidden shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)]">
               <div className="bg-slate-50/80 dark:bg-card border-b border-slate-100 dark:border-border px-6 py-4 flex items-center">
                 <ShieldCheck className="w-5 h-5 text-indigo-500 mr-2.5" />
-                <h3 className="text-base font-bold text-slate-800 dark:text-foreground tracking-tight">Preferences & Relaxations</h3>
+                <h2 className="text-base font-bold text-slate-800 dark:text-foreground tracking-tight">Preferences & Relaxations</h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 divide-slate-100 dark:divide-border">
                 {[
@@ -569,7 +586,7 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
             <div className="bg-white dark:bg-card border border-slate-200/80 dark:border-border rounded-3xl overflow-hidden shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)]">
               <div className="bg-slate-50/80 dark:bg-card border-b border-slate-100 dark:border-border px-6 py-4 flex items-center">
                 <FileCheck className="w-5 h-5 text-indigo-500 mr-2.5" />
-                <h3 className="text-base font-bold text-slate-800 dark:text-foreground tracking-tight">Other Details</h3>
+                <h2 className="text-base font-bold text-slate-800 dark:text-foreground tracking-tight">Other Details</h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 divide-slate-100 dark:divide-border">
                 {[
@@ -592,10 +609,10 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
 
             {/* Bottom Actions Section */}
             <div className="bg-white dark:bg-card border border-slate-200/80 dark:border-border rounded-3xl overflow-hidden shadow-[0_2px_15px_-3px_rgba(0,0,0,0.03)] p-6 sm:p-8">
-               <h3 className="text-lg font-bold text-slate-900 dark:text-foreground mb-6 flex items-center">
+               <h2 className="text-lg font-bold text-slate-900 dark:text-foreground mb-6 flex items-center">
                  <Download className="w-5 h-5 mr-2 text-indigo-500" />
                  Ready to Proceed?
-               </h3>
+               </h2>
                <div className="flex flex-col sm:flex-row gap-5 items-center bg-slate-50/50 dark:bg-card/50 p-5 rounded-2xl border border-slate-100 dark:border-border">
                  <div className="flex-1 w-full flex flex-col justify-center">
                     <span className="text-xs font-bold text-slate-500 dark:text-muted-foreground uppercase tracking-wider mb-2 block text-center sm:text-left">GeM Bid Document ID</span>
@@ -613,6 +630,52 @@ export default async function TenderDetailsPage({ params }: { params: Promise<{ 
                  </div>
                </div>
             </div>
+
+            {/* Related Tenders Section — Helps SEO crawling and user retention */}
+            {relatedTenders && relatedTenders.length > 0 && (
+              <div className="mt-12">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 bg-indigo-50 dark:bg-indigo-900/40 rounded-xl">
+                      <Layers className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                    </div>
+                    <h2 className="text-lg font-bold text-slate-900 dark:text-foreground">More Tenders You May Like</h2>
+                  </div>
+                  <Link href={`/?q=${encodeURIComponent(tender.category || "")}`} className="text-xs font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 flex items-center gap-1 group">
+                    View All {tender.category ? toTitleCase(tender.category) : 'Category'} Tenders
+                    <ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+                  </Link>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {relatedTenders.map((rel) => (
+                    <Link
+                      key={rel.id}
+                      href={`/bids/${rel.slug}`}
+                      className="group bg-white dark:bg-card border border-slate-200 dark:border-border rounded-2xl p-4 transition-all hover:border-indigo-200 dark:hover:border-indigo-800 hover:shadow-md flex flex-col h-full"
+                    >
+                      <h3 className="text-sm font-bold text-slate-800 dark:text-foreground line-clamp-2 mb-3 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                        {rel.title}
+                      </h3>
+                      <div className="mt-auto space-y-2">
+                        <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-muted-foreground">
+                          <Landmark className="w-3 h-3 shrink-0" />
+                          <span className="truncate">{rel.ministry_name || "N/A"}</span>
+                        </div>
+                        <div className="flex items-center justify-between pt-2 border-t border-slate-50 dark:border-border">
+                          <div className="flex items-center gap-1 text-[11px] font-bold text-slate-600 dark:text-muted-foreground uppercase">
+                            <Clock className="w-3 h-3 text-indigo-500" />
+                            {rel.end_date ? new Date(rel.end_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : 'N/A'}
+                          </div>
+                          <span className="text-[10px] bg-slate-100 dark:bg-muted px-2 py-0.5 rounded-full font-bold text-slate-500">
+                            {rel.bid_number?.split('/')[2] || 'Tender'}
+                          </span>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
 
           </div>
 

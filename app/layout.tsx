@@ -36,11 +36,11 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "GeMTenders.org — AI-Powered GeM Portal Tender Tracking India",
+    default: "GeMTenders.org — Searchable GeM Tender Tracking & AI Summaries",
     template: "%s | GeMTenders.org",
   },
-  description: "Track live bids and tenders on India's Government e-Marketplace (GeM) portal using AI. Search, filter and monitor GeM tenders in real time.",
-  keywords: ["GeM tenders", "Government e-Marketplace", "GeM bid", "tender tracking", "government tenders India", "GeM portal bids", "tender alerts"],
+  description: "Official site limiting your search? Use GeMTenders for searchable GeM tender tracking by keyword. Find government work easily with simple AI summaries and alerts.",
+  keywords: ["searchable gem tenders", "gem tender tracking", "keyword search gem", "government tenders India", "GeM portal bids", "tender alerts"],
   authors: [{ name: "GeMTenders.org" }],
   creator: "GeMTenders.org",
   robots: {
@@ -59,21 +59,21 @@ export const metadata: Metadata = {
     locale: "en_IN",
     url: siteUrl,
     siteName: "GeMTenders.org",
-    title: "GeMTenders.org — AI-Powered GeM Portal Tender Tracking India",
-    description: "Track live bids and tenders on India's Government e-Marketplace (GeM) portal using AI. Search, filter and monitor GeM tenders in real time.",
+    title: "GeMTenders.org — Searchable GeM Tender Tracking & AI Summaries",
+    description: "Official site limiting your search? Use GeMTenders for searchable GeM tender tracking by keyword. Find government work easily with simple AI summaries and alerts.",
     images: [
       {
         url: `${siteUrl}/logo.png`,
         width: 1200,
         height: 630,
-        alt: "GeMTenders.org — AI-Powered GeM Portal Tender Tracking India",
+        alt: "GeMTenders.org — Searchable GeM Tender Tracking & AI Summaries",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "GeMTenders.org — AI-Powered GeM Portal Tender Tracking India",
-    description: "Track live bids and tenders on India's Government e-Marketplace (GeM) portal using AI. Search, filter and monitor GeM tenders in real time.",
+    title: "GeMTenders.org — Searchable GeM Tender Tracking & AI Summaries",
+    description: "Official site limiting your search? Use GeMTenders for searchable GeM tender tracking by keyword. Find government work easily with simple AI summaries and alerts.",
     images: [`${siteUrl}/logo.png`],
     site: "@GeMTenders",
     creator: "@GeMTenders",
@@ -109,9 +109,44 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const organizationJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "GeMTenders.org",
+    "url": siteUrl,
+    "logo": `${siteUrl}/android-chrome-512x512.png`,
+    "sameAs": [
+      "https://twitter.com/GeMTenders",
+    ],
+    "description": "AI-powered searchable GeM tender tracking and simplified summaries for Indian government bids.",
+  };
+
+  const websiteJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "GeMTenders.org",
+    "url": siteUrl,
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": {
+        "@type": "EntryPoint",
+        "urlTemplate": `${siteUrl}/explore?q={search_term_string}`
+      },
+      "query-input": "required name=search_term_string"
+    }
+  };
+
   return (
     <html lang="en" className={`${outfit.variable} ${jetbrainsMono.variable} ${bricolage.variable}`} suppressHydrationWarning>
       <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+        />
         {/* Google Analytics */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-3GD5YYRK3M"

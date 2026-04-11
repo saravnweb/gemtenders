@@ -6,7 +6,7 @@ import { HighlightedText } from "./HighlightedText";
 import { toTitleCase, formatDepartmentInfo, getCategory, normalizeTitle } from "./utils";
 
 const TenderCard = React.memo(function TenderCard({
-  tender, setSearchQuery, setSelectedStates, isSaved, onToggleSave, highlightTerms = [],
+  tender, setSearchQuery, setSelectedStates, isSaved, onToggleSave, highlightTerms = [], index = 0,
 }: {
   tender: any;
   setSearchQuery: (q: string) => void;
@@ -14,14 +14,12 @@ const TenderCard = React.memo(function TenderCard({
   isSaved: boolean;
   onToggleSave: () => void;
   highlightTerms?: string[];
+  index?: number;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isClosingSoon, setIsClosingSoon] = useState(false);
   const isFallbackDate = tender.start_date === tender.end_date;
 
-  useEffect(() => {
-    setIsClosingSoon(!isFallbackDate && (new Date(tender.end_date).getTime() - Date.now() < 86400000));
-  }, [isFallbackDate, tender.end_date]);
+  const isClosingSoon = !isFallbackDate && (new Date(tender.end_date).getTime() - Date.now() < 86400000);
 
   const formattedEMD = useMemo(() => {
     if (tender.emd_amount === 0) return "No EMD";
@@ -89,7 +87,7 @@ const TenderCard = React.memo(function TenderCard({
     <div
       role="row"
       className="group bg-white dark:bg-card border border-slate-200 dark:border-border rounded-xl p-4 transition-all duration-200 hover:border-slate-300 dark:hover:border-muted-foreground/35 hover:shadow-md flex flex-col h-full relative overflow-hidden"
-      style={{ contentVisibility: 'auto', containIntrinsicSize: '300px' }}
+      style={index > 2 ? { contentVisibility: "auto", containIntrinsicSize: "300px" } : {}}
     >
 
       {/* Title */}
