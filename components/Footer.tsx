@@ -13,12 +13,12 @@ const stateLinks = [
 ];
 
 const categoryLinks = [
-  CATEGORIES.find(c => c.id === "vehicles"),
-  CATEGORIES.find(c => c.id === "computer-hardware"),
-  CATEGORIES.find(c => c.id === "office-supplies"),
-  CATEGORIES.find(c => c.id === "medical-equipment"),
+  CATEGORIES.find(c => c.id === "transport"),
+  CATEGORIES.find(c => c.id === "it"),
+  CATEGORIES.find(c => c.id === "office"),
+  CATEGORIES.find(c => c.id === "medical"),
   CATEGORIES.find(c => c.id === "construction"),
-  CATEGORIES.find(c => c.id === "security-services"),
+  CATEGORIES.find(c => c.id === "security"),
 ].filter(Boolean).map(c => ({ label: `${c!.label} Bids`, href: `/?category=${c!.id}` }));
 
 export default function Footer() {
@@ -26,7 +26,7 @@ export default function Footer() {
     <footer className="border-t border-slate-100 dark:border-border mt-16 w-full bg-slate-50/30 dark:bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
         {/* SEO link grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-8 mb-12">
           
           <nav aria-labelledby="footer-states-heading">
             <h2 id="footer-states-heading" className="text-[11px] font-bold text-slate-800 dark:text-foreground uppercase tracking-widest mb-4">
@@ -82,29 +82,6 @@ export default function Footer() {
             </ul>
           </nav>
 
-          <nav aria-labelledby="footer-platform-heading">
-            <h2 id="footer-platform-heading" className="text-[11px] font-bold text-slate-800 dark:text-foreground uppercase tracking-widest mb-4">
-              Platform Features
-            </h2>
-            <ul className="space-y-2">
-              {[
-                { label: "Searchable GeM Tenders", href: "/explore" },
-                { label: "AI Tender Summaries", href: "/pricing" },
-                { label: "Premium Pro Plan", href: "/pricing" },
-                { label: "Free Tender Alerts", href: "/signup" },
-              ].map((l) => (
-                <li key={l.href}>
-                  <Link
-                    href={l.href}
-                    className="text-[13px] font-medium text-slate-600 dark:text-muted-foreground hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
-                  >
-                    {l.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
-
           <nav aria-labelledby="footer-company-heading">
             <h2 id="footer-company-heading" className="text-[11px] font-bold text-slate-800 dark:text-foreground uppercase tracking-widest mb-4">
               Resources & Support
@@ -114,7 +91,6 @@ export default function Footer() {
                 { label: "About GeMTenders", href: "/about" },
                 { label: "Privacy & Terms", href: "/privacy" },
                 { label: "Help Center / WhatsApp", href: "https://wa.me/919952749408", target: "_blank" },
-                { label: "Sitemap", href: "/sitemap.xml" },
               ].map((l) => (
                 <li key={l.label}>
                   <Link

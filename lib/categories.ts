@@ -17,7 +17,7 @@ export const CATEGORIES: Category[] = [
   // ─── PRODUCTS ───────────────────────────────────────────────────────────────
 
   {
-    id: "computer-hardware",
+    id: "it",
     label: "Computer Hardware & Peripherals",
     icon: "💻",
     description: "Laptops, Desktops, Servers, Printers, Scanners, Monitors and IT peripherals",
@@ -78,7 +78,7 @@ export const CATEGORIES: Category[] = [
     ],
   },
   {
-    id: "office-supplies",
+    id: "office",
     label: "Office Supplies & Stationery",
     icon: "🗂️",
     description: "Paper, Pens, Registers, Office appliances, AC and Housekeeping materials",
@@ -163,7 +163,7 @@ export const CATEGORIES: Category[] = [
     ],
   },
   {
-    id: "vehicles",
+    id: "transport",
     label: "Vehicles & Transport Equipment",
     icon: "🚗",
     description: "Cars, Trucks, Buses, Electric vehicles, Tractors and Heavy machinery",
@@ -179,7 +179,7 @@ export const CATEGORIES: Category[] = [
     ],
   },
   {
-    id: "medical-equipment",
+    id: "medical",
     label: "Medical Equipment & Devices",
     icon: "🏥",
     description: "Diagnostic equipment, Surgical instruments, ICU devices and Hospital furniture",
@@ -212,7 +212,7 @@ export const CATEGORIES: Category[] = [
     ],
   },
   {
-    id: "lab-equipment",
+    id: "scientific",
     label: "Laboratory & Scientific Equipment",
     icon: "🔬",
     description: "Microscopes, Centrifuges, Autoclaves, Analytical instruments and Testing tools",
@@ -280,7 +280,7 @@ export const CATEGORIES: Category[] = [
     ],
   },
   {
-    id: "textiles",
+    id: "textile",
     label: "Textiles & Apparel",
     icon: "👕",
     description: "Uniforms, Fabric, Linen, Bedsheets, Towels and Protective clothing",
@@ -374,7 +374,7 @@ export const CATEGORIES: Category[] = [
     ],
   },
   {
-    id: "security-services",
+    id: "security",
     label: "Security Services",
     icon: "👮",
     description: "Security guards, Armed guards, Watch & Ward and Patrolling services",
@@ -428,7 +428,7 @@ export const CATEGORIES: Category[] = [
     ],
   },
   {
-    id: "civil-works",
+    id: "civil",
     label: "Civil & Construction Works",
     icon: "🏗️",
     description: "Building construction, Roads, Repairs, Renovation and Infrastructure projects",
@@ -492,7 +492,7 @@ export const CATEGORIES: Category[] = [
     ],
   },
   {
-    id: "environmental",
+    id: "environment",
     label: "Environmental & Water Services",
     icon: "💧",
     description: "STP/ETP operation, Water supply, Borewell, Pollution control and Sanitation",
