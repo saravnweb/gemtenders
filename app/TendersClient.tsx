@@ -1357,7 +1357,7 @@ function TendersClient({
         {/* ── Tender Grid ── */}
         {loading || (activeTab === "foryou" && forYouLoading) ? (
           <div role="table" aria-label="Loading Tenders" className="w-full">
-            <div role="rowgroup" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div role="rowgroup" className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
               {Array.from({ length: 6 }).map((_, i) => (
                 <div role="row" aria-busy="true" key={i} className="h-72 bg-white dark:bg-card rounded-xl animate-pulse border border-slate-100 dark:border-border">
                   <div role="cell" className="sr-only">Loading...</div>
@@ -1396,13 +1396,13 @@ function TendersClient({
                 </div>
               </div>
               <Suspense fallback={
-                <div role="rowgroup" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
+                <div role="rowgroup" className="grid gap-4 w-full" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
                   {Array.from({ length: 6 }).map((_, i) => (
                     <div key={i} className="h-72 bg-white dark:bg-card rounded-xl animate-pulse border border-slate-100 dark:border-border" />
                   ))}
                 </div>
               }>
-                <div role="rowgroup" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
+                <div role="rowgroup" className="grid gap-4 w-full" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
                   {displayTenders.map((tender) => (
                     <TenderCard
                       key={tender.id}

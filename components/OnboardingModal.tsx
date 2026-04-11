@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { X, Zap, Mail, Bell, Star } from 'lucide-react';
 
@@ -9,6 +9,17 @@ const STORAGE_KEY = 'gemtenders_upsell_dismissed';
 export default function OnboardingModal() {
   const [visible, setVisible] = useState(false);
   const router = useRouter();
+  const dialogRef = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    if (visible && dialogRef.current) {
+      if (!dialogRef.current.open) {
+        dialogRef.current.showModal();
+      }
+    } else if (!visible && dialogRef.current?.open) {
+      dialogRef.current.close();
+    }
+  }, [visible]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -32,9 +43,13 @@ export default function OnboardingModal() {
   if (!visible) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-      onClick={dismiss}
+    <dialog
+      ref={dialogRef}
+      className="bg-transparent backdrop:bg-black/40 backdrop:backdrop-blur-sm focus:outline-none open:flex items-center justify-center p-4 w-full h-full max-w-none max-h-none border-none"
+      onClose={dismiss}
+      onClick={(e) => {
+        if (e.target === dialogRef.current) dismiss();
+      }}
     >
       <div
         className="relative bg-white dark:bg-card rounded-2xl shadow-2xl w-full max-w-md p-8 animate-in fade-in zoom-in duration-300"
@@ -93,6 +108,6 @@ export default function OnboardingModal() {
           </button>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 }

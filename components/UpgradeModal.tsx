@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef, useEffect } from 'react';
 import { X, Sparkles, Check, ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -50,6 +51,17 @@ export default function UpgradeModal({
 }: UpgradeModalProps) {
     const router = useRouter();
     const config = REASON_CONFIG[reason];
+    const dialogRef = useRef<HTMLDialogElement>(null);
+
+    useEffect(() => {
+        if (isOpen && dialogRef.current) {
+            if (!dialogRef.current.open) {
+                dialogRef.current.showModal();
+            }
+        } else if (!isOpen && dialogRef.current?.open) {
+            dialogRef.current.close();
+        }
+    }, [isOpen]);
 
     if (!isOpen) return null;
 
@@ -59,20 +71,15 @@ export default function UpgradeModal({
     };
 
     return (
-        <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="upgrade-modal-title"
+        <dialog
+            ref={dialogRef}
+            className="bg-transparent backdrop:bg-black/50 backdrop:backdrop-blur-sm focus:outline-none open:flex items-center justify-center p-4 w-full h-full max-w-none max-h-none border-none"
+            onClose={onClose}
+            onClick={(e) => {
+                if (e.target === dialogRef.current) onClose();
+            }}
         >
-            {/* Backdrop */}
-            <div
-                className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-                onClick={onClose}
-            />
-
-            {/* Modal */}
-            <div className="relative bg-white dark:bg-card rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="relative bg-white dark:bg-card rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
 
                 {/* Header */}
                 <div className="relative bg-linear-to-br from-atomic-tangerine-500 via-atomic-tangerine-600 to-atomic-tangerine-700 px-6 pt-6 pb-10">
@@ -152,6 +159,6 @@ export default function UpgradeModal({
                     </button>
                 </div>
             </div>
-        </div>
+        </dialog>
     );
 }

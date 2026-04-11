@@ -62,7 +62,11 @@ const TenderCard = React.memo(function TenderCard({
   }, []);
 
   return (
-    <div role="row" className="group bg-white dark:bg-card border border-slate-200 dark:border-border rounded-xl p-4 transition-all duration-200 hover:border-slate-300 dark:hover:border-muted-foreground/35 hover:shadow-md flex flex-col h-full relative overflow-hidden">
+    <div
+      role="row"
+      className="group bg-white dark:bg-card border border-slate-200 dark:border-border rounded-xl p-4 transition-all duration-200 hover:border-slate-300 dark:hover:border-muted-foreground/35 hover:shadow-md flex flex-col h-full relative overflow-hidden"
+      style={{ contentVisibility: 'auto', containIntrinsicSize: '300px' }}
+    >
 
       {/* Title */}
       <div role="cell" className="mb-2 w-full">
