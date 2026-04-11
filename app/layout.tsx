@@ -79,6 +79,9 @@ export const metadata: Metadata = {
     creator: "@GeMTenders",
   },
   manifest: '/manifest.json',
+  facebook: {
+    appId: process.env.NEXT_PUBLIC_FACEBOOK_APP_ID || "",
+  },
   icons: {
     icon: [
       { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
