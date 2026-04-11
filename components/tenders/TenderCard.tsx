@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
-import { Clock, Zap, MapPin, Share2, Bookmark } from "lucide-react";
+import { Clock, Zap, MapPin, Share2, Bookmark, Search } from "lucide-react";
 import { getCategoryById } from "@/lib/categories";
 import { HighlightedText } from "./HighlightedText";
-import { toTitleCase, formatDepartmentInfo, getCategory } from "./utils";
+import { toTitleCase, formatDepartmentInfo, getCategory, normalizeTitle } from "./utils";
 
 const TenderCard = React.memo(function TenderCard({
   tender, setSearchQuery, setSelectedStates, isSaved, onToggleSave, highlightTerms = [],
@@ -61,6 +61,30 @@ const TenderCard = React.memo(function TenderCard({
     return isNaN(date.getTime()) ? d : date.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
   }, []);
 
+  const hiddenFieldMatches = useMemo(() => {
+    if (!highlightTerms || highlightTerms.length === 0) return [];
+    
+    const results: Array<{ label: string; value: string }> = [];
+    const fields = [
+      { label: "Item Category", value: tender.gem_category },
+      { label: "GeMARPTS Result", value: tender.gemarpts_result }
+    ];
+
+    fields.forEach(f => {
+      if (!f.value) return;
+      const hasMatch = highlightTerms.some(term => {
+        if (!term.trim()) return false;
+        const regex = new RegExp(`\\b${term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i");
+        return regex.test(f.value);
+      });
+      if (hasMatch) {
+        results.push({ label: f.label, value: f.value });
+      }
+    });
+
+    return results;
+  }, [tender.gem_category, tender.gemarpts_result, highlightTerms]);
+
   return (
     <div
       role="row"
@@ -72,7 +96,7 @@ const TenderCard = React.memo(function TenderCard({
       <div role="cell" className="mb-2 w-full">
         <Link href={`/bids/${encodeURIComponent(tender.slug || "")}`} className="hover:no-underline group/title focus:outline-none">
           <h3 className={`text-sm sm:text-[15px] font-medium text-slate-800 dark:text-foreground leading-snug transition-colors group-hover/title:text-fresh-sky-700 dark:group-hover/title:text-fresh-sky-400 after:absolute after:inset-0 after:z-0 ${isExpanded ? "" : "line-clamp-2"}`}>
-            <HighlightedText text={tender.title} highlightTerms={highlightTerms} />
+            <HighlightedText text={normalizeTitle(tender.title)} highlightTerms={highlightTerms} />
           </h3>
         </Link>
         {tender.title && tender.title.length > 60 && (
@@ -159,6 +183,26 @@ const TenderCard = React.memo(function TenderCard({
           <span className="text-xs font-medium px-1.5 py-0.5 bg-slate-100 dark:bg-card text-slate-500 dark:text-muted-foreground rounded">GeM</span>
         </div>
       </div>
+
+      {/* Hidden matches (Item Category / GeMARPTS) */}
+      {hiddenFieldMatches.length > 0 && (
+        <div role="cell" className="mb-3 p-2 bg-slate-50 dark:bg-card/50 rounded-lg border border-dashed border-slate-200 dark:border-border relative z-10 w-full animate-in fade-in slide-in-from-top-1 duration-300">
+          <div className="flex items-center space-x-1.5 mb-1.5 opacity-70">
+            <Search className="w-2.5 h-2.5 text-slate-500 dark:text-muted-foreground" />
+            <span className="text-[9px] font-bold text-slate-500 dark:text-muted-foreground uppercase tracking-wider">Search Match Found In</span>
+          </div>
+          <div className="space-y-1.5">
+            {hiddenFieldMatches.map((m, i) => (
+              <div key={i} className="text-[11px] leading-relaxed">
+                <span className="font-bold text-slate-500 dark:text-muted-foreground mr-1">{m.label}:</span>
+                <span className="text-slate-700 dark:text-foreground italic">
+                  <HighlightedText text={m.value} highlightTerms={highlightTerms} />
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 4: EMD & Dates */}
       <div role="cell" className="grid grid-cols-3 gap-2 py-2 sm:py-2.5 border-y border-slate-100 dark:border-border mb-4 bg-slate-50 dark:bg-card -mx-4 px-4 relative z-10 pointer-events-none mt-auto w-full">

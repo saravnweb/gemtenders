@@ -25,8 +25,8 @@ export default function OnboardingModal() {
     if (typeof window === 'undefined') return;
     const dismissed = localStorage.getItem(STORAGE_KEY);
     if (dismissed) return;
-    // Delay modal until user has had time to see the product (45 seconds)
-    const timer = setTimeout(() => setVisible(true), 45000);
+    // Delay modal until user has had time to see the product (75 seconds)
+    const timer = setTimeout(() => setVisible(true), 75000);
     return () => clearTimeout(timer);
   }, []);
 

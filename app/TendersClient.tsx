@@ -19,7 +19,7 @@ import { fetchTendersByRelevance } from "@/lib/tenders-relevance-query";
 import { requirePublicListingReady } from "@/lib/tender-public-listing";
 const PAGE_SIZE = 21;
 const COLUMNS =
-  "id,title,bid_number,ra_number,state,city,department,ministry_name,department_name,organisation_name,office_name,emd_amount,start_date,end_date,ai_summary,eligibility_msme,eligibility_mii,created_at,slug,category";
+  "id,title,bid_number,ra_number,state,city,department,ministry_name,department_name,organisation_name,office_name,emd_amount,start_date,end_date,ai_summary,eligibility_msme,eligibility_mii,created_at,slug,category,gem_category,gemarpts_result";
 
 import { CATEGORIES } from "@/lib/categories";
 import TenderCard from "@/components/tenders/TenderCard";
@@ -44,6 +44,8 @@ function buildTextSearchOrClause(term: string): string {
     `state.ilike.%${term}%`,
     `city.ilike.%${term}%`,
     `ai_summary.imatch.${p}`,
+    `gem_category.imatch.${p}`,
+    `gemarpts_result.imatch.${p}`,
   ].join(",");
 }
 
@@ -115,7 +117,7 @@ async function queryTendersCount(filters: Filters): Promise<number> {
   }
 
   if (filters.descriptionQuery.trim()) {
-    q = q.ilike("ai_summary", `%${filters.descriptionQuery.trim()}%`);
+    q = (q as any).imatch("ai_summary", `\\y${filters.descriptionQuery.trim()}\\y`);
   }
 
   if (filters.dateFilter === "today") {
@@ -243,7 +245,7 @@ async function queryTenders(filters: Filters, page: number): Promise<any[]> {
 
   // AI summary / description search
   if (filters.descriptionQuery.trim()) {
-    q = q.ilike("ai_summary", `%${filters.descriptionQuery.trim()}%`);
+    q = (q as any).imatch("ai_summary", `\\y${filters.descriptionQuery.trim()}\\y`);
   }
 
   // Date window

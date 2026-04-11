@@ -137,8 +137,13 @@ export default function GoogleOneTap() {
         cancel_on_tap_outside: true,
       });
 
-      // 4. Show the One Tap prompt (no callback — FedCM doesn't support prompt UI status methods)
-      window.google.accounts.id.prompt();
+      // 4. Show the One Tap prompt with a 7-second delay to avoid immediate interruption
+      setTimeout(() => {
+        if (!isCancelled && window.google) {
+          window.google.accounts.id.prompt();
+          console.log('[GoogleOneTap] Prompt displayed after 7s delay');
+        }
+      }, 7000);
     };
 
     initializeOneTap();

@@ -44,7 +44,8 @@ export function calculateValueBand(value: number | null | undefined): string | n
   return '>1Cr';
 }
 
-const GEM_TITLE_PREFIX = /^Custom Bid for \w+ -\s*/i;
+const GEM_TITLE_PREFIX = /^Custom Bid for .+?\s?-\s*/i;
+const GEM_TITLE_FALLBACK = /^Custom Bid (for )?\w+/i;
 
 /** True when >70% of letters are uppercase — i.e. the title was typed in ALL CAPS */
 function isAllCaps(s: string): boolean {
@@ -60,6 +61,20 @@ function toTitleCase(s: string): string {
 
 export function normalizeTitle(title: string): string {
   let result = title.replace(GEM_TITLE_PREFIX, '').trim();
+  
+  // If no hyphen was found (still starts with Custom Bid), try the fallback
+  if (result.toLowerCase().startsWith('custom bid')) {
+    result = result.replace(GEM_TITLE_FALLBACK, '').trim();
+  }
+
+  // Final cleanup: if it starts with "for ", remove that too
+  if (result.toLowerCase().startsWith('for ')) {
+    result = result.replace(/^for\s+/i, '').trim();
+  }
+
+  // Strip leading punctuation leftovers like ":", "-", etc.
+  result = result.replace(/^[:\-\s]+/, '').trim();
+
   if (isAllCaps(result)) result = toTitleCase(result);
   return result;
 }

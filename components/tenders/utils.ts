@@ -1,5 +1,6 @@
 import { CATEGORIES } from "@/lib/categories";
 import { normalizeState, normalizeCity } from "@/lib/locations-client";
+export { normalizeTitle } from "@/lib/computed-fields";
 
 export function toTitleCase(str: string): string {
   if (!str) return "";

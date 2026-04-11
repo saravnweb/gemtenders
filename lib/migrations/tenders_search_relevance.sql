@@ -23,6 +23,8 @@ DECLARE
   w_org int := 48;
   w_state int := 28;
   w_city int := 28;
+  w_gem_cat int := 60;
+  w_gemarpts int := 20;
   w_ai int := 12;
 BEGIN
   IF terms IS NULL OR coalesce(array_length(terms, 1), 0) = 0 THEN
@@ -31,15 +33,17 @@ BEGIN
   FOREACH term IN ARRAY terms
   LOOP
     IF term IS NULL OR btrim(term) = '' THEN CONTINUE; END IF;
-    IF strpos(lower(coalesce(t.title, '')), lower(term)) > 0 THEN s := s + w_title; END IF;
-    IF strpos(lower(coalesce(t.bid_number, '')), lower(term)) > 0 THEN s := s + w_bid; END IF;
-    IF strpos(lower(coalesce(t.ra_number, '')), lower(term)) > 0 THEN s := s + w_ra; END IF;
-    IF strpos(lower(coalesce(t.department, '')), lower(term)) > 0 THEN s := s + w_dept; END IF;
-    IF strpos(lower(coalesce(t.ministry_name, '')), lower(term)) > 0 THEN s := s + w_min; END IF;
-    IF strpos(lower(coalesce(t.organisation_name, '')), lower(term)) > 0 THEN s := s + w_org; END IF;
-    IF strpos(lower(coalesce(t.state, '')), lower(term)) > 0 THEN s := s + w_state; END IF;
-    IF strpos(lower(coalesce(t.city, '')), lower(term)) > 0 THEN s := s + w_city; END IF;
-    IF strpos(lower(coalesce(t.ai_summary, '')), lower(term)) > 0 THEN s := s + w_ai; END IF;
+    IF coalesce(t.title, '') ~* ('\y' || term || '\y') THEN s := s + w_title; END IF;
+    IF t.bid_number ILIKE ('%' || term || '%') THEN s := s + w_bid; END IF;
+    IF t.ra_number ILIKE ('%' || term || '%') THEN s := s + w_ra; END IF;
+    IF coalesce(t.department, '') ~* ('\y' || term || '\y') THEN s := s + w_dept; END IF;
+    IF coalesce(t.ministry_name, '') ~* ('\y' || term || '\y') THEN s := s + w_min; END IF;
+    IF coalesce(t.organisation_name, '') ~* ('\y' || term || '\y') THEN s := s + w_org; END IF;
+    IF t.state ILIKE ('%' || term || '%') THEN s := s + w_state; END IF;
+    IF t.city ILIKE ('%' || term || '%') THEN s := s + w_city; END IF;
+    IF coalesce(t.gem_category, '') ~* ('\y' || term || '\y') THEN s := s + w_gem_cat; END IF;
+    IF coalesce(t.gemarpts_result, '') ~* ('\y' || term || '\y') THEN s := s + w_gemarpts; END IF;
+    IF coalesce(t.ai_summary, '') ~* ('\y' || term || '\y') THEN s := s + w_ai; END IF;
   END LOOP;
   RETURN s;
 END;
@@ -95,15 +99,17 @@ BEGIN
     ))
     AND (
       SELECT bool_or(
-        strpos(lower(coalesce(t.title, '')), lower(term)) > 0 OR
-        strpos(lower(coalesce(t.bid_number, '')), lower(term)) > 0 OR
-        strpos(lower(coalesce(t.ra_number, '')), lower(term)) > 0 OR
-        strpos(lower(coalesce(t.department, '')), lower(term)) > 0 OR
-        strpos(lower(coalesce(t.ministry_name, '')), lower(term)) > 0 OR
-        strpos(lower(coalesce(t.organisation_name, '')), lower(term)) > 0 OR
-        strpos(lower(coalesce(t.state, '')), lower(term)) > 0 OR
-        strpos(lower(coalesce(t.city, '')), lower(term)) > 0 OR
-        strpos(lower(coalesce(t.ai_summary, '')), lower(term)) > 0
+        coalesce(t.title, '') ~* ('\y' || u.term || '\y') OR
+        t.bid_number ILIKE ('%' || u.term || '%') OR
+        t.ra_number ILIKE ('%' || u.term || '%') OR
+        coalesce(t.department, '') ~* ('\y' || u.term || '\y') OR
+        coalesce(t.ministry_name, '') ~* ('\y' || u.term || '\y') OR
+        coalesce(t.organisation_name, '') ~* ('\y' || u.term || '\y') OR
+        t.state ILIKE ('%' || u.term || '%') OR
+        t.city ILIKE ('%' || u.term || '%') OR
+        coalesce(t.gem_category, '') ~* ('\y' || u.term || '\y') OR
+        coalesce(t.gemarpts_result, '') ~* ('\y' || u.term || '\y') OR
+        coalesce(t.ai_summary, '') ~* ('\y' || u.term || '\y')
       )
       FROM unnest(terms) AS u(term)
     )
@@ -135,7 +141,7 @@ BEGIN
     AND (p_category IS NULL OR btrim(p_category) = '' OR t.category = p_category)
     AND (
       p_description IS NULL OR btrim(p_description) = '' OR
-      strpos(lower(coalesce(t.ai_summary, '')), lower(btrim(p_description))) > 0
+      coalesce(t.ai_summary, '') ~* ('\y' || btrim(p_description) || '\y')
     )
     AND (
       p_date_filter IS NULL OR p_date_filter = '' OR p_date_filter = 'all' OR
