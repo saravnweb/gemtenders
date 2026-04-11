@@ -158,6 +158,7 @@ export default function Navbar() {
                     width={48}
                     height={48}
                     priority
+                    fetchPriority="high"
                     className="h-full w-auto object-contain transition-transform duration-300 group-hover:scale-105"
                   />
                 </div>

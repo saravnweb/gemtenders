@@ -6,7 +6,7 @@ import "./globals.css";
 const outfit = Outfit({
   subsets: ["latin"],
   variable: "--font-outfit",
-  display: "swap",
+  display: "optional",
 });
 
 const jetbrainsMono = JetBrains_Mono({
@@ -18,7 +18,7 @@ const jetbrainsMono = JetBrains_Mono({
 const bricolage = Bricolage_Grotesque({
   subsets: ["latin"],
   variable: "--font-bricolage",
-  display: "swap",
+  display: "optional",
 });
 
 const siteUrl = "https://gemtenders.org";
@@ -130,9 +130,13 @@ export default function RootLayout({
           }}
         />
         <link rel="preconnect" href="https://gemtenders.org" />
+        <link rel="dns-prefetch" href="https://gemtenders.org" />
         <link rel="preconnect" href="https://hupvlvscskpserofewox.supabase.co" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://hupvlvscskpserofewox.supabase.co" />
         <link rel="preconnect" href="https://www.googletagmanager.com" />
+        <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
         <link rel="preconnect" href="https://accounts.google.com" />
+        <link rel="dns-prefetch" href="https://accounts.google.com" />
       </head>
       <body className="font-sans antialiased">
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>

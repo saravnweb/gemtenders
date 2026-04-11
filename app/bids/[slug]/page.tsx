@@ -151,19 +151,20 @@ function formatDepartmentInfo(ministry?: string, dept?: string, org?: string): s
 export default async function TenderDetailsPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const supabase = await createClient();
-  const [{ data: tender }, { data: { user } }] = await Promise.all([
+  const userPromise = supabase.auth.getUser();
+  const profilePromise = userPromise.then(async ({ data: { user } }) => {
+    if (!user) return { user: null, plan: 'free' };
+    const { data: profile } = await supabase.from('profiles').select('membership_plan').eq('id', user.id).maybeSingle();
+    return { user, plan: profile?.membership_plan || 'free' };
+  });
+
+  const [{ data: tender }, { user, plan: membershipPlan }] = await Promise.all([
     supabase.from('tenders').select('*').eq('slug', slug).maybeSingle(),
-    supabase.auth.getUser(),
+    profilePromise,
   ]);
 
   if (!tender) {
     notFound();
-  }
-
-  let membershipPlan = 'free';
-  if (user) {
-    const { data: profile } = await supabase.from('profiles').select('membership_plan').eq('id', user.id).single();
-    membershipPlan = profile?.membership_plan || 'free';
   }
 
   let parsedAiSummary: any = null;

@@ -4,7 +4,9 @@ import { createClient } from '@/lib/supabase/server';
 import { fetchTendersByRelevance } from '@/lib/tenders-relevance-query';
 import { requirePublicListingReady } from '@/lib/tender-public-listing';
 import { Suspense } from 'react';
-import OnboardingModal from '@/components/OnboardingModal';
+import dynamic from 'next/dynamic';
+
+const OnboardingModal = dynamic(() => import('@/components/OnboardingModal'), { ssr: false });
 
 export const revalidate = 3600;
 
@@ -51,12 +53,19 @@ export default function Page({
 }
 
 const TendersSkeleton = () => (
-  <div className="min-h-screen bg-fresh-sky-50 dark:bg-background">
+  <div className="min-h-screen bg-fresh-sky-50 dark:bg-background text-slate-800 dark:text-foreground">
     <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
-      <div className="mb-8">
-        <div className="h-4 w-32 bg-slate-200 dark:bg-muted rounded animate-pulse mb-3" />
-        <div className="h-10 w-64 bg-slate-200 dark:bg-muted rounded animate-pulse mb-4" />
-        <div className="h-12 w-full max-w-3xl bg-slate-200 dark:bg-muted rounded-2xl animate-pulse" />
+      <div className="mb-4 sm:mb-6">
+        <div className="flex items-center space-x-2 mb-1.5 sm:mb-2">
+          <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-green-500" />
+          <span className="text-xs text-fresh-sky-600 dark:text-fresh-sky-400 font-bold tracking-wide uppercase">Live Updates</span>
+        </div>
+        <h2 className="font-bricolage text-lg sm:text-xl lg:text-2xl font-bold text-slate-900 dark:text-foreground tracking-tight mb-2 sm:mb-3">
+          Find Your Next Tender
+        </h2>
+        <div className="relative max-w-3xl">
+          <div className="w-full h-[38px] sm:h-[42px] bg-white dark:bg-card border border-slate-200 dark:border-border rounded-xl animate-pulse" />
+        </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {Array.from({ length: 9 }).map((_, i) => (
@@ -151,9 +160,17 @@ async function TendersResult({ searchParams }: { searchParams: Promise<any> }) {
     countPromise = (async () => { const { count } = await countQuery; return count ?? 0; })();
   }
 
-  const [initialTenders, initialTotalCount] = await Promise.all([
+  const userPromise = supabase.auth.getUser();
+  const profilePromise = userPromise.then(async ({ data: { user } }) => {
+    if (!user) return { user: null, plan: 'free' };
+    const { data: profile } = await supabase.from('profiles').select('membership_plan').eq('id', user.id).maybeSingle();
+    return { user, plan: profile?.membership_plan ?? 'free' };
+  });
+
+  const [initialTenders, initialTotalCount, { user, plan: userPlan }] = await Promise.all([
     tendersPromise.then(d => (d as any[]) || []),
     countPromise,
+    profilePromise
   ]);
 
   const jsonLd = {
@@ -165,14 +182,6 @@ async function TendersResult({ searchParams }: { searchParams: Promise<any> }) {
       "url": `https://gemtenders.org/bids/${tender.slug}`
     }))
   };
-
-  // Show onboarding only for free (non-paying) logged-in users
-  const { data: { user } } = await supabase.auth.getUser();
-  let userPlan = 'free';
-  if (user) {
-    const { data: profile } = await supabase.from('profiles').select('membership_plan').eq('id', user.id).maybeSingle();
-    userPlan = profile?.membership_plan ?? 'free';
-  }
 
   return (
     <>
