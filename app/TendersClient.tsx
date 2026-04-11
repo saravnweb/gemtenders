@@ -8,6 +8,10 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import dynamic from 'next/dynamic';
+
+const OnboardingModal = dynamic(() => import('@/components/OnboardingModal'), { ssr: false });
+
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 import { normalizeState, normalizeCity, normalizeMinistry, isIndianState } from "@/lib/locations-client";
@@ -265,6 +269,7 @@ export default function TendersClientWrapper(props: {
   initialCategories: string[];
   initialTotalCount?: number;
   initialSortOrder?: "newest" | "ending_soon" | "relevance";
+  userPlan?: string;
 }) {
   return (
     <Suspense fallback={<TendersSkeleton />}>
@@ -300,6 +305,7 @@ function TendersClient({
   initialCategories,
   initialTotalCount,
   initialSortOrder,
+  userPlan,
 }: {
   initialTenders: any[];
   initialQ: string;
@@ -307,6 +313,7 @@ function TendersClient({
   initialCategories: string[];
   initialTotalCount?: number;
   initialSortOrder?: "newest" | "ending_soon" | "relevance";
+  userPlan?: string;
 }) {
   const searchParams = useSearchParams();
 
@@ -1026,6 +1033,7 @@ function TendersClient({
   return (
     <div className="min-h-screen bg-fresh-sky-50 dark:bg-background text-slate-800 dark:text-foreground font-sans">
       <main id="main-content" className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
+        {user && userPlan === 'free' && <OnboardingModal />}
 
         {/* ── Hero ── */}
         <div className="mb-4 sm:mb-6">

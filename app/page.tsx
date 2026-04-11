@@ -4,10 +4,6 @@ import { createClient } from '@/lib/supabase/server';
 import { fetchTendersByRelevance } from '@/lib/tenders-relevance-query';
 import { requirePublicListingReady } from '@/lib/tender-public-listing';
 import { Suspense } from 'react';
-import dynamic from 'next/dynamic';
-
-const OnboardingModal = dynamic(() => import('@/components/OnboardingModal'), { ssr: false });
-
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
@@ -189,7 +185,6 @@ async function TendersResult({ searchParams }: { searchParams: Promise<any> }) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      {user && userPlan === 'free' && <OnboardingModal />}
       <TendersClient
         initialTenders={initialTenders}
         initialTotalCount={initialTotalCount || undefined}
@@ -197,6 +192,7 @@ async function TendersResult({ searchParams }: { searchParams: Promise<any> }) {
         initialStates={initialStates}
         initialCategories={initialCategories}
         initialSortOrder={initialSortOrder}
+        userPlan={userPlan}
       />
     </>
   );
