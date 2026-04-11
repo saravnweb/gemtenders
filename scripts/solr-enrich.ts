@@ -36,7 +36,7 @@ import https from 'https';
 import fs from 'fs';
 import path from 'path';
 import { detectCategory } from '../lib/categories.js';
-import { normalizeState, normalizeCity, cityToState } from '../lib/locations.js';
+import { normalizeState, normalizeCity, normalizeMinistry, cityToState } from '../lib/locations.js';
 import { getComputedFields } from '../lib/computed-fields.js';
 
 // ─── CONFIG ──────────────────────────────────────────────────────────────────
@@ -316,7 +316,7 @@ async function processBatch(
       // SOLR structured fields
       if (doc) {
         if (!tender.ministry_name    && doc.ba_official_details_minName?.[0])
-          payload.ministry_name    = doc.ba_official_details_minName[0];
+          payload.ministry_name    = normalizeMinistry(doc.ba_official_details_minName[0]);
         if (!tender.department_name  && doc.ba_official_details_deptName?.[0])
           payload.department_name  = doc.ba_official_details_deptName[0];
         if (!tender.quantity         && doc.b_total_quantity?.[0])

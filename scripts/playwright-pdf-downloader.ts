@@ -29,7 +29,7 @@ import fs from 'fs';
 import path from 'path';
 import { createRequire } from 'module';
 import { extractTenderDataGroq } from '../lib/groq-ai.js';
-import { normalizeState, normalizeCity, cityToState } from '../lib/locations.js';
+import { normalizeState, normalizeCity, normalizeMinistry, cityToState } from '../lib/locations.js';
 import { detectCategory } from '../lib/categories.js';
 
 function parseGeMDate(dateStr: string): string | null {
@@ -184,9 +184,9 @@ async function buildAiPayload(pdfText: string, bidNumber: string): Promise<Recor
     if (!aiData) return payload;
 
     const auth = aiData.authority;
-    if (auth?.ministry)    payload.ministry_name     = auth.ministry;
+    if (auth?.ministry)    payload.ministry_name     = normalizeMinistry(auth.ministry);
     if (auth?.department)  payload.department_name   = auth.department;
-    if (auth?.organisation) payload.organisation_name = auth.organisation;
+    if (auth?.organisation) payload.organisation_name = normalizeMinistry(auth.organisation);
     if (auth?.office)      payload.office_name       = auth.office;
 
     if (auth?.consignee_city || auth?.city)

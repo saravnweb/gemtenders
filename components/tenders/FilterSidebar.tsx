@@ -1,11 +1,12 @@
 "use client";
 
-import { Dispatch, SetStateAction } from "react";
+import { Dispatch, SetStateAction, useCallback, useMemo } from "react";
 import { MapPin, Building2, Tag, Banknote, CalendarClock, Clock, Zap, SlidersHorizontal } from "lucide-react";
 import { FilterSection } from "./FilterSection";
 import { FilterDropdown } from "./FilterDropdown";
 import { TogglePill } from "./TogglePill";
 import { CATEGORIES } from "@/lib/categories";
+import { normalizeMinistry, normalizeState, normalizeCity } from "@/lib/locations-client";
 
 type FilterItem = { label: string; value: string; count: number };
 type SetStrings = Dispatch<SetStateAction<string[]>>;
@@ -96,34 +97,40 @@ export function FilterSidebar({
   /** 
    * Local helper for cross-facet counting using contextualTenders
    */
-  const matchesFilters = (t: any, excludeFacet?: string) => {
-    // We normalize to ensure comparisons match what the user selected
+  const matchesFilters = useCallback((t: any, excludeFacet?: string) => {
+    // Use pre-normalized fields if available, fallback to on-the-fly normalization
     if (excludeFacet !== 'state' && selectedStates.length > 0) {
-      const norm = normalizeState(t.state);
-      if (!norm || !selectedStates.includes(norm)) return false;
+      const val = t._nState !== undefined ? t._nState : normalizeState(t.state);
+      if (!val || !selectedStates.includes(val)) return false;
     }
     if (excludeFacet !== 'city' && selectedCities.length > 0) {
-      if (!t.city || !selectedCities.includes(t.city)) return false;
+      const val = t._nCity !== undefined ? t._nCity : normalizeCity(t.city);
+      if (!val || !selectedCities.includes(val)) return false;
     }
     if (excludeFacet !== 'ministry' && selectedMinistries.length > 0) {
-      if (!t.ministry_name || !selectedMinistries.includes(t.ministry_name)) return false;
+      const val = t._nMinistry !== undefined ? t._nMinistry : normalizeMinistry(t.ministry_name);
+      if (!val || !selectedMinistries.includes(val)) return false;
     }
     if (excludeFacet !== 'org' && selectedOrgs.length > 0) {
-      if (!t.organisation_name || !selectedOrgs.includes(t.organisation_name)) return false;
+      const val = t._nOrg !== undefined ? t._nOrg : normalizeMinistry(t.organisation_name);
+      if (!val || !selectedOrgs.includes(val)) return false;
     }
     if (excludeFacet !== 'category' && selectedCategories.length > 0) {
       if (!t.category || !selectedCategories.includes(t.category)) return false;
     }
     return true;
-  };
+  }, [selectedStates, selectedCities, selectedMinistries, selectedOrgs, selectedCategories]);
 
-  const stateItems = (() => {
-    const base = (searchQuery.trim() || contextualTenders.length > 0) ? (contextualStates.length > 0 ? contextualStates : states) : states;
+  const stateItems = useMemo(() => {
+    const isSearching = searchQuery.trim() || contextualTenders.length > 0;
+    const base = isSearching ? (contextualStates.length > 0 ? contextualStates : states) : states;
     
+    if (!isSearching) return base;
+
     const counts: Record<string, number> = {};
     contextualTenders.forEach(t => {
       if (matchesFilters(t, 'state')) {
-        const key = normalizeState(t.state) || "Unknown State";
+        const key = t._nState !== undefined ? t._nState : (normalizeState(t.state) || "Unknown State");
         counts[key] = (counts[key] || 0) + 1;
       }
     });
@@ -136,16 +143,24 @@ export function FilterSidebar({
     selectedStates.forEach((s) => {
       if (!merged.find((i) => i.value === s)) merged.push({ label: s, value: s, count: counts[s] || 0 });
     });
-    return merged.sort((a, b) => b.count - a.count);
-  })();
+    return merged.sort((a, b) => {
+      if (a.label.includes("Unknown")) return 1;
+      if (b.label.includes("Unknown")) return -1;
+      return a.label.localeCompare(b.label);
+    });
+  }, [searchQuery, contextualTenders, contextualStates, states, selectedStates, matchesFilters]);
 
-  const cityItems = (() => {
-    const base = (searchQuery.trim() || contextualTenders.length > 0) ? (contextualCities.length > 0 ? contextualCities : cities) : cities;
+  const cityItems = useMemo(() => {
+    const isSearching = searchQuery.trim() || contextualTenders.length > 0;
+    const base = isSearching ? (contextualCities.length > 0 ? contextualCities : cities) : cities;
     
+    if (!isSearching) return base;
+
     const counts: Record<string, number> = {};
     contextualTenders.forEach(t => {
       if (matchesFilters(t, 'city')) {
-        counts[t.city] = (counts[t.city] || 0) + 1;
+        const key = t._nCity !== undefined ? t._nCity : (t.city || "Other Cities");
+        counts[key] = (counts[key] || 0) + 1;
       }
     });
 
@@ -157,16 +172,25 @@ export function FilterSidebar({
     selectedCities.forEach((c) => {
       if (!merged.find((i) => i.value === c)) merged.push({ label: c, value: c, count: counts[c] || 0 });
     });
-    return merged.sort((a, b) => b.count - a.count);
-  })();
-
-  const ministryItems = (() => {
-    const base = (searchQuery.trim() || contextualTenders.length > 0) ? (contextualMinistries.length > 0 ? contextualMinistries : ministries) : ministries;
     
+    return merged.sort((a, b) => {
+      if (a.label.includes("Unknown")) return 1;
+      if (b.label.includes("Unknown")) return -1;
+      return a.label.localeCompare(b.label);
+    });
+  }, [searchQuery, contextualTenders, contextualCities, cities, selectedCities, matchesFilters]);
+
+  const ministryItems = useMemo(() => {
+    const isSearching = searchQuery.trim() || contextualTenders.length > 0;
+    const base = isSearching ? (contextualMinistries.length > 0 ? contextualMinistries : ministries) : ministries;
+    
+    if (!isSearching) return base;
+
     const counts: Record<string, number> = {};
     contextualTenders.forEach(t => {
       if (matchesFilters(t, 'ministry')) {
-        counts[t.ministry_name] = (counts[t.ministry_name] || 0) + 1;
+        const mk = t._nMinistry !== undefined ? t._nMinistry : (normalizeMinistry(t.ministry_name) || t.ministry_name);
+        counts[mk] = (counts[mk] || 0) + 1;
       }
     });
 
@@ -178,16 +202,25 @@ export function FilterSidebar({
     selectedMinistries.forEach((s) => {
       if (!merged.find((i) => i.value === s)) merged.push({ label: s, value: s, count: counts[s] || 0 });
     });
-    return merged.sort((a, b) => b.count - a.count);
-  })();
-
-  const orgItems = (() => {
-    const base = (searchQuery.trim() || contextualTenders.length > 0) ? (contextualOrgs.length > 0 ? contextualOrgs : orgs) : orgs;
     
+    return merged.sort((a, b) => {
+      if (a.label.includes("Unknown")) return 1;
+      if (b.label.includes("Unknown")) return -1;
+      return a.label.localeCompare(b.label);
+    });
+  }, [searchQuery, contextualTenders, contextualMinistries, ministries, selectedMinistries, matchesFilters]);
+
+  const orgItems = useMemo(() => {
+    const isSearching = searchQuery.trim() || contextualTenders.length > 0;
+    const base = isSearching ? (contextualOrgs.length > 0 ? contextualOrgs : orgs) : orgs;
+    
+    if (!isSearching) return base;
+
     const counts: Record<string, number> = {};
     contextualTenders.forEach(t => {
       if (matchesFilters(t, 'org')) {
-        counts[t.organisation_name] = (counts[t.organisation_name] || 0) + 1;
+        const ok = t._nOrg !== undefined ? t._nOrg : (normalizeMinistry(t.organisation_name) || t.organisation_name);
+        counts[ok] = (counts[ok] || 0) + 1;
       }
     });
 
@@ -199,10 +232,15 @@ export function FilterSidebar({
     selectedOrgs.forEach((s) => {
       if (!merged.find((i) => i.value === s)) merged.push({ label: s, value: s, count: counts[s] || 0 });
     });
-    return merged.sort((a, b) => b.count - a.count);
-  })();
+    
+    return merged.sort((a, b) => {
+      if (a.label.includes("Unknown")) return 1;
+      if (b.label.includes("Unknown")) return -1;
+      return a.label.localeCompare(b.label);
+    });
+  }, [searchQuery, contextualTenders, contextualOrgs, orgs, selectedOrgs, matchesFilters]);
 
-  const categoryItems = (() => {
+  const categoryItems = useMemo(() => {
     const counts: Record<string, number> = {};
     contextualTenders.forEach(t => {
       if (matchesFilters(t, 'category')) {
@@ -215,13 +253,9 @@ export function FilterSidebar({
       value: c.id, 
       count: counts[c.id] || 0 
     })).sort((a, b) => b.count - a.count);
-  })();
+  }, [contextualTenders, matchesFilters]);
 
-  // Helper to normalize state names for matching
-  function normalizeState(s: string | null) {
-    if (!s) return null;
-    return s.trim();
-  }
+
 
   const hierarchyCount = 
     selectedStates.length + selectedCities.length + 

@@ -18,7 +18,7 @@ export function isIndianState(name: string | null | undefined): boolean {
 }
 
 export function normalizeState(state: string | null | undefined): string | null {
-  if (!state || state.trim() === "") return null;
+  if (!state || state.trim() === "" || /^n\/?a$/i.test(state.trim()) || state.trim().toLowerCase() === 'null') return null;
   const s = state.trim().toLowerCase()
     .replace(/[\.\,]/g, '')
     .replace(/&/g, 'and')
@@ -29,39 +29,44 @@ export function normalizeState(state: string | null | undefined): string | null 
 
   const map: Record<string, string> = {
     'ap': 'Andhra Pradesh', 'andhrapradesh': 'Andhra Pradesh', 'andhra pradesh': 'Andhra Pradesh',
-    'arunachal pradesh': 'Arunachal Pradesh', 'arunachalpradesh': 'Arunachal Pradesh',
-    'assam': 'Assam',
+    'arunachal pradesh': 'Arunachal Pradesh', 'arunachalpradesh': 'Arunachal Pradesh', 'west kameng': 'Arunachal Pradesh',
+    'assam': 'Assam', 'kamrup': 'Assam',
     'bihar': 'Bihar',
-    'chhattisgarh': 'Chhattisgarh', 'cg': 'Chhattisgarh',
+    'chhattisgarh': 'Chhattisgarh', 'cg': 'Chhattisgarh', 'chhatishgarh': 'Chhattisgarh', 'chhatisgarh': 'Chhattisgarh', 'chattisgarh': 'Chhattisgarh',
     'goa': 'Goa',
-    'gujarat': 'Gujarat', 'gj': 'Gujarat',
+    'gujarat': 'Gujarat', 'gj': 'Gujarat', 'gujrat': 'Gujarat',
     'haryana': 'Haryana', 'hr': 'Haryana',
     'himachal pradesh': 'Himachal Pradesh', 'hp': 'Himachal Pradesh', 'shimla': 'Himachal Pradesh',
     'jharkhand': 'Jharkhand',
-    'jammu kashmir': 'Jammu And Kashmir', 'jammu & kashmir': 'Jammu And Kashmir', 'jammu and kashmir': 'Jammu And Kashmir', 'j&k': 'Jammu And Kashmir', 'j k': 'Jammu And Kashmir',
-    'karnataka': 'Karnataka', 'ka': 'Karnataka',
-    'kerala': 'Kerala', 'kl': 'Kerala',
+    'jammu kashmir': 'Jammu And Kashmir', 'jammu & kashmir': 'Jammu And Kashmir', 'jammu and kashmir': 'Jammu And Kashmir', 'j&k': 'Jammu And Kashmir', 'j k': 'Jammu And Kashmir', 'jammu': 'Jammu And Kashmir', 'ananthnag': 'Jammu And Kashmir', 'anantnag': 'Jammu And Kashmir',
+    'karnataka': 'Karnataka', 'ka': 'Karnataka', 'uttara kannada': 'Karnataka',
+    'kerala': 'Kerala', 'kl': 'Kerala', 'ernakulam': 'Kerala', 'thiruvananthapuram': 'Kerala',
     'madhya pradesh': 'Madhya Pradesh', 'mp': 'Madhya Pradesh',
-    'maharashtra': 'Maharashtra', 'mh': 'Maharashtra',
+    'maharashtra': 'Maharashtra', 'mh': 'Maharashtra', 'maharshtra': 'Maharashtra', 'maharashatra': 'Maharashtra', 'maharastra': 'Maharashtra',
     'manipur': 'Manipur',
     'meghalaya': 'Meghalaya',
     'mizoram': 'Mizoram',
     'nagaland': 'Nagaland',
     'odisha': 'Odisha', 'orissa': 'Odisha', 'or': 'Odisha',
     'punjab': 'Punjab', 'pb': 'Punjab',
-    'rajasthan': 'Rajasthan', 'rj': 'Rajasthan',
+    'rajasthan': 'Rajasthan', 'rj': 'Rajasthan', 'rajsthan': 'Rajasthan',
     'sikkim': 'Sikkim', 'sk': 'Sikkim',
-    'tamil nadu': 'Tamil Nadu', 'tamilnadu': 'Tamil Nadu', 'tn': 'Tamil Nadu',
-    'telangana': 'Telangana', 'ts': 'Telangana', 'tg': 'Telangana',
+    'tamil nadu': 'Tamil Nadu', 'tamilnadu': 'Tamil Nadu', 'tn': 'Tamil Nadu', 'thiruvallur': 'Tamil Nadu', 'tiruvallur': 'Tamil Nadu', 'tiruvarur': 'Tamil Nadu',
+    'telangana': 'Telangana', 'ts': 'Telangana', 'tg': 'Telangana', 'medak': 'Telangana',
     'tripura': 'Tripura', 'tr': 'Tripura',
     'uttar pradesh': 'Uttar Pradesh', 'up': 'Uttar Pradesh',
-    'uttarakhand': 'Uttarakhand', 'uk': 'Uttarakhand',
-    'west bengal': 'West Bengal', 'wb': 'West Bengal',
+    'uttarakhand': 'Uttarakhand', 'uk': 'Uttarakhand', 'uttrakhand': 'Uttarakhand',
+    'west bengal': 'West Bengal', 'wb': 'West Bengal', 'darjeeling': 'West Bengal', 'north 24 paraganas': 'West Bengal',
     'delhi': 'Delhi', 'new delhi': 'Delhi', 'nct of delhi': 'Delhi',
     'puducherry': 'Puducherry', 'py': 'Puducherry', 'pondicherry': 'Puducherry',
     'chandigarh': 'Chandigarh', 'ch': 'Chandigarh',
     'ladakh': 'Ladakh',
-    'andamannicobar': 'Andaman And Nicobar', 'andaman and nicobar': 'Andaman And Nicobar', 'south andaman': 'Andaman And Nicobar',
+    'andamannicobar': 'Andaman And Nicobar', 'andaman and nicobar': 'Andaman And Nicobar', 'andaman & nicobar': 'Andaman And Nicobar', 'andaman and nicbar islands': 'Andaman And Nicobar', 'south andaman': 'Andaman And Nicobar',
+    'dadra and nagar haveli': 'Dadra And Nagar Haveli And Daman And Diu',
+    'dadra & nagar haveli': 'Dadra And Nagar Haveli And Daman And Diu',
+    'daman and diu': 'Dadra And Nagar Haveli And Daman And Diu',
+    'dadra and nagar haveli and daman and diu': 'Dadra And Nagar Haveli And Daman And Diu',
+    'lakshadweep': 'Lakshadweep',
   };
 
   const clean = s.replace(/\s+/g, ' ').trim();
@@ -451,6 +456,30 @@ const CITY_ALIASES: Record<string, string> = {
   'jagatsinghapur': 'Jagatsinghpur',
   'jagatsinghpur': 'Jagatsinghpur',
 };
+
+// Connector words that should remain lowercase in ministry/org display names.
+const LOWERCASE_WORDS = new Set(['of', 'and', 'the', 'for', 'in', 'at', 'to', 'a', 'an', 'by', 'or', 'on']);
+
+/**
+ * Canonical form for ministry_name and organisation_name.
+ * Trims, collapses whitespace, strips junk suffixes, and applies English
+ * title-case rules (connector words stay lowercase, first word always caps).
+ * Returns null for blank / N/A / junk inputs.
+ */
+export function normalizeMinistry(name: string | null | undefined): string | null {
+  if (!name) return null;
+  const raw = name.trim().replace(/\s+/g, ' ').replace(/[.*_#]+$/, '').trim();
+  if (!raw || /^n\/?a$/i.test(raw) || raw.toLowerCase() === 'null') return null;
+
+  const lower = raw.toLowerCase();
+  if (lower === 'ministry of' || lower === 'department of' || lower === 'office of' || lower === 'organisation of') return null;
+
+  return raw
+    .toLowerCase()
+    .split(' ')
+    .map((w, i) => (i === 0 || !LOWERCASE_WORDS.has(w)) ? w.charAt(0).toUpperCase() + w.slice(1) : w)
+    .join(' ');
+}
 
 export function normalizeCity(city: string | null | undefined): string | null {
   if (!city || city.trim() === '') return null;

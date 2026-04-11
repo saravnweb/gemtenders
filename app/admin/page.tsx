@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { IntegrityCrossCheck } from "./client-buttons";
 
 export const dynamic = 'force-dynamic';
 
@@ -71,6 +72,11 @@ export default async function AdminPage() {
     .from("tenders")
     .select("*", { count: "exact", head: true })
     .not("pdf_url", "is", null);
+
+  const { count: activeCount } = await supabase
+    .from("tenders")
+    .select("*", { count: "exact", head: true })
+    .gte("end_date", new Date().toISOString());
 
   // ── Data Quality Stats ───────────────────────────────────────────────────
   const [
@@ -252,6 +258,9 @@ export default async function AdminPage() {
           <SubscriberTable id="starter-subscribers" title="Starter Subscribers" color="orange" subscribers={starterSubscribers} />
           <SubscriberTable id="free-subscribers" title="Free Tier Users" color="slate" subscribers={freeSubscribers} />
         </div>
+
+        {/* ── Internal Integrity Cross-Check ── */}
+        <IntegrityCrossCheck activeCount={activeCount || 0} />
 
         {/* ── Data Quality Section ── */}
         <div className="mt-14">

@@ -2,10 +2,18 @@
 
 import { Check, Star, Zap } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function PricingPage() {
   const [isAnnual, setIsAnnual] = useState(false);
+  const [liveCount, setLiveCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetch('/api/explore/stats')
+      .then(r => r.json())
+      .then(d => setLiveCount(d.totalActive ?? null))
+      .catch(() => {});
+  }, []);
 
   return (
     <div id="main-content" className="min-h-screen bg-fresh-sky-50 font-sans py-20 px-4 sm:px-6 lg:px-8">
@@ -42,7 +50,9 @@ export default function PricingPage() {
       {/* Social proof */}
       <div className="max-w-3xl mx-auto mb-14 grid grid-cols-1 sm:grid-cols-2 gap-6 text-center">
         <div className="bg-white rounded-2xl p-5 border border-fresh-sky-100 shadow-sm">
-          <p className="text-3xl font-black text-fresh-sky-950 mb-1">10,000+</p>
+          <p className="text-3xl font-black text-fresh-sky-950 mb-1">
+            {liveCount === null ? '...' : `${liveCount.toLocaleString('en-IN')}+`}
+          </p>
           <p className="text-sm text-fresh-sky-600 font-medium">Live tenders indexed from the official GeM portal</p>
         </div>
         <div className="bg-white rounded-2xl p-5 border border-fresh-sky-100 shadow-sm">

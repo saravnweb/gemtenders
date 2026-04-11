@@ -23,7 +23,7 @@ import https from 'https';
 import path from 'path';
 import fs from 'fs';
 import { createClient } from '@supabase/supabase-js';
-import { normalizeState, normalizeCity, cityToState } from '../lib/locations.js';
+import { normalizeState, normalizeCity, normalizeMinistry, cityToState } from '../lib/locations.js';
 import { detectCategory } from '../lib/categories.js';
 
 const httpsAgent = new https.Agent({ rejectUnauthorized: false });
@@ -150,9 +150,9 @@ async function enrichOne(
     const payload: any = {
       ai_summary:        aiData.technical_summary || null,
       title:             aiData.tender_title || tender.title,
-      ministry_name:     auth?.ministry    || null,
+      ministry_name:     normalizeMinistry(auth?.ministry) || null,
       department_name:   auth?.department  || null,
-      organisation_name: auth?.organisation || null,
+      organisation_name: normalizeMinistry(auth?.organisation) || null,
       office_name:       auth?.office      || null,
       state:             normalizeState(auth?.consignee_state || auth?.state),
       city:              normalizeCity(auth?.consignee_city  || auth?.city),
@@ -255,7 +255,7 @@ async function main() {
       };
 
       // Apply SOLR fields directly
-      if (doc.ba_official_details_minName?.[0]) directUpdate.ministry_name   = doc.ba_official_details_minName[0];
+      if (doc.ba_official_details_minName?.[0]) directUpdate.ministry_name   = normalizeMinistry(doc.ba_official_details_minName[0]);
       if (doc.ba_official_details_deptName?.[0]) directUpdate.department_name = doc.ba_official_details_deptName[0];
       if (doc.b_total_quantity?.[0])            directUpdate.quantity         = doc.b_total_quantity[0];
       if (doc.b_category_name?.[0] || doc.bd_category_name?.[0]) {

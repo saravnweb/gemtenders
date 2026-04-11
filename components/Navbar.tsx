@@ -258,7 +258,7 @@ export default function Navbar() {
                   <LayoutDashboard className="w-4 h-4" />
                   <span>Explore</span>
                 </Link>
-                {!loading && user ? (
+                {!loading && user && (
                   <>
                     <Link href="/dashboard/saved" className="flex items-center space-x-1.5 text-xs font-black uppercase tracking-widest text-fresh-sky-700 dark:text-fresh-sky-300 hover:text-atomic-tangerine-600 transition-colors">
                       <Bookmark className="w-4 h-4" />
@@ -273,10 +273,6 @@ export default function Navbar() {
                       <span>My Plan</span>
                     </Link>
                   </>
-                ) : (
-                    <Link href="/explore" className="text-xs font-black uppercase tracking-widest text-fresh-sky-700 dark:text-fresh-sky-300 hover:text-atomic-tangerine-600 transition-colors">
-                      Explore Bids
-                    </Link>
                 )}
 
                 <Link href="/about" className="flex items-center space-x-1.5 text-xs font-black uppercase tracking-widest text-fresh-sky-700 dark:text-fresh-sky-300 hover:text-atomic-tangerine-600 transition-colors">

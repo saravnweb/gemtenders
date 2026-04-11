@@ -10,7 +10,7 @@ const supabase = createClient(
 import path from "path";
 import fs from "fs";
 import { extractTenderData, generateSlug } from "@/lib/gemini";
-import { extractVerifiedCity, normalizeState, normalizeCity, extractCityStateFromConsigneeTable } from "../locations";
+import { extractVerifiedCity, normalizeState, normalizeCity, normalizeMinistry, extractCityStateFromConsigneeTable } from "../locations";
 import { detectCategory } from "../categories";
 
 function detectBidType(bidNo: string, title: string): string {
@@ -512,9 +512,9 @@ export async function scrapeGeMBids(options?: { lightMode?: boolean; maxPages?: 
       slug,
       title: finalTitle,
       department: finalDept,
-      ministry_name: auth?.ministry || null,
+      ministry_name: normalizeMinistry(auth?.ministry) || null,
       department_name: auth?.department || null,
-      organisation_name: !isNA(auth?.organisation) ? (auth?.organisation || null) : (auth?.department || null),
+      organisation_name: normalizeMinistry(!isNA(auth?.organisation) ? (auth?.organisation || null) : (auth?.department || null)) || null,
       office_name: auth?.office || null,
       state: normalizeState(auth?.consignee_state || auth?.state) || null,
       city: normalizeCity(auth?.consignee_city || auth?.city) || null,

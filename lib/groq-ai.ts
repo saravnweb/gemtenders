@@ -12,7 +12,7 @@ The document layout is a table with Hindi and English headers. The values are us
 
 CRITICAL EXTRACTION RULES:
 1. AUTHORITY HIERARCHY & LOCATIONS:
-   - ministry: Look for the field marked "(Ministry)" or "Ministry of...".
+   - ministry: Look for the field marked "(Ministry)" or "Ministry of...". If it says "Ministry/State Name", and the value is a State name (e.g. Karnataka), set state="Karnataka" and ministry=null. DO NOT return "Ministry of" alone.
    - department: Look for the field marked "(Department)" or "Department of...".
    - organisation: Look for the field marked "(Organisation)". If multiple are present, pick the most specific one (e.g., "Indian Army", "Border Security Force", "Central Public Works Department").
    - office: Look for "(Office)" or "Office Name".

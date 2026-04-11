@@ -129,7 +129,7 @@ export default function Footer() {
         {/* Bottom bar */}
         <div className="border-t border-slate-100 dark:border-border pt-4">
           <p className="text-[11px] font-medium text-slate-500 dark:text-muted-foreground text-center leading-relaxed">
-            &copy; <span suppressHydrationWarning>{new Date().getFullYear()}</span> GeMTenders.org &mdash; Data sourced from Government e-Marketplace (gem.gov.in).
+            &copy; 2026 GeMTenders.org. Built with ❤️ for Small Businesses.
           </p>
         </div>
       </div>

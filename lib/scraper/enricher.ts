@@ -3,7 +3,7 @@ import https from 'https';
 import axios from 'axios';
 import { createRequire } from 'module';
 import { extractTenderDataGroq } from '../groq-ai';
-import { normalizeState, normalizeCity, cityToState, isIndianState } from '../locations';
+import { normalizeState, normalizeCity, normalizeMinistry, cityToState, isIndianState } from '../locations';
 import { detectCategory } from '../categories';
 import { normalizeTitle } from '../computed-fields';
 import { parseGeMDate } from './gem-scraper';
@@ -196,7 +196,7 @@ export async function runEnrichment(limit: number = 20, reprocess: boolean = fal
             if (!cityState.state) cityState.state = normalizeState(val);
             updatePayload.ministry_name = null;
           } else {
-            updatePayload.ministry_name = val;
+            updatePayload.ministry_name = normalizeMinistry(val);
           }
         }
         if (htmlFields['department']) updatePayload.department_name = htmlFields['department'];
@@ -212,7 +212,7 @@ export async function runEnrichment(limit: number = 20, reprocess: boolean = fal
               if (!updatePayload.state) updatePayload.state = normalizeState(auth.ministry);
               updatePayload.ministry_name = null;
             } else {
-              updatePayload.ministry_name = auth.ministry;
+              updatePayload.ministry_name = normalizeMinistry(auth.ministry);
             }
           }
           if (!updatePayload.department_name && auth?.department) updatePayload.department_name = auth.department;
@@ -221,7 +221,7 @@ export async function runEnrichment(limit: number = 20, reprocess: boolean = fal
               if (!updatePayload.state) updatePayload.state = normalizeState(auth.organisation);
               updatePayload.organisation_name = null;
             } else {
-              updatePayload.organisation_name = auth.organisation;
+              updatePayload.organisation_name = normalizeMinistry(auth.organisation);
             }
           }
           if (auth?.office) updatePayload.office_name = auth.office;

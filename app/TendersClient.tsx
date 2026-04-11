@@ -10,7 +10,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-import { normalizeState, normalizeCity, isIndianState } from "@/lib/locations-client";
+import { normalizeState, normalizeCity, normalizeMinistry, isIndianState } from "@/lib/locations-client";
 import { fetchTendersByRelevance } from "@/lib/tenders-relevance-query";
 import { requirePublicListingReady } from "@/lib/tender-public-listing";
 const PAGE_SIZE = 21;
@@ -358,6 +358,7 @@ function TendersClient({
   const [ministriesLoaded, setMinistriesLoaded]     = useState(false);
   const [orgsLoaded, setOrgsLoaded]                 = useState(false);
   const [allOrgs, setAllOrgs]                       = useState<Array<{label:string;value:string;count:number}>>([]);
+  const [allActiveTendersMetadata, setAllActiveTendersMetadata] = useState<any[]>([]);
 
   // ── Mobile filter drawer ──
   const [mobileFiltersOpen, setMobileFiltersOpen]   = useState(false);
@@ -378,6 +379,67 @@ function TendersClient({
     if (excludeFacet !== 'category' && selectedCategories.length > 0 && !selectedCategories.includes(t.category)) return false;
     return true;
   };
+
+  // ── Helper: row array → sorted counted items ──
+  const normalizationCache = useRef<Record<string, string>>({});
+
+  const toCounted = useCallback((rows: any[], key: string, fallbackLabel?: string) => {
+    const map: Record<string, number> = {};
+    const cache = normalizationCache.current;
+
+    rows.forEach((r) => {
+      let v = r[key];
+      if (!v) {
+        const label = fallbackLabel || "";
+        map[label] = (map[label] || 0) + 1;
+        return;
+      }
+
+      const cacheKey = `${key}:${v}`;
+      let normalized = cache[cacheKey];
+
+      if (normalized === undefined) {
+        v = v.trim();
+        if (key === 'state') {
+          normalized = normalizeState(v) || "";
+        } else if (key === 'city') {
+          normalized = normalizeCity(v) || "";
+        } else {
+          v = v.replace(/\s+/g, ' ');
+          v = v.replace(/\.+$/, '');
+          v = v.replace(/[\*\_\#]+$/, '');
+          
+          if (key === 'ministry_name' || key === 'organisation_name') {
+            if (isIndianState(v)) {
+              normalized = "__SKIP__"; 
+            } else {
+              normalized = normalizeMinistry(v) || "";
+            }
+          } else {
+            normalized = toTitleCase(v);
+          }
+        }
+        cache[cacheKey] = normalized;
+      }
+      
+      if (normalized === "__SKIP__") return;
+
+      const targetLabel = normalized || fallbackLabel;
+      if (targetLabel) {
+        map[targetLabel] = (map[targetLabel] || 0) + 1;
+      }
+    });
+
+    return Object.entries(map)
+      .map(([v, c]) => ({ label: v, value: v, count: c }))
+      .sort((a, b) => {
+        if (fallbackLabel) {
+          if (a.label === fallbackLabel) return 1;
+          if (b.label === fallbackLabel) return -1;
+        }
+        return a.label.localeCompare(b.label);
+      });
+  }, []);
 
   const contextualStates = useMemo(() => 
     toCounted(contextualTenders, "state", "Unknown State"), 
@@ -571,47 +633,6 @@ function TendersClient({
     });
   }, [savedSearches]);
 
-  // ── Helper: row array → sorted counted items ──
-  function toCounted(rows: any[], key: string, fallbackLabel?: string) {
-    const map: Record<string, number> = {};
-    rows.forEach((r) => {
-      let v = r[key];
-      let normalized = "";
-      if (v) {
-        v = v.trim();
-        if (key === 'state') {
-          normalized = normalizeState(v) || "";
-        } else if (key === 'city') {
-          normalized = normalizeCity(v) || "";
-        } else {
-          v = v.replace(/\s+/g, ' ');
-          v = v.replace(/\.+$/, '');
-          v = v.replace(/[\*\_\#]+$/, '');
-          
-          if (key === 'ministry_name' || key === 'organisation_name') {
-            if (isIndianState(v)) return; // Skip states appearing in organization fields
-          }
-          
-          normalized = toTitleCase(v);
-        }
-      }
-      
-      const targetLabel = normalized || fallbackLabel;
-      if (targetLabel) {
-        map[targetLabel] = (map[targetLabel] || 0) + 1;
-      }
-    });
-    return Object.entries(map)
-      .map(([v, c]) => ({ label: v, value: v, count: c }))
-      .sort((a, b) => {
-        if (fallbackLabel) {
-          if (a.label === fallbackLabel) return 1;
-          if (b.label === fallbackLabel) return -1;
-        }
-        return a.label.localeCompare(b.label);
-      });
-  }
-
   // ── Unified lazy-load for metadata (States, Ministries, Orgs) ──
   const [metadataLoading, setMetadataLoading] = useState(false);
 
@@ -619,43 +640,76 @@ function TendersClient({
     if ((statesLoaded && ministriesLoaded && orgsLoaded) || metadataLoading) return;
     setMetadataLoading(true);
 
-    let all: any[] = [];
-    let page = 0;
-    const PAGE_SIZE = 1000;
+    const CHUNK_SIZE = 1000;
+    const CONCURRENCY = 10; // Fetch 10 pages at a time (10,000 items)
+    const MAX_PAGES = 60;   // Up to 60,000 tenders
     const now = new Date().toISOString();
 
-    try {
-      while (true) {
-        const { data, error } = await requirePublicListingReady(
-          supabase
-            .from("tenders")
-            .select("state, ministry_name, organisation_name")
-            .gte("end_date", now)
-        ).range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+    let all: any[] = [];
+    let pageOffset = 0;
 
-        if (error || !data || data.length === 0) break;
-        all = all.concat(data);
-        if (data.length < PAGE_SIZE) break;
-        page++;
-        if (page > 30) break; // Safety cap
+    try {
+      while (pageOffset < MAX_PAGES) {
+        const promises = [];
+        for (let i = 0; i < CONCURRENCY && (pageOffset + i) < MAX_PAGES; i++) {
+          const page = pageOffset + i;
+          promises.push(
+            requirePublicListingReady(
+              supabase
+                .from("tenders")
+                .select("state, city, ministry_name, organisation_name, category")
+                .gte("end_date", now)
+            ).range(page * CHUNK_SIZE, (page + 1) * CHUNK_SIZE - 1)
+          );
+        }
+
+        const results = await Promise.all(promises);
+        let finished = false;
+        
+        for (const { data, error } of results) {
+          if (error || !data || data.length === 0) {
+            finished = true;
+            break;
+          }
+          all = all.concat(data);
+          if (data.length < CHUNK_SIZE) {
+            finished = true;
+            break;
+          }
+        }
+
+        if (finished) break;
+        pageOffset += CONCURRENCY;
       }
 
       if (all.length > 0) {
-        setStates(toCounted(all.filter(r => r.state), "state", "Unknown State"));
+        // Pre-normalize common fields to speed up filtering/counting in the sidebar
+        const normalizedAll = all.map(row => ({
+          ...row,
+          _nState: normalizeState(row.state) || "Unknown State",
+          _nCity: normalizeCity(row.city) || "Other Cities",
+          _nMinistry: normalizeMinistry(row.ministry_name) || "Not Specified",
+          _nOrg: normalizeMinistry(row.organisation_name) || "Not Specified"
+        }));
+        
+        setAllActiveTendersMetadata(normalizedAll);
+        setStates(toCounted(normalizedAll, "_nState"));
         setStatesLoaded(true);
-        setMinistries(toCounted(all.filter(r => r.ministry_name), "ministry_name", "Not Specified"));
+        setMinistries(toCounted(normalizedAll, "_nMinistry"));
         setMinistriesLoaded(true);
-        const orgsList = toCounted(all.filter(r => r.organisation_name), "organisation_name", "Not Specified");
+        const orgsList = toCounted(normalizedAll, "_nOrg");
         setOrgs(orgsList);
         setAllOrgs(orgsList);
         setOrgsLoaded(true);
       }
+
     } catch (err) {
       console.error("[loadMetadata] Error:", err);
     } finally {
       setMetadataLoading(false);
     }
   }
+
 
   // Backwards compatibility for the dropdown components
   const loadStates = loadMetadata;
@@ -766,47 +820,55 @@ function TendersClient({
       setLoading(false);
 
       // 2. Fetch counts and contextual filters in background (SLOW path)
-      // We want contextual data if searching OR if we have deep hierarchy filters active
       const hasHierarchyFilters = !!(f.states.length || f.cities.length || f.ministries.length || f.orgs.length || f.categories.length);
-      const cacheKey = `${q}:${f.states.join(",")}`; // Simplified cache key
+      const cacheKey = `${q}:${f.states.join(",")}`; 
       const needContextual = (q.length > 0 || hasHierarchyFilters) && contextualQueryCache.current !== cacheKey;
       
-      let ctxPromise: Promise<any> = Promise.resolve(null);
       if (needContextual) {
-        let ctxQ = requirePublicListingReady(
-          supabase.from("tenders")
-            .select("state, city, ministry_name, organisation_name, category")
-            .gte("end_date", new Date().toISOString())
-        );
-
-        if (q) {
+        if (!q && allActiveTendersMetadata.length > 0) {
+          // Optimization: If NOT searching (only filtering), use the full metadata set we already have in memory.
+          // This is 100% accurate and faster than a DB call.
+          setContextualTenders(allActiveTendersMetadata);
+          setContextualLoading(false);
+          contextualQueryCache.current = cacheKey;
+        } else if (q) {
+          // If searching, we MUST fetch matching metadata from DB because our local set doesn't have titles/summaries.
+          let ctxQ = requirePublicListingReady(
+            supabase.from("tenders")
+              .select("state, city, ministry_name, organisation_name, category")
+              .gte("end_date", new Date().toISOString())
+          );
           const ctxOrClause = q.split(',').map((s: string) => s.trim()).filter(Boolean)
             .map((t: string) => buildTextSearchOrClause(t)).join(',');
           ctxQ = ctxQ.or(ctxOrClause);
-        }
+          
+          ctxQ.order("created_at", { ascending: false }).limit(2000).then(({ data }: { data: any[] | null }) => {
+            if (seq !== fetchSeq.current) return;
+            if (data) {
+              const normalizedData = data.map(t => ({
+                ...t,
+                _nState: normalizeState(t.state) || "Unknown State",
+                _nCity: normalizeCity(t.city) || "Other Cities",
+                _nMinistry: normalizeMinistry(t.ministry_name) || "Not Specified",
+                _nOrg: normalizeMinistry(t.organisation_name) || "Not Specified"
+              }));
+              setContextualTenders(normalizedData);
+              contextualQueryCache.current = cacheKey;
+            }
+            setContextualLoading(false);
+          });
 
-        ctxPromise = ctxQ.order("created_at", { ascending: false }).limit(2000);
+        }
       }
 
       Promise.all([
         queryTendersCount({ ...f, tab: "all" }),
         queryTendersCount({ ...f, tab: "archived" }),
-        ctxPromise,
-      ]).then(([count, countArchived, ctxResult]) => {
+      ]).then(([count, countArchived]) => {
         if (seq !== fetchSeq.current) return;
-        
         setTotalCount(count);
         setActiveCount(count);
         setArchivedCount(countArchived);
-
-        if (needContextual && ctxResult) {
-          const { data } = ctxResult as any;
-          if (data) {
-            contextualQueryCache.current = cacheKey;
-            setContextualTenders(data || []);
-          }
-          setContextualLoading(false);
-        }
       }).catch(err => {
         console.error("[Background Fetch Error]", err);
         if (seq === fetchSeq.current) setContextualLoading(false);

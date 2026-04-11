@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { normalizeMinistry } from '@/lib/locations-client';
 import { createClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
@@ -92,13 +93,13 @@ export async function GET(req: Request) {
       // Topic follow matches — grouped by follow_value per user
       for (const follow of topicFollows ?? []) {
         if (follow.follow_type === 'ministry' && tender.ministry_name) {
-          if (tender.ministry_name.toLowerCase().includes(follow.follow_value.toLowerCase())) {
+          if ((normalizeMinistry(tender.ministry_name) ?? tender.ministry_name).toLowerCase().includes(follow.follow_value.toLowerCase())) {
             if (!userMinistryCount.has(follow.user_id)) userMinistryCount.set(follow.user_id, new Map());
             const m = userMinistryCount.get(follow.user_id)!;
             m.set(follow.follow_value, (m.get(follow.follow_value) ?? 0) + 1);
           }
         } else if (follow.follow_type === 'org' && tender.organisation_name) {
-          if (tender.organisation_name.toLowerCase().includes(follow.follow_value.toLowerCase())) {
+          if ((normalizeMinistry(tender.organisation_name) ?? tender.organisation_name).toLowerCase().includes(follow.follow_value.toLowerCase())) {
             if (!userOrgCount.has(follow.user_id)) userOrgCount.set(follow.user_id, new Map());
             const m = userOrgCount.get(follow.user_id)!;
             m.set(follow.follow_value, (m.get(follow.follow_value) ?? 0) + 1);

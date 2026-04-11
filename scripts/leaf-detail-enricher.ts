@@ -43,7 +43,7 @@ import * as cheerio from 'cheerio';
 import fs from 'fs';
 import path from 'path';
 import { getComputedFields } from '../lib/computed-fields.js';
-import { normalizeState, normalizeCity, pinToState, cityToState, isIndianState } from '../lib/locations.js';
+import { normalizeState, normalizeCity, normalizeMinistry, pinToState, cityToState, isIndianState } from '../lib/locations.js';
 
 // ─── CONFIG ──────────────────────────────────────────────────────────────────
 const argv        = process.argv.slice(2);
@@ -200,7 +200,7 @@ function parseLeafHtml(html: string): LeafData {
     } else if (/pre.?bid/.test(header)) {
       data.pre_bid_date = parseIndianDate(value);
     } else if (header.includes('organisation name') || header.includes('organization name')) {
-      if (!data.organisation_name) data.organisation_name = value;
+      if (!data.organisation_name) data.organisation_name = normalizeMinistry(value);
     } else if (header.includes('office name') || header.includes('consignee office')) {
       if (!data.office_name) data.office_name = value;
     } else if (header.includes('mse relaxation') || header.includes('mse experience')) {
@@ -234,9 +234,9 @@ function parseLeafHtml(html: string): LeafData {
     const label = $(el).text().trim().toLowerCase().replace(/:\s*$/, '').trim();
     const val   = $(el).next('span').text().trim();
     if (!val) return;
-    if      (label === 'ministry')                             data.ministry_name    = val;
+    if      (label === 'ministry')                             data.ministry_name    = normalizeMinistry(val);
     else if (label === 'department')                           data.department_name  = val;
-    else if (label === 'organisation' || label === 'organization') data.organisation_name = val;
+    else if (label === 'organisation' || label === 'organization') data.organisation_name = normalizeMinistry(val);
     else if (label === 'office')                               data.office_name      = val;
 
     // Redirection logic: if ministry/org is actually a state name, move it to state

@@ -17,6 +17,7 @@
  */
 
 import dotenv from 'dotenv';
+import { normalizeMinistry } from '../lib/locations-client.js';
 dotenv.config({ path: '.env.local' });
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL) dotenv.config({ path: '.env' });
 
@@ -145,7 +146,7 @@ async function processSlice(
       payload.bid_type = solrBidType(doc, tender.bid_number);
 
       if (!tender.ministry_name   && doc.ba_official_details_minName?.[0])
-        payload.ministry_name   = doc.ba_official_details_minName[0];
+        payload.ministry_name   = normalizeMinistry(doc.ba_official_details_minName[0]);
       if (!tender.department_name && doc.ba_official_details_deptName?.[0])
         payload.department_name = doc.ba_official_details_deptName[0];
       if (!tender.quantity        && doc.b_total_quantity?.[0])

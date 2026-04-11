@@ -24,7 +24,7 @@ import path from 'path';
 import { createRequire } from 'module';
 import { extractTenderDataGroq } from '../lib/groq-ai.js';
 import { getComputedFields } from '../lib/computed-fields.js';
-import { extractCityStateFromConsigneeTable } from '../lib/locations.js';
+import { normalizeState, normalizeCity, extractCityStateFromConsigneeTable } from '../lib/locations.js';
 
 // pdf-parse v2 changed API: new PDFParse({ data: buffer }).getText()
 const require  = createRequire(import.meta.url);
@@ -166,11 +166,13 @@ function buildPayload(ai: any, existing: any): Record<string, any> {
     if (!existing.office_name       && auth.office)        p.office_name       = auth.office;
     if (!existing.state) {
       const st = auth.state || auth.consignee_state;
-      if (st) p.state = st;
+      const normalizedState = st ? normalizeState(st) : null;
+      if (normalizedState) p.state = normalizedState;
     }
     if (!existing.city) {
       const ct = auth.city || auth.consignee_city;
-      if (ct) p.city = ct;
+      const normalizedCity = ct ? normalizeCity(ct) : null;
+      if (normalizedCity) p.city = normalizedCity;
     }
   }
 

@@ -1,4 +1,4 @@
-import { INDIAN_STATES, normalizeState, isIndianState } from "@/lib/locations";
+import { INDIAN_STATES, normalizeState, normalizeCity, cityToState, isIndianState, normalizeMinistry } from "@/lib/locations";
 import { requirePublicListingReady } from "@/lib/tender-public-listing";
 import ExploreClient from "./ExploreClient";
 import { Suspense } from "react";
@@ -102,7 +102,7 @@ async function ExploreDataFetcher() {
   });
 
   // 2. Calculate By Ministry Counts (ministry_name field + overflow from state field)
-  const isInvalid = (v?: string | null) => !v || /^n\/?a$/i.test(v.trim()) || v === 'null';
+  const isInvalid = (v?: string | null) => !v || /^n\/?a$/i.test(v.trim()) || v.trim().toLowerCase() === 'null';
   const ministryCounts: Record<string, number> = {};
   tenders.forEach(t => {
     if (!isInvalid(t.ministry_name)) {
@@ -110,7 +110,8 @@ async function ExploreDataFetcher() {
         const canonical = normalizeState(t.ministry_name)!;
         stateCounts[canonical] = (stateCounts[canonical] || 0) + 1;
       } else {
-        ministryCounts[t.ministry_name!] = (ministryCounts[t.ministry_name!] || 0) + 1;
+        const key = normalizeMinistry(t.ministry_name) ?? t.ministry_name!;
+        ministryCounts[key] = (ministryCounts[key] || 0) + 1;
       }
     }
   });
@@ -120,8 +121,15 @@ async function ExploreDataFetcher() {
       if (isIndianState(name)) {
         const canonical = normalizeState(name)!;
         stateCounts[canonical] = (stateCounts[canonical] || 0) + count;
+      } else if (normalizeCity(name)) {
+        // City/district stored in state column — resolve to its state and count there
+        const resolvedState = cityToState(name);
+        if (resolvedState && INDIAN_STATES.has(resolvedState)) {
+          stateCounts[resolvedState] = (stateCounts[resolvedState] || 0) + count;
+        }
       } else {
-        ministryCounts[name] = (ministryCounts[name] || 0) + count;
+        const key = normalizeMinistry(name) ?? name;
+        ministryCounts[key] = (ministryCounts[key] || 0) + count;
       }
     }
   }
@@ -152,7 +160,8 @@ async function ExploreDataFetcher() {
         // Don't count again if we already counted it from state/ministry, 
         // but here we are just building the org list, so we just skip it.
       } else {
-        orgCounts[t.organisation_name!] = (orgCounts[t.organisation_name!] || 0) + 1;
+        const key = normalizeMinistry(t.organisation_name) ?? t.organisation_name!;
+        orgCounts[key] = (orgCounts[key] || 0) + 1;
       }
     }
   });

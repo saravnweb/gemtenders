@@ -46,8 +46,22 @@ export function calculateValueBand(value: number | null | undefined): string | n
 
 const GEM_TITLE_PREFIX = /^Custom Bid for \w+ -\s*/i;
 
+/** True when >70% of letters are uppercase — i.e. the title was typed in ALL CAPS */
+function isAllCaps(s: string): boolean {
+  const letters = s.replace(/[^a-zA-Z]/g, '');
+  if (letters.length < 4) return false;
+  return s.replace(/[^A-Z]/g, '').length / letters.length > 0.7;
+}
+
+/** Title-case: capitalise the first letter of every word, lowercase the rest */
+function toTitleCase(s: string): string {
+  return s.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+}
+
 export function normalizeTitle(title: string): string {
-  return title.replace(GEM_TITLE_PREFIX, '').trim();
+  let result = title.replace(GEM_TITLE_PREFIX, '').trim();
+  if (isAllCaps(result)) result = toTitleCase(result);
+  return result;
 }
 
 /**
